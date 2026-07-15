@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/itam_db
+    username: itam_user
+    password: change_me
+
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    com.company.itam: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG

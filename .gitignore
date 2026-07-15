@@ -1,0 +1,31 @@
+# Environment
+.env
+
+# Backend
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.mvn/wrapper/maven-wrapper.jar
+
+# Storage
+storage/*
+!storage/import/
+!storage/handover/
+!storage/recovery/
+!storage/disposal/
+!storage/**/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
