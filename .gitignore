@@ -1,26 +1,31 @@
 # Environment
 .env
+.env.local
+.env.*.local
 
 # Backend
 backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
+backend/*.class
+backend/*.jar
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
-frontend/.mvn/wrapper/maven-wrapper.jar
+frontend/.DS_Store
 
-# Storage
-storage/*
-!storage/import/
-!storage/handover/
-!storage/recovery/
-!storage/disposal/
+# Storage (keep directory structure, ignore contents)
+storage/import/*
+storage/handover/*
+storage/recovery/*
+storage/disposal/*
 !storage/**/.gitkeep
 
 # IDE
 .idea/
 .vscode/
+*.swp
+*.swo
 
 # Logs
 *.log
@@ -29,3 +34,8 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+*.tmp
+
+# Temp
+*.bak
+*.orig

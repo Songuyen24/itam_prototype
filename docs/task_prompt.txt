@@ -1,0 +1,20 @@
+Đọc toàn bộ AI_CODING_GUIDELINES.md và CURSOR_TASK_PLAN_T10_T18.md.
+
+Kiểm tra source code và git status hiện tại.
+
+Chỉ thực hiện task T10 trên branch feature/T10-catalog-crud.
+Không triển khai task tiếp theo.
+BRD_ITAM là nguồn nghiệp vụ chính khi cần đối chiếu.
+
+Trước khi code, báo:
+1. Phạm vi task.
+2. File dự kiến tạo hoặc sửa.
+3. Migration/API/UI dự kiến thực hiện.
+4. Điểm chưa rõ hoặc có nguy cơ mâu thuẫn.
+
+Sau khi code:
+1. Chạy test backend.
+2. Build frontend nếu bị ảnh hưởng.
+3. Cập nhật checklist và nhật ký task.
+4. Báo file đã sửa và kết quả kiểm tra.
+5. Không tự push hoặc merge.

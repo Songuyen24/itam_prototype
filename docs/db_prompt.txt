@@ -1,0 +1,465 @@
+Hãy bổ sung database layer cho Backend Spring Boot của dự án ITAM.
+
+Trước khi code:
+
+1. Đọc kỹ:
+   - AI_CODING_GUIDELINES.md
+   - CURSOR_TASK_PLAN_T10_T18.md
+   - Cấu trúc và convention hiện có trong thư mục Backend.
+2. Kiểm tra pom.xml/build.gradle, application.yml và các entity hiện có.
+3. Không xóa, di chuyển hoặc viết lại code không liên quan.
+4. Nếu bảng/entity đã tồn tại, hãy cập nhật thay vì tạo trùng.
+5. Trình bày kế hoạch và danh sách file dự kiến thay đổi trước khi triển khai.
+
+## Phạm vi
+
+Chỉ triển khai nền tảng database cho Backend:
+
+- Database migration.
+- JPA Entity.
+- Enum cần thiết.
+- Spring Data JPA Repository.
+- Constraint và index.
+- Dữ liệu danh mục mặc định.
+- Test migration và entity mapping.
+
+Chưa triển khai Controller, API hoặc business workflow đầy đủ.
+
+## Công nghệ
+
+- Spring Boot.
+- Spring Data JPA.
+- PostgreSQL.
+- Java version và package structure phải theo project hiện tại.
+- Nếu project đã có Flyway hoặc Liquibase thì tiếp tục sử dụng công cụ hiện có.
+- Nếu chưa có migration tool, ưu tiên Flyway.
+- Không dùng `ddl-auto=create` hoặc `create-drop`.
+- Cấu hình `spring.jpa.hibernate.ddl-auto=validate`.
+- Database dùng `snake_case`.
+- Java Entity dùng tên số ít PascalCase.
+- Dùng `BIGINT` cho ID.
+- Dùng `Instant` cho `TIMESTAMPTZ`.
+- Dùng `LocalDate` cho `DATE`.
+- Dùng `BigDecimal` cho tiền.
+- Dùng `JSONB` cho dữ liệu draft, import và audit.
+- Không thêm Lombok nếu project hiện tại chưa sử dụng.
+
+## Các bảng cần triển khai
+
+### 1. roles
+
+- role_id BIGINT PK
+- code VARCHAR(30) UNIQUE NOT NULL
+- name VARCHAR(100) NOT NULL
+- is_active BOOLEAN NOT NULL DEFAULT TRUE
+
+Seed:
+
+- ADMIN
+- IT
+- PUR
+- USER
+
+Không tạo role FIN.
+
+### 2. departments
+
+- department_id BIGINT PK
+- code VARCHAR(50) UNIQUE NOT NULL
+- name VARCHAR(255) NOT NULL
+- is_active BOOLEAN DEFAULT TRUE
+- created_at TIMESTAMPTZ
+- updated_at TIMESTAMPTZ
+
+### 3. users
+
+- user_id BIGINT PK
+- email VARCHAR(255) UNIQUE NOT NULL
+- full_name VARCHAR(255) NOT NULL
+- password_hash VARCHAR(255), chỉ thêm nếu hệ thống đang có authentication
+- role_id FK roles NOT NULL
+- department_id FK departments NULL
+- is_active BOOLEAN DEFAULT TRUE
+- created_at TIMESTAMPTZ
+- updated_at TIMESTAMPTZ
+
+### 4. locations
+
+- location_id BIGINT PK
+- code VARCHAR(50) UNIQUE
+- name VARCHAR(255) NOT NULL
+- address VARCHAR(500)
+- is_active BOOLEAN DEFAULT TRUE
+- created_at TIMESTAMPTZ
+- updated_at TIMESTAMPTZ
+
+### 5. suppliers
+
+- supplier_id BIGINT PK
+- code VARCHAR(50) UNIQUE
+- name VARCHAR(255) NOT NULL
+- tax_code VARCHAR(100)
+- address VARCHAR(500)
+- phone VARCHAR(50)
+- email VARCHAR(255)
+- is_active BOOLEAN DEFAULT TRUE
+- created_at TIMESTAMPTZ
+- updated_at TIMESTAMPTZ
+
+### 6. supplier_contacts
+
+- contact_id BIGINT PK
+- supplier_id FK suppliers NOT NULL
+- name VARCHAR(255) NOT NULL
+- position VARCHAR(255)
+- phone VARCHAR(50)
+- email VARCHAR(255)
+
+### 7. asset_categories
+
+- category_id BIGINT PK
+- code VARCHAR(50) UNIQUE NOT NULL
+- name VARCHAR(255) NOT NULL
+- is_active BOOLEAN DEFAULT TRUE
+
+Seed: HARDWARE, SOFTWARE, CONSUMABLE.
+
+### 8. asset_types
+
+- type_id BIGINT PK
+- code VARCHAR(50) UNIQUE NOT NULL
+- type_name VARCHAR(255) NOT NULL
+- is_active BOOLEAN DEFAULT TRUE
+
+### 9. asset_statuses
+
+- status_id BIGINT PK
+- code VARCHAR(50) UNIQUE NOT NULL
+- name VARCHAR(255) NOT NULL
+- is_active BOOLEAN DEFAULT TRUE
+
+Seed:
+
+- IN_STOCK
+- IN_USE
+- IN_REPAIR
+- DAMAGED
+- RETIRED
+
+Không tự thêm trạng thái PENDING_IMPORT. Trạng thái chờ duyệt được quản lý ở transactions.
+
+### 10. asset_conditions
+
+- condition_id BIGINT PK
+- code VARCHAR(50) UNIQUE NOT NULL
+- name VARCHAR(255) NOT NULL
+- is_active BOOLEAN DEFAULT TRUE
+
+Seed: NEW, USED, DAMAGED.
+
+### 11. models
+
+- model_id BIGINT PK
+- name VARCHAR(255) NOT NULL
+- brand VARCHAR(255)
+- type_id FK asset_types NOT NULL
+- default_cpu VARCHAR(255)
+- default_ram VARCHAR(100)
+- default_storage VARCHAR(100)
+- default_graphics_card VARCHAR(255)
+- is_active BOOLEAN DEFAULT TRUE
+- created_at TIMESTAMPTZ
+- updated_at TIMESTAMPTZ
+
+### 12. software_catalog
+
+- software_catalog_id BIGINT PK
+- name VARCHAR(255) NOT NULL
+- manufacturer VARCHAR(255)
+- version VARCHAR(100)
+- is_active BOOLEAN DEFAULT TRUE
+
+### 13. software_license_types
+
+- license_type_id BIGINT PK
+- code VARCHAR(50) UNIQUE NOT NULL
+- name VARCHAR(255) NOT NULL
+- is_active BOOLEAN DEFAULT TRUE
+
+Seed: PER_USER, OEM, PERPETUAL.
+
+### 14. assets
+
+- asset_id BIGINT PK
+- asset_tag VARCHAR(100) UNIQUE NOT NULL
+- name VARCHAR(255) NOT NULL
+- category_id FK asset_categories NOT NULL
+- status_id FK asset_statuses NOT NULL
+- assigned_to FK users NULL
+- department_id FK departments NULL
+- location_id FK locations NULL
+- supplier_id FK suppliers NULL
+- po_number VARCHAR(100)
+- purchase_date DATE
+- purchase_cost NUMERIC(18,2)
+- created_by FK users
+- created_at TIMESTAMPTZ
+- updated_by FK users
+- updated_at TIMESTAMPTZ
+
+purchase_cost phải lớn hơn hoặc bằng 0.
+
+### 15. asset_hardware_details
+
+- asset_id BIGINT PK/FK assets
+- serial_number VARCHAR(255) UNIQUE NOT NULL
+- model_id FK models
+- warranty_expiration DATE
+- condition_id FK asset_conditions
+- actual_cpu VARCHAR(255)
+- actual_ram VARCHAR(100)
+- actual_storage VARCHAR(100)
+- actual_graphics_card VARCHAR(255)
+
+Đây là quan hệ one-to-one với assets.
+
+### 16. asset_software_details
+
+- asset_id BIGINT PK/FK assets
+- software_catalog_id FK software_catalog NOT NULL
+- license_key VARCHAR(500)
+- license_type_id FK software_license_types
+- seat_count INTEGER
+- expiry_date DATE
+
+seat_count phải lớn hơn 0 nếu có giá trị.
+
+### 17. asset_relationships
+
+- relationship_id BIGINT PK
+- parent_asset_id FK assets NOT NULL
+- child_asset_id FK assets NOT NULL
+- relationship_type VARCHAR(30) NOT NULL
+- created_by FK users
+- created_at TIMESTAMPTZ
+
+Loại quan hệ:
+
+- COMPONENT_OF
+- INSTALLED_ON
+
+Constraint:
+
+- parent_asset_id khác child_asset_id.
+- Unique(parent_asset_id, child_asset_id, relationship_type).
+
+### 18. transactions
+
+- transaction_id BIGINT PK
+- transaction_code VARCHAR(100) UNIQUE NOT NULL
+- type VARCHAR(30) NOT NULL
+- status VARCHAR(30) NOT NULL
+- requester_id FK users NOT NULL
+- related_user_id FK users NULL
+- notes TEXT
+- processed_by FK users NULL
+- processed_at TIMESTAMPTZ NULL
+- rejection_reason TEXT NULL
+- created_at TIMESTAMPTZ NOT NULL
+- completed_at TIMESTAMPTZ NULL
+
+Transaction type:
+
+- IMPORT
+- HANDOVER
+- RECOVERY
+- DISPOSAL
+
+Transaction status:
+
+- DRAFT
+- PENDING
+- COMPLETED
+- REJECTED
+- CANCELLED
+
+Không có bước FIN:
+
+- Nhập kho: PUR tạo, IT xác nhận.
+- Thanh lý: Admin duyệt hoặc từ chối.
+- PUR/Kế toán chỉ nhận thông báo.
+
+### 19. transaction_assets
+
+- transaction_asset_id BIGINT PK
+- transaction_id FK transactions NOT NULL
+- asset_id FK assets NULL
+- draft_data JSONB NULL
+- notes TEXT
+
+Constraint: asset_id hoặc draft_data phải có ít nhất một giá trị.
+
+Dùng draft_data để lưu tài sản nhập kho chưa được IT xác nhận. Sau khi xác nhận mới tạo assets và cập nhật asset_id.
+
+### 20. documents
+
+- document_id BIGINT PK
+- transaction_id FK transactions NULL
+- asset_id FK assets NULL
+- document_type VARCHAR(50) NOT NULL
+- original_file_name VARCHAR(500) NOT NULL
+- stored_file_name VARCHAR(500) NOT NULL
+- storage_path VARCHAR(1000) NOT NULL
+- mime_type VARCHAR(100)
+- file_size BIGINT
+- checksum VARCHAR(128)
+- uploaded_by FK users NOT NULL
+- created_at TIMESTAMPTZ NOT NULL
+
+Constraint:
+
+- transaction_id hoặc asset_id phải có ít nhất một giá trị.
+- file_size phải lớn hơn hoặc bằng 0.
+
+Chưa triển khai QR.
+
+### 21. asset_history
+
+- history_id BIGINT PK
+- asset_id FK assets NOT NULL
+- transaction_id FK transactions NULL
+- actor_user_id FK users NOT NULL
+- action VARCHAR(50) NOT NULL
+- old_data JSONB NULL
+- new_data JSONB NULL
+- details TEXT
+- created_at TIMESTAMPTZ NOT NULL
+
+### 22. import_batches
+
+- import_batch_id BIGINT PK
+- file_name VARCHAR(500) NOT NULL
+- status VARCHAR(30) NOT NULL
+- total_rows INTEGER DEFAULT 0
+- valid_rows INTEGER DEFAULT 0
+- invalid_rows INTEGER DEFAULT 0
+- imported_rows INTEGER DEFAULT 0
+- uploaded_by FK users NOT NULL
+- created_at TIMESTAMPTZ NOT NULL
+- completed_at TIMESTAMPTZ NULL
+
+Status:
+
+- UPLOADED
+- VALIDATED
+- IMPORTING
+- COMPLETED
+- FAILED
+
+Các trường số lượng không được âm.
+
+### 23. import_rows
+
+- import_row_id BIGINT PK
+- import_batch_id FK import_batches NOT NULL
+- row_number INTEGER NOT NULL
+- raw_data JSONB NOT NULL
+- validation_status VARCHAR(30) NOT NULL
+- error_message TEXT NULL
+- asset_id FK assets NULL
+- created_at TIMESTAMPTZ NOT NULL
+
+Unique(import_batch_id, row_number).
+
+### 24. email_logs
+
+- email_log_id BIGINT PK
+- transaction_id FK transactions NULL
+- recipient VARCHAR(255) NOT NULL
+- subject VARCHAR(500) NOT NULL
+- content TEXT
+- status VARCHAR(30) NOT NULL
+- error_message TEXT NULL
+- sent_at TIMESTAMPTZ NULL
+- created_at TIMESTAMPTZ NOT NULL
+
+Phục vụ email local hoặc sandbox. Không tích hợp email production.
+
+## Chưa triển khai
+
+- maintenance_types
+- asset_maintenances
+- QR Code
+- Bảng dashboard riêng
+
+Dashboard phải truy vấn tổng hợp từ assets, transactions và asset_history.
+
+## Entity và Repository
+
+Tạo Entity và Repository tương ứng cho toàn bộ bảng trên.
+
+Yêu cầu mapping:
+
+- Dùng LAZY cho quan hệ ManyToOne và OneToOne khi phù hợp.
+- Không dùng CascadeType.REMOVE cho dữ liệu nghiệp vụ quan trọng.
+- Tránh vòng lặp khi serialize entity.
+- Không trả Entity trực tiếp qua API trong tương lai.
+- Enum Java phải map thành STRING, không dùng ORDINAL.
+- Nếu dùng JSONB với Hibernate 6, sử dụng mapping JSON phù hợp với version hiện tại.
+
+## Index
+
+Tạo index tối thiểu cho:
+
+- assets(status_id)
+- assets(assigned_to)
+- assets(department_id)
+- assets(location_id)
+- transactions(type, status)
+- transactions(created_at)
+- transaction_assets(transaction_id)
+- documents(transaction_id)
+- documents(asset_id)
+- asset_history(asset_id, created_at)
+- import_rows(import_batch_id, validation_status)
+
+## Migration
+
+Tách migration hợp lý, ví dụ:
+
+- V1: Identity và master data.
+- V2: Assets và asset details.
+- V3: Transactions, documents và history.
+- V4: Excel import và email logs.
+- V5: Seed dữ liệu mặc định.
+
+Nếu project đã có migration thì phải đánh số tiếp theo, không sửa migration đã chạy.
+
+## Kiểm thử
+
+Thêm test phù hợp với cấu trúc hiện có:
+
+- Application context khởi động được.
+- Migration chạy thành công trên PostgreSQL.
+- Entity mapping hợp lệ.
+- Unique Asset Tag.
+- Unique Serial Number.
+- Không cho asset relationship tự tham chiếu.
+- Không cho transaction_assets thiếu cả asset_id và draft_data.
+- Dữ liệu seed không bị tạo trùng.
+
+Ưu tiên PostgreSQL Testcontainers nếu project đang hỗ trợ.
+
+## Hoàn thành
+
+Sau khi triển khai:
+
+1. Chạy formatter nếu project có.
+2. Chạy toàn bộ test Backend.
+3. Không commit hoặc push.
+4. Báo cáo:
+   - File đã tạo hoặc sửa.
+   - Migration đã tạo.
+   - Bảng và constraint đã triển khai.
+   - Kết quả test.
+   - Các giả định hoặc phần chưa thể hoàn thành.
