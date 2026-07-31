@@ -2,7 +2,6 @@ package com.company.itam.asset.entity;
 
 import com.company.itam.catalog.entity.AssetConditionEntity;
 import com.company.itam.catalog.entity.ModelEntity;
-import com.company.itam.common.enums.AssetCondition;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
@@ -14,7 +13,7 @@ public class AssetHardwareDetailsEntity {
     @Column(name = "asset_id")
     private Long assetId;
 
-    @Column(name = "serial_number", nullable = false, unique = true)
+    @Column(name = "serial_number", unique = true, length = 255)
     private String serialNumber;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -24,9 +23,9 @@ public class AssetHardwareDetailsEntity {
     @Column(name = "warranty_expiration")
     private LocalDate warrantyExpiration;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "condition_id")
-    private AssetCondition conditionId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "condition_id")
+    private AssetConditionEntity condition;
 
     @Column(name = "actual_cpu")
     private String actualCpu;
@@ -78,12 +77,12 @@ public class AssetHardwareDetailsEntity {
         this.warrantyExpiration = warrantyExpiration;
     }
 
-    public AssetCondition getConditionId() {
-        return conditionId;
+    public AssetConditionEntity getCondition() {
+        return condition;
     }
 
-    public void setConditionId(AssetCondition conditionId) {
-        this.conditionId = conditionId;
+    public void setCondition(AssetConditionEntity condition) {
+        this.condition = condition;
     }
 
     public String getActualCpu() {

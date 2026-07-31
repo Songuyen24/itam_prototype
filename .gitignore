@@ -30,6 +30,8 @@ storage/disposal/*
 # Logs
 *.log
 logs/
+*.out
+*.err
 
 # OS
 .DS_Store
@@ -39,3 +41,8 @@ Thumbs.db
 # Temp
 *.bak
 *.orig
+.tmp*/
+.tmp_*
+
+# Local reference/source materials
+project_sources/

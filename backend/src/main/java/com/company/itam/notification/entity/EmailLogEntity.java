@@ -1,7 +1,7 @@
 package com.company.itam.notification.entity;
 
 import com.company.itam.common.enums.EmailStatus;
-import com.company.itam.transaction.entity.TransactionEntity;
+import com.company.itam.workflow.core.entity.TransactionEntity;
 import jakarta.persistence.*;
 import java.time.Instant;
 

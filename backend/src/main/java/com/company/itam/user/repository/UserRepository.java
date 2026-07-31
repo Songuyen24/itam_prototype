@@ -1,6 +1,7 @@
 package com.company.itam.user.repository;
 
 import com.company.itam.user.entity.UserEntity;
+import com.company.itam.common.enums.AccountStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +16,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     Optional<UserEntity> findByEmail(String email);
     boolean existsByEmail(String email);
     Page<UserEntity> findByFullNameContainingIgnoreCase(String name, Pageable pageable);
-    Page<UserEntity> findByIsActive(Boolean isActive, Pageable pageable);
+    Page<UserEntity> findByAccountStatus(AccountStatus accountStatus, Pageable pageable);
 
     @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department WHERE u.userId = :id")
     Optional<UserEntity> findByIdWithDetails(@Param("id") Long id);

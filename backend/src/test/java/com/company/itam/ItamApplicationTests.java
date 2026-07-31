@@ -10,7 +10,7 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = {
     "spring.datasource.url=jdbc:tc:postgresql:16:///itam_test",
     "spring.datasource.driver-class-name=org.testcontainers.jdbc.ContainerDatabaseDriver",
-    "spring.jpa.hibernate.ddl-auto=none",
+    "spring.jpa.hibernate.ddl-auto=validate",
     "spring.flyway.enabled=true",
     "spring.flyway.baseline-on-migrate=true"
 })

@@ -12,6 +12,6 @@ import java.util.Optional;
 public interface AssetTypeRepository extends JpaRepository<AssetTypeEntity, Long> {
     Optional<AssetTypeEntity> findByCode(String code);
     boolean existsByCode(String code);
-    Page<AssetTypeEntity> findByTypeNameContainingIgnoreCase(String name, Pageable pageable);
+    Page<AssetTypeEntity> findByNameContainingIgnoreCase(String keyword, Pageable pageable);
     Page<AssetTypeEntity> findByIsActive(Boolean isActive, Pageable pageable);
 }

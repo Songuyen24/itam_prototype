@@ -32,6 +32,9 @@ public class ImportBatchEntity {
     @Column(name = "invalid_rows")
     private Integer invalidRows = 0;
 
+    @Column(name = "duplicate_rows", nullable = false)
+    private Integer duplicateRows = 0;
+
     @Column(name = "imported_rows")
     private Integer importedRows = 0;
 
@@ -104,6 +107,9 @@ public class ImportBatchEntity {
     public void setInvalidRows(Integer invalidRows) {
         this.invalidRows = invalidRows;
     }
+
+    public Integer getDuplicateRows() { return duplicateRows; }
+    public void setDuplicateRows(Integer duplicateRows) { this.duplicateRows = duplicateRows; }
 
     public Integer getImportedRows() {
         return importedRows;

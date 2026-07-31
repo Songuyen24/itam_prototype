@@ -2,10 +2,15 @@ spring:
   application:
     name: itam-backend
 
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/itam_db}
-    username: ${DB_USERNAME:itam_user}
-    password: ${DB_PASSWORD:change_me}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:

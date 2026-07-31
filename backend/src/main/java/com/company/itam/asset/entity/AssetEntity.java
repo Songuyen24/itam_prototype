@@ -1,8 +1,6 @@
 package com.company.itam.asset.entity;
 
 import com.company.itam.catalog.entity.*;
-import com.company.itam.common.enums.AssetCategory;
-import com.company.itam.common.enums.AssetStatus;
 import com.company.itam.department.entity.DepartmentEntity;
 import com.company.itam.location.entity.LocationEntity;
 import com.company.itam.supplier.entity.SupplierEntity;
@@ -27,13 +25,13 @@ public class AssetEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "category_id", nullable = false)
-    private AssetCategory categoryId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "type_id", nullable = false)
+    private AssetTypeEntity type;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status_id", nullable = false)
-    private AssetStatus statusId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id", nullable = false)
+    private AssetStatusEntity status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to")
@@ -61,7 +59,7 @@ public class AssetEntity {
     private BigDecimal purchaseCost = BigDecimal.ZERO;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
+    @JoinColumn(name = "created_by", nullable = false)
     private UserEntity createdBy;
 
     @Column(name = "created_at")
@@ -74,11 +72,11 @@ public class AssetEntity {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    @OneToOne(mappedBy = "asset", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "asset", fetch = FetchType.LAZY)
     private AssetHardwareDetailsEntity hardwareDetails;
 
-    @OneToOne(mappedBy = "asset", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private AssetSoftwareDetailsEntity softwareDetails;
+    @OneToOne(mappedBy = "asset", fetch = FetchType.LAZY)
+    private AssetLicenseDetailsEntity licenseDetails;
 
     @PrePersist
     protected void onCreate() {
@@ -117,20 +115,20 @@ public class AssetEntity {
         this.name = name;
     }
 
-    public AssetCategory getCategoryId() {
-        return categoryId;
+    public AssetTypeEntity getType() {
+        return type;
     }
 
-    public void setCategoryId(AssetCategory categoryId) {
-        this.categoryId = categoryId;
+    public void setType(AssetTypeEntity type) {
+        this.type = type;
     }
 
-    public AssetStatus getStatusId() {
-        return statusId;
+    public AssetStatusEntity getStatus() {
+        return status;
     }
 
-    public void setStatusId(AssetStatus statusId) {
-        this.statusId = statusId;
+    public void setStatus(AssetStatusEntity status) {
+        this.status = status;
     }
 
     public UserEntity getAssignedTo() {
@@ -229,11 +227,11 @@ public class AssetEntity {
         this.hardwareDetails = hardwareDetails;
     }
 
-    public AssetSoftwareDetailsEntity getSoftwareDetails() {
-        return softwareDetails;
+    public AssetLicenseDetailsEntity getLicenseDetails() {
+        return licenseDetails;
     }
 
-    public void setSoftwareDetails(AssetSoftwareDetailsEntity softwareDetails) {
-        this.softwareDetails = softwareDetails;
+    public void setLicenseDetails(AssetLicenseDetailsEntity licenseDetails) {
+        this.licenseDetails = licenseDetails;
     }
 }

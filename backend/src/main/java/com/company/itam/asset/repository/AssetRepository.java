@@ -18,8 +18,8 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long>, JpaSp
     Optional<AssetEntity> findByAssetTag(String assetTag);
     boolean existsByAssetTag(String assetTag);
 
-    Page<AssetEntity> findByStatusId(AssetStatus status, Pageable pageable);
-    Page<AssetEntity> findByCategoryId(AssetCategory category, Pageable pageable);
+    Page<AssetEntity> findByStatusCode(AssetStatus status, Pageable pageable);
+    Page<AssetEntity> findByTypeCategoryCode(AssetCategory category, Pageable pageable);
     Page<AssetEntity> findByAssignedToUserId(Long userId, Pageable pageable);
     Page<AssetEntity> findByDepartmentDepartmentId(Long departmentId, Pageable pageable);
     Page<AssetEntity> findByLocationLocationId(Long locationId, Pageable pageable);
@@ -27,6 +27,6 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long>, JpaSp
     @Query("SELECT a FROM AssetEntity a LEFT JOIN FETCH a.hardwareDetails WHERE a.assetId = :id")
     Optional<AssetEntity> findByIdWithHardwareDetails(@Param("id") Long id);
 
-    @Query("SELECT a FROM AssetEntity a LEFT JOIN FETCH a.softwareDetails WHERE a.assetId = :id")
-    Optional<AssetEntity> findByIdWithSoftwareDetails(@Param("id") Long id);
+    @Query("SELECT a FROM AssetEntity a LEFT JOIN FETCH a.licenseDetails WHERE a.assetId = :id")
+    Optional<AssetEntity> findByIdWithLicenseDetails(@Param("id") Long id);
 }

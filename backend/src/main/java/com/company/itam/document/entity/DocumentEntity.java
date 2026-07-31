@@ -2,7 +2,7 @@ package com.company.itam.document.entity;
 
 import com.company.itam.asset.entity.AssetEntity;
 import com.company.itam.common.enums.DocumentType;
-import com.company.itam.transaction.entity.TransactionEntity;
+import com.company.itam.workflow.core.entity.TransactionEntity;
 import com.company.itam.user.entity.UserEntity;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -17,7 +17,7 @@ public class DocumentEntity {
     private Long documentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transaction_id")
+    @JoinColumn(name = "transaction_id", nullable = false)
     private TransactionEntity transaction;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -45,6 +45,9 @@ public class DocumentEntity {
 
     @Column(name = "checksum", length = 128)
     private String checksum;
+
+    @Column(name = "is_locked", nullable = false)
+    private Boolean locked = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by", nullable = false)
@@ -141,6 +144,9 @@ public class DocumentEntity {
     public void setChecksum(String checksum) {
         this.checksum = checksum;
     }
+
+    public Boolean getLocked() { return locked; }
+    public void setLocked(Boolean locked) { this.locked = locked; }
 
     public UserEntity getUploadedBy() {
         return uploadedBy;

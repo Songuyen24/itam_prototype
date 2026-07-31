@@ -2,10 +2,11 @@ package com.company.itam.common.enums;
 
 public enum DocumentType {
     INVOICE,
-    RECEIPT,
-    WARRANTY,
+    PURCHASE_ORDER,
+    IMPORT_RECEIPT,
+    HANDOVER_REPORT,
+    RECOVERY_REPORT,
+    DISPOSAL_REPORT,
     CONTRACT,
-    MANUAL,
-    CERTIFICATE,
     OTHER
 }

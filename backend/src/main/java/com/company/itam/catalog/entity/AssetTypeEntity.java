@@ -15,8 +15,12 @@ public class AssetTypeEntity {
     @Column(name = "code", nullable = false, unique = true, length = 50)
     private String code;
 
-    @Column(name = "type_name", nullable = false)
-    private String typeName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private AssetCategoryEntity category;
+
+    @Column(name = "name", nullable = false)
+    private String name;
 
     @Column(name = "is_active")
     private Boolean isActive = true;
@@ -39,12 +43,20 @@ public class AssetTypeEntity {
         this.code = code;
     }
 
-    public String getTypeName() {
-        return typeName;
+    public AssetCategoryEntity getCategory() {
+        return category;
     }
 
-    public void setTypeName(String typeName) {
-        this.typeName = typeName;
+    public void setCategory(AssetCategoryEntity category) {
+        this.category = category;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public Boolean getIsActive() {

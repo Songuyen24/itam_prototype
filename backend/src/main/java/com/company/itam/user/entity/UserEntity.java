@@ -1,6 +1,6 @@
 package com.company.itam.user.entity;
 
-import com.company.itam.common.enums.Role;
+import com.company.itam.common.enums.AccountStatus;
 import com.company.itam.department.entity.DepartmentEntity;
 import com.company.itam.role.entity.RoleEntity;
 import jakarta.persistence.*;
@@ -21,6 +21,9 @@ public class UserEntity {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
+    @Column(name = "password_hash", length = 255)
+    private String passwordHash;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
     private RoleEntity role;
@@ -29,8 +32,9 @@ public class UserEntity {
     @JoinColumn(name = "department_id")
     private DepartmentEntity department;
 
-    @Column(name = "is_active")
-    private Boolean isActive = true;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", nullable = false, length = 20)
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
     @Column(name = "created_at")
     private Instant createdAt;
@@ -75,6 +79,9 @@ public class UserEntity {
         this.fullName = fullName;
     }
 
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
     public RoleEntity getRole() {
         return role;
     }
@@ -91,12 +98,12 @@ public class UserEntity {
         this.department = department;
     }
 
-    public Boolean getIsActive() {
-        return isActive;
+    public AccountStatus getAccountStatus() {
+        return accountStatus;
     }
 
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
+    public void setAccountStatus(AccountStatus accountStatus) {
+        this.accountStatus = accountStatus;
     }
 
     public Instant getCreatedAt() {
