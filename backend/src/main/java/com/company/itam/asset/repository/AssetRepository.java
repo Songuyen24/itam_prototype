@@ -2,6 +2,7 @@ package com.company.itam.asset.repository;
 
 import com.company.itam.asset.entity.AssetEntity;
 import com.company.itam.common.enums.AssetCategory;
+import com.company.itam.common.enums.AssetCondition;
 import com.company.itam.common.enums.AssetStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,12 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long>, JpaSp
     Page<AssetEntity> findByAssignedToUserId(Long userId, Pageable pageable);
     Page<AssetEntity> findByDepartmentDepartmentId(Long departmentId, Pageable pageable);
     Page<AssetEntity> findByLocationLocationId(Long locationId, Pageable pageable);
+
+    boolean existsByDepartmentDepartmentId(Long departmentId);
+    boolean existsByLocationLocationId(Long locationId);
+    boolean existsBySupplierSupplierId(Long supplierId);
+    boolean existsByTypeTypeId(Long typeId);
+    boolean existsByStatusCode(AssetStatus status);
 
     @Query("SELECT a FROM AssetEntity a LEFT JOIN FETCH a.hardwareDetails WHERE a.assetId = :id")
     Optional<AssetEntity> findByIdWithHardwareDetails(@Param("id") Long id);

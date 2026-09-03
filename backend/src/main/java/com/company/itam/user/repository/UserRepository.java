@@ -17,6 +17,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     boolean existsByEmail(String email);
     Page<UserEntity> findByFullNameContainingIgnoreCase(String name, Pageable pageable);
     Page<UserEntity> findByAccountStatus(AccountStatus accountStatus, Pageable pageable);
+    boolean existsByDepartmentDepartmentId(Long departmentId);
 
     @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department WHERE u.userId = :id")
     Optional<UserEntity> findByIdWithDetails(@Param("id") Long id);

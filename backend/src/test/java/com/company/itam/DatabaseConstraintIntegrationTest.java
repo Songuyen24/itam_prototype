@@ -8,16 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:tc:postgresql:16:///itam_constraints",
-    "spring.datasource.driver-class-name=org.testcontainers.jdbc.ContainerDatabaseDriver",
-    "spring.jpa.hibernate.ddl-auto=validate",
-    "spring.flyway.enabled=true"
-})
 class DatabaseConstraintIntegrationTest {
     @Autowired JdbcTemplate jdbc;
 
@@ -29,6 +22,7 @@ class DatabaseConstraintIntegrationTest {
             insert into users(email, full_name, role_id, account_status)
             select 'constraint-test@example.test', 'Constraint Test', role_id, 'ACTIVE'
             from roles where code = 'ADMIN'
+            on conflict (email) do nothing
             """);
         assertThatThrownBy(() -> jdbc.update("""
             insert into transactions(transaction_code,type,status,requester_id)

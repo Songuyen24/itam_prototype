@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LicenseAssignmentTypeRepository extends JpaRepository<LicenseAssignmentTypeEntity, Long> {
     Optional<LicenseAssignmentTypeEntity> findByCode(String code);
+    boolean existsByCode(String code);
 }

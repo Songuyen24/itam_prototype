@@ -12,5 +12,13 @@ import java.util.Optional;
 public interface SoftwareCatalogRepository extends JpaRepository<SoftwareCatalogEntity, Long> {
     Page<SoftwareCatalogEntity> findByNameContainingIgnoreCase(String name, Pageable pageable);
     Page<SoftwareCatalogEntity> findByManufacturerContainingIgnoreCase(String manufacturer, Pageable pageable);
+    Page<SoftwareCatalogEntity> findByNameContainingIgnoreCaseOrManufacturerContainingIgnoreCase(String name, String manufacturer, Pageable pageable);
     Page<SoftwareCatalogEntity> findByIsActive(Boolean isActive, Pageable pageable);
+
+    boolean existsByManufacturerIgnoreCaseAndNameIgnoreCaseAndVersionIgnoreCase(
+            String manufacturer,
+            String name,
+            String version
+    );
+    boolean existsByNameIgnoreCaseAndManufacturerIgnoreCase(String name, String manufacturer);
 }

@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LicenseTermTypeRepository extends JpaRepository<LicenseTermTypeEntity, Long> {
     Optional<LicenseTermTypeEntity> findByCode(String code);
+    boolean existsByCode(String code);
 }
