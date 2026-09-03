@@ -6,12 +6,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface AssetTypeRepository extends JpaRepository<AssetTypeEntity, Long> {
     Optional<AssetTypeEntity> findByCode(String code);
     boolean existsByCode(String code);
+    boolean existsByCodeIgnoreCase(String code);
+    boolean existsByNameIgnoreCase(String name);
+    boolean existsByCategoryCategoryId(Long categoryId);
     Page<AssetTypeEntity> findByNameContainingIgnoreCase(String keyword, Pageable pageable);
     Page<AssetTypeEntity> findByIsActive(Boolean isActive, Pageable pageable);
+    List<AssetTypeEntity> findByCategoryCategoryId(Long categoryId);
 }
