@@ -1,6 +1,7 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { RoleSwitcher } from '@/shared/components/RoleSwitcher/RoleSwitcher';
 
 function MainLayout() {
   const { t } = useTranslation('common');
@@ -66,10 +67,7 @@ function MainLayout() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <LanguageSwitcher />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="badge badge-active">ADMIN</span>
-              <div style={{ fontSize: '14px', fontWeight: 500 }}>{t('roles.admin', 'Quản trị viên')}</div>
-            </div>
+            <RoleSwitcher />
           </div>
         </header>
 
