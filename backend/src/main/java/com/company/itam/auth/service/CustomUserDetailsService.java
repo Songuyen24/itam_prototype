@@ -1,5 +1,6 @@
 package com.company.itam.auth.service;
 
+import com.company.itam.role.entity.RoleEntity;
 import com.company.itam.user.entity.UserEntity;
 import com.company.itam.user.repository.UserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -29,11 +30,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        UserEntity user = userRepository.findByEmail(email == null ? "" : email.trim().toLowerCase())
+        // Dùng query có JOIN FETCH để nạp role/department ngay trong transaction,
+        // tránh LazyInitializationException khi đọc role ngoài session.
+        UserEntity user = userRepository.findByEmailWithDetails(email == null ? "" : email.trim().toLowerCase())
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + email));
 
-        String roleCode = user.getRole() != null && user.getRole().getCode() != null
-                ? user.getRole().getCode().name()
+        RoleEntity role = user.getRole();
+        String roleCode = role != null && role.getCode() != null
+                ? role.getCode().name()
                 : "USER";
 
         return User.withUsername(user.getEmail())

@@ -19,6 +19,27 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     Page<UserEntity> findByAccountStatus(AccountStatus accountStatus, Pageable pageable);
     boolean existsByDepartmentDepartmentId(Long departmentId);
 
+    /**
+     * Tải user theo email kèm role/department để tránh LazyInit "no Session"
+     * khi Spring Security đọc role ngay sau khi transaction repo đã đóng.
+     */
+    @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department WHERE u.email = :email")
+    Optional<UserEntity> findByEmailWithDetails(@Param("email") String email);
+
     @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department WHERE u.userId = :id")
     Optional<UserEntity> findByIdWithDetails(@Param("id") Long id);
+
+    /**
+     * List all users with role + department eagerly loaded.
+     * Prevents LazyInitializationException when UserResponse.fromEntity() accesses role/department.
+     */
+    @Query(value = "SELECT u FROM UserEntity u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department",
+           countQuery = "SELECT COUNT(u) FROM UserEntity u")
+    Page<UserEntity> findAllWithDetails(Pageable pageable);
+
+    /**
+     * Search users by name with role + department eagerly loaded.
+     */
+    @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department WHERE LOWER(u.fullName) LIKE LOWER(CONCAT('%', :name, '%'))")
+    Page<UserEntity> findByFullNameContainingIgnoreCaseWithDetails(@Param("name") String name, Pageable pageable);
 }

@@ -133,7 +133,7 @@ public class CatalogService {
 
     @Transactional(readOnly = true)
     public AssetTypeResponse getAssetTypeById(Long id) {
-        AssetTypeEntity entity = typeRepository.findById(id)
+        AssetTypeEntity entity = typeRepository.findByIdWithCategory(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại tài sản với ID: " + id));
         return toTypeResponse(entity);
     }
