@@ -446,7 +446,7 @@ export const CatalogsPage: React.FC = () => {
       const active = row.isActive ?? row.active ?? true;
       return (
         <span className={`badge ${active ? 'badge-active' : 'badge-inactive'}`}>
-          {active ? 'Hoạt động' : 'Tạm khóa'}
+          {active ? t('catalogs:columns.active', 'Hoạt động') : t('catalogs:columns.inactive', 'Tạm khóa')}
         </span>
       );
     };
@@ -454,69 +454,69 @@ export const CatalogsPage: React.FC = () => {
     switch (activeTab) {
       case 'departments':
         return [
-          { header: 'Mã phòng ban', accessor: 'code', width: '20%' },
-          { header: 'Tên phòng ban', accessor: 'name', width: '50%' },
-          { header: 'Trạng thái', render: renderActiveBadge, width: '15%' },
+          { header: t('catalogs:columns.departmentCode', 'Mã phòng ban'), accessor: 'code', width: '20%' },
+          { header: t('catalogs:columns.departmentName', 'Tên phòng ban'), accessor: 'name', width: '50%' },
+          { header: t('catalogs:columns.status', 'Trạng thái'), render: renderActiveBadge, width: '15%' },
         ];
       case 'locations':
         return [
-          { header: 'Mã vị trí', accessor: 'code', width: '20%' },
-          { header: 'Tên vị trí', accessor: 'name', width: '30%' },
-          { header: 'Địa chỉ', accessor: 'address', width: '35%' },
-          { header: 'Trạng thái', render: renderActiveBadge, width: '15%' },
+          { header: t('catalogs:columns.locationCode', 'Mã vị trí'), accessor: 'code', width: '20%' },
+          { header: t('catalogs:columns.locationName', 'Tên vị trí'), accessor: 'name', width: '30%' },
+          { header: t('catalogs:columns.address', 'Địa chỉ'), accessor: 'address', width: '35%' },
+          { header: t('catalogs:columns.status', 'Trạng thái'), render: renderActiveBadge, width: '15%' },
         ];
       case 'suppliers':
         return [
-          { header: 'Mã NCC', accessor: 'code', width: '15%' },
-          { header: 'Tên nhà cung cấp', accessor: 'name', width: '30%' },
-          { header: 'Điện thoại', accessor: 'phone', width: '15%' },
-          { header: 'Email', accessor: 'email', width: '20%' },
-          { header: 'Trạng thái', render: renderActiveBadge, width: '10%' },
+          { header: t('catalogs:columns.supplierCode', 'Mã NCC'), accessor: 'code', width: '15%' },
+          { header: t('catalogs:columns.supplierName', 'Tên nhà cung cấp'), accessor: 'name', width: '30%' },
+          { header: t('catalogs:columns.phone', 'Điện thoại'), accessor: 'phone', width: '15%' },
+          { header: t('catalogs:columns.email', 'Email'), accessor: 'email', width: '20%' },
+          { header: t('catalogs:columns.status', 'Trạng thái'), render: renderActiveBadge, width: '10%' },
         ];
       case 'categories':
         return [
-          { header: 'Mã nhóm', accessor: 'code', width: '25%' },
-          { header: 'Tên nhóm tài sản', accessor: 'name', width: '50%' },
-          { header: 'Trạng thái', render: renderActiveBadge, width: '15%' },
+          { header: t('catalogs:columns.categoryCode', 'Mã nhóm'), accessor: 'code', width: '25%' },
+          { header: t('catalogs:columns.categoryName', 'Tên nhóm tài sản'), accessor: 'name', width: '50%' },
+          { header: t('catalogs:columns.status', 'Trạng thái'), render: renderActiveBadge, width: '15%' },
         ];
       case 'types':
         return [
-          { header: 'Mã loại', accessor: 'code', width: '20%' },
-          { header: 'Tên loại tài sản', accessor: 'name', width: '30%' },
+          { header: t('catalogs:columns.typeCode', 'Mã loại'), accessor: 'code', width: '20%' },
+          { header: t('catalogs:columns.typeName', 'Tên loại tài sản'), accessor: 'name', width: '30%' },
           {
-            header: 'Nhóm tài sản',
+            header: t('catalogs:columns.category', 'Nhóm tài sản'),
             render: (row: AssetTypeItem) => (
               <span className="badge badge-blue">{row.categoryName || row.categoryId}</span>
             ),
             width: '25%',
           },
-          { header: 'Trạng thái', render: renderActiveBadge, width: '15%' },
+          { header: t('catalogs:columns.status', 'Trạng thái'), render: renderActiveBadge, width: '15%' },
         ];
       case 'statuses':
         return [
-          { header: 'Mã trạng thái', accessor: 'code', width: '30%' },
-          { header: 'Tên trạng thái', accessor: 'name', width: '45%' },
-          { header: 'Trạng thái', render: renderActiveBadge, width: '15%' },
+          { header: t('catalogs:columns.statusCode', 'Mã trạng thái'), accessor: 'code', width: '30%' },
+          { header: t('catalogs:columns.statusName', 'Tên trạng thái'), accessor: 'name', width: '45%' },
+          { header: t('catalogs:columns.status', 'Trạng thái'), render: renderActiveBadge, width: '15%' },
         ];
       case 'conditions':
         return [
-          { header: 'Mã tình trạng', accessor: 'code', width: '30%' },
-          { header: 'Tên tình trạng', accessor: 'name', width: '45%' },
-          { header: 'Trạng thái', render: renderActiveBadge, width: '15%' },
+          { header: t('catalogs:columns.conditionCode', 'Mã tình trạng'), accessor: 'code', width: '30%' },
+          { header: t('catalogs:columns.conditionName', 'Tên tình trạng'), accessor: 'name', width: '45%' },
+          { header: t('catalogs:columns.status', 'Trạng thái'), render: renderActiveBadge, width: '15%' },
         ];
       case 'models':
         return [
-          { header: 'Model', accessor: 'name', width: '25%' },
-          { header: 'Thương hiệu', accessor: 'brand', width: '20%' },
+          { header: t('catalogs:columns.model', 'Model'), accessor: 'name', width: '25%' },
+          { header: t('catalogs:columns.brand', 'Thương hiệu'), accessor: 'brand', width: '20%' },
           {
-            header: 'Loại tài sản',
+            header: t('catalogs:columns.type', 'Loại tài sản'),
             render: (row: ModelItem) => (
               <span className="badge badge-blue">{row.typeName || row.typeId}</span>
             ),
             width: '20%',
           },
           {
-            header: 'Cấu hình mặc định',
+            header: t('catalogs:columns.defaultSpecs', 'Cấu hình mặc định'),
             render: (row: ModelItem) => (
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                 {[row.defaultCpu, row.defaultRam, row.defaultStorage].filter(Boolean).join(' | ') || '-'}
@@ -524,21 +524,21 @@ export const CatalogsPage: React.FC = () => {
             ),
             width: '25%',
           },
-          { header: 'Trạng thái', render: renderActiveBadge, width: '10%' },
+          { header: t('catalogs:columns.status', 'Trạng thái'), render: renderActiveBadge, width: '10%' },
         ];
       case 'software':
         return [
-          { header: 'Tên phần mềm', accessor: 'name', width: '35%' },
-          { header: 'Nhà sản xuất', accessor: 'manufacturer', width: '30%' },
-          { header: 'Phiên bản', accessor: 'version', width: '15%' },
-          { header: 'Trạng thái', render: renderActiveBadge, width: '10%' },
+          { header: t('catalogs:columns.softwareName', 'Tên phần mềm'), accessor: 'name', width: '35%' },
+          { header: t('catalogs:columns.manufacturer', 'Nhà sản xuất'), accessor: 'manufacturer', width: '30%' },
+          { header: t('catalogs:columns.version', 'Phiên bản'), accessor: 'version', width: '15%' },
+          { header: t('catalogs:columns.status', 'Trạng thái'), render: renderActiveBadge, width: '10%' },
         ];
       case 'license-assignments':
       case 'license-terms':
         return [
-          { header: 'Mã', accessor: 'code', width: '25%' },
-          { header: 'Tên phân loại', accessor: 'name', width: '50%' },
-          { header: 'Trạng thái', render: renderActiveBadge, width: '15%' },
+          { header: t('catalogs:columns.code', 'Mã'), accessor: 'code', width: '25%' },
+          { header: t('catalogs:columns.classificationName', 'Tên phân loại'), accessor: 'name', width: '50%' },
+          { header: t('catalogs:columns.status', 'Trạng thái'), render: renderActiveBadge, width: '15%' },
         ];
     }
   };
