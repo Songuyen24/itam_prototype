@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -68,6 +69,7 @@ public class AssetController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PostMapping
     public ResponseEntity<ApiResponse<AssetDetailResponse>> createHardwareAsset(
             @Valid @RequestBody CreateHardwareAssetRequest request) {
@@ -76,6 +78,7 @@ public class AssetController {
                 .body(ApiResponse.success("Tạo tài sản phần cứng thành công", result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<AssetDetailResponse>> updateHardwareAsset(
             @PathVariable Long id,

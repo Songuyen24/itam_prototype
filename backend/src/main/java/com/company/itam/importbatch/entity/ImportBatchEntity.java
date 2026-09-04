@@ -32,6 +32,8 @@ public class ImportBatchEntity {
     @Column(name = "invalid_rows")
     private Integer invalidRows = 0;
 
+    // Cột này không có trong V4 ban đầu, được bổ sung bởi V6__align_itam_core_schema.sql
+    // (ALTER TABLE import_batches ADD COLUMN duplicate_rows INTEGER NOT NULL DEFAULT 0)
     @Column(name = "duplicate_rows", nullable = false)
     private Integer duplicateRows = 0;
 

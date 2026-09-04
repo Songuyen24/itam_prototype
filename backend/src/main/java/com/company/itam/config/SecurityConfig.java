@@ -27,6 +27,9 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // TODO: Prototype tạm thời permitAll. Khi tích hợp JWT/OAuth,
+                // thay thế bằng phân quyền theo role. Các @PreAuthorize trên controller
+                // sẽ tự động có hiệu lực khi SecurityFilterChain yêu cầu authentication.
                 .requestMatchers("/v1/**", "/api/v1/**").permitAll()
                 .anyRequest().permitAll()
             );
