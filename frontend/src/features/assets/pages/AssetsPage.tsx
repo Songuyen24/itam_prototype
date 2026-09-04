@@ -22,6 +22,7 @@ import { assetApi } from '../api/assetApi';
 import { AssetFilterBar } from '../components/AssetFilterBar';
 import { AssetFormModal } from '../components/AssetFormModal';
 import { AssetDetailModal } from '../components/AssetDetailModal';
+import { AssetImportModal } from '../components/AssetImportModal';
 
 export const AssetsPage: React.FC = () => {
   // Filters & Pagination
@@ -54,6 +55,7 @@ export const AssetsPage: React.FC = () => {
   // Modals
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedAssetDetail, setSelectedAssetDetail] = useState<AssetDetail | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -226,10 +228,22 @@ export const AssetsPage: React.FC = () => {
           </p>
         </div>
 
-        <button type="button" className="btn btn-primary" onClick={handleOpenCreate} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>➕</span>
-          <span>Thêm tài sản</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setIsImportModalOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+          >
+            <span>📥</span>
+            <span>Import Excel</span>
+          </button>
+
+          <button type="button" className="btn btn-primary" onClick={handleOpenCreate} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>➕</span>
+            <span>Thêm tài sản</span>
+          </button>
+        </div>
       </div>
 
       {/* Quick Stats Metric Cards */}
@@ -499,6 +513,15 @@ export const AssetsPage: React.FC = () => {
         onEdit={(asset) => {
           setSelectedAssetDetail(asset);
           setIsFormModalOpen(true);
+        }}
+      />
+
+      <AssetImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportSuccess={(count) => {
+          setToastMessage({ type: 'success', text: `Import thành công ${count} tài sản từ Excel!` });
+          fetchAssets();
         }}
       />
     </div>
