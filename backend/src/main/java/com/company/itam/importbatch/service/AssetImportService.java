@@ -292,18 +292,20 @@ public class AssetImportService {
     }
 
     public PageResponse<ImportBatchResponse> getImportBatches(Pageable pageable) {
-        Page<ImportBatchEntity> page = importBatchRepository.findAll(pageable);
+        // Dùng query có JOIN FETCH uploadedBy để tránh LazyInit + N+1 trong fillBatchResponse().
+        Page<ImportBatchEntity> page = importBatchRepository.findAllWithUploadedBy(pageable);
         return PageResponse.of(page.map(this::mapToBatchResponse));
     }
 
     public ImportBatchDetailResponse getImportBatchById(Long id) {
-        ImportBatchEntity batch = importBatchRepository.findById(id)
+        // Dùng query có JOIN FETCH uploadedBy để tránh LazyInit trong fillBatchResponse().
+        ImportBatchEntity batch = importBatchRepository.findByIdWithUploadedBy(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đợt import với ID: " + id));
 
         ImportBatchDetailResponse response = new ImportBatchDetailResponse();
         fillBatchResponse(response, batch);
 
-        List<ImportRowEntity> rows = importRowRepository.findByImportBatchImportBatchId(id);
+        List<ImportRowEntity> rows = importRowRepository.findByImportBatchImportBatchIdWithAsset(id);
         List<ImportRowDetailResponse> rowResponses = rows.stream()
                 .map(this::mapToRowDetailResponse)
                 .sorted(Comparator.comparing(ImportRowDetailResponse::getRowNumber))
@@ -318,7 +320,7 @@ public class AssetImportService {
             throw new ResourceNotFoundException("Không tìm thấy đợt import với ID: " + id);
         }
 
-        List<ImportRowEntity> rows = importRowRepository.findByImportBatchImportBatchId(id);
+        List<ImportRowEntity> rows = importRowRepository.findByImportBatchImportBatchIdWithAsset(id);
         return rows.stream()
                 .filter(r -> r.getValidationStatus() == ValidationStatus.INVALID || r.getValidationStatus() == ValidationStatus.DUPLICATE)
                 .map(this::mapToRowDetailResponse)

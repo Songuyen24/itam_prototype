@@ -1,6 +1,7 @@
 package com.company.itam.auth.security;
 
 import com.company.itam.common.enums.AccountStatus;
+import com.company.itam.role.entity.RoleEntity;
 import com.company.itam.user.entity.UserEntity;
 import com.company.itam.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
@@ -58,7 +59,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 String email = jwtTokenProvider.extractEmail(token);
                 if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    Optional<UserEntity> userOpt = userRepository.findByEmail(email);
+                    // Dùng query có JOIN FETCH để nạp role ngay trong transaction, tránh lazy-init.
+                    Optional<UserEntity> userOpt = userRepository.findByEmailWithDetails(email);
                     if (userOpt.isPresent()) {
                         UserEntity user = userOpt.get();
                         // Tài khoản đã khóa thì không cấp quyền truy cập
@@ -67,10 +69,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             filterChain.doFilter(request, response);
                             return;
                         }
-                        String roleCode = user.getRole() != null
-                                ? user.getRole().getCode().name()
+                        RoleEntity role = user.getRole();
+                        String roleCode = role != null && role.getCode() != null
+                                ? role.getCode().name()
                                 : null;
                         if (roleCode == null) {
+                            log.debug("User {} không có role, bỏ qua xác thực", email);
                             filterChain.doFilter(request, response);
                             return;
                         }

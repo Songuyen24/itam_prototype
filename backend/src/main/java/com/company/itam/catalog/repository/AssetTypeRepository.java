@@ -19,4 +19,11 @@ public interface AssetTypeRepository extends JpaRepository<AssetTypeEntity, Long
     Page<AssetTypeEntity> findByNameContainingIgnoreCase(String keyword, Pageable pageable);
     Page<AssetTypeEntity> findByIsActive(Boolean isActive, Pageable pageable);
     List<AssetTypeEntity> findByCategoryCategoryId(Long categoryId);
+
+    /**
+     * Tải AssetType kèm category để tránh LazyInitializationException
+     * khi CatalogService.toTypeResponse() đọc entity.getCategory().
+     */
+    @Query("SELECT t FROM AssetTypeEntity t LEFT JOIN FETCH t.category WHERE t.typeId = :id")
+    Optional<AssetTypeEntity> findByIdWithCategory(@Param("id") Long id);
 }

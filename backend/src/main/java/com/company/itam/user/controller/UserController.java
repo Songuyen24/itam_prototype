@@ -47,8 +47,8 @@ public class UserController {
         int safeSize = Math.min(Math.max(size, 1), 100);
         Pageable pageable = PageRequest.of(safePage, safeSize);
         Page<UserEntity> result = (keyword != null && !keyword.isBlank())
-                ? userRepository.findByFullNameContainingIgnoreCase(keyword.trim(), pageable)
-                : userRepository.findAll(pageable);
+                ? userRepository.findByFullNameContainingIgnoreCaseWithDetails(keyword.trim(), pageable)
+                : userRepository.findAllWithDetails(pageable);
 
         PageResponse<UserResponse> mapped = new PageResponse<>(
                 result.getContent().stream().map(UserResponse::fromEntity).toList(),
@@ -64,7 +64,7 @@ public class UserController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable("id") Long id) {
-        UserEntity user = userRepository.findById(id)
+        UserEntity user = userRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new AppException(
                         HttpStatus.NOT_FOUND,
                         "RESOURCE_NOT_FOUND",
