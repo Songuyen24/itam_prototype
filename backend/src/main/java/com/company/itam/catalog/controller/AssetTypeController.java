@@ -11,6 +11,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -38,12 +39,14 @@ public class AssetTypeController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PostMapping
     public ResponseEntity<ApiResponse<AssetTypeResponse>> createType(@Valid @RequestBody AssetTypeRequest request) {
         AssetTypeResponse result = catalogService.createAssetType(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Tạo loại tài sản thành công", result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<AssetTypeResponse>> updateType(
             @PathVariable Long id,
@@ -52,12 +55,14 @@ public class AssetTypeController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật loại tài sản thành công", result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteType(@PathVariable Long id) {
         catalogService.deleteAssetType(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa loại tài sản thành công", null));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PatchMapping("/{id}/active")
     public ResponseEntity<ApiResponse<AssetTypeResponse>> toggleActive(
             @PathVariable Long id,

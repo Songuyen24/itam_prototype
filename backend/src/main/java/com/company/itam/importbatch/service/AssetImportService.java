@@ -369,6 +369,10 @@ public class AssetImportService {
                 return user.get();
             }
         }
-        return userRepository.findAll().stream().findFirst().orElse(null);
+        // Prototype fallback: khi chưa tích hợp auth thực, lấy user đầu tiên làm actor.
+        // TODO: Khi tích hợp JWT/OAuth, xóa fallback này và ném UNAUTHORIZED.
+        return userRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED",
+                        "Không xác định được người dùng thực hiện. Hệ thống chưa có user nào."));
     }
 }

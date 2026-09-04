@@ -11,6 +11,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -38,12 +39,14 @@ public class ModelController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PostMapping
     public ResponseEntity<ApiResponse<ModelResponse>> createModel(@Valid @RequestBody ModelRequest request) {
         ModelResponse result = catalogService.createModel(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Tạo model thành công", result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ModelResponse>> updateModel(
             @PathVariable Long id,
@@ -52,12 +55,14 @@ public class ModelController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật model thành công", result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteModel(@PathVariable Long id) {
         catalogService.deleteModel(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa model thành công", null));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PatchMapping("/{id}/active")
     public ResponseEntity<ApiResponse<ModelResponse>> toggleActive(
             @PathVariable Long id,

@@ -29,6 +29,7 @@ public class AssetImportController {
         this.assetImportService = assetImportService;
     }
 
+    // Cho phép tất cả role tải template mẫu
     @GetMapping("/template")
     public ResponseEntity<byte[]> getTemplate() {
         byte[] content = assetImportService.getTemplate();
@@ -38,6 +39,7 @@ public class AssetImportController {
                 .body(content);
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PostMapping(value = "/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ImportPreviewResponse>> preview(
             @RequestParam("file") MultipartFile file) {
@@ -45,6 +47,7 @@ public class AssetImportController {
         return ResponseEntity.ok(ApiResponse.success("Kiểm tra dữ liệu file Excel hoàn tất", response));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponse<ImportBatchResponse>> confirmImport(
             @Valid @RequestBody ImportConfirmRequest request) {
@@ -53,6 +56,7 @@ public class AssetImportController {
                 .body(ApiResponse.success("Nhập tài sản từ Excel thành công", response));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ImportBatchResponse>>> getImportBatches(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -60,12 +64,14 @@ public class AssetImportController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ImportBatchDetailResponse>> getImportBatchById(@PathVariable Long id) {
         ImportBatchDetailResponse response = assetImportService.getImportBatchById(id);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/{id}/errors")
     public ResponseEntity<ApiResponse<List<ImportRowDetailResponse>>> getImportBatchErrors(@PathVariable Long id) {
         List<ImportRowDetailResponse> response = assetImportService.getImportBatchErrors(id);
