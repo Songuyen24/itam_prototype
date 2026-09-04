@@ -1,0 +1,63 @@
+{
+  "title": "Hardware Assets",
+  "subtitle": "Manage and track hardware asset information and lifecycle",
+  "actions": {
+    "addAsset": "Add Asset",
+    "importExcel": "Import Excel",
+    "exportExcel": "Export Excel"
+  },
+  "fields": {
+    "assetTag": "Asset Tag",
+    "name": "Asset Name",
+    "serialNumber": "Serial Number",
+    "type": "Asset Type",
+    "category": "Category",
+    "status": "Status",
+    "condition": "Condition",
+    "model": "Device Model",
+    "department": "Department",
+    "location": "Location",
+    "supplier": "Supplier",
+    "assignedTo": "Assigned User",
+    "poNumber": "PO / Invoice Number",
+    "purchaseDate": "Purchase Date",
+    "purchaseCost": "Purchase Cost (VND)",
+    "warrantyExpiration": "Warranty Expiration",
+    "cpu": "Actual CPU",
+    "ram": "Actual RAM",
+    "storage": "Actual Storage",
+    "gpu": "Graphics Card (GPU)",
+    "specs": "Hardware Specifications",
+    "actions": "Actions"
+  },
+  "filters": {
+    "searchPlaceholder": "Search by asset tag, name, serial number...",
+    "allStatuses": "All Statuses",
+    "allTypes": "All Types",
+    "allModels": "All Models",
+    "allDepartments": "All Departments",
+    "allLocations": "All Locations",
+    "resetFilter": "Reset Filter"
+  },
+  "modal": {
+    "createTitle": "Add Hardware Asset",
+    "editTitle": "Edit Asset",
+    "detailTitle": "Asset Details",
+    "basicSection": "1. Basic Information",
+    "assignmentSection": "2. Status & Location",
+    "financialSection": "3. Financial & Procurement",
+    "hardwareSection": "4. Hardware Configuration & Serial",
+    "timelineSection": "5. Lifecycle History",
+    "validationTagChecking": "Checking uniqueness...",
+    "validationTagValid": "Asset tag is valid",
+    "validationSerialValid": "Serial number is valid",
+    "validationTagDuplicate": "Asset tag already exists in system",
+    "validationSerialDuplicate": "Serial number already exists in system"
+  },
+  "toasts": {
+    "createSuccess": "Asset created successfully!",
+    "updateSuccess": "Asset updated successfully!",
+    "deleteSuccess": "Asset deleted successfully!",
+    "loadDetailError": "Could not load asset details"
+  }
+}

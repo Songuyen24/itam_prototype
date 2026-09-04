@@ -1,4 +1,8 @@
 spring:
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
   datasource:
     url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/itam_test}
     driver-class-name: org.postgresql.Driver

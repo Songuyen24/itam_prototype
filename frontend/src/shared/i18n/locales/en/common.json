@@ -1,0 +1,96 @@
+{
+  "systemTitle": "IT ASSET LIFECYCLE MANAGEMENT SYSTEM",
+  "version": "Version: 1.0.0 (ITAM Bilingual)",
+  "language": {
+    "vi": "Tiếng Việt",
+    "en": "English",
+    "switchLabel": "Language"
+  },
+  "nav": {
+    "overview": "Overview",
+    "catalogs": "Catalog Management",
+    "assets": "Hardware Assets",
+    "users": "Users",
+    "documents": "Documents",
+    "receiving": "Receiving",
+    "handover": "Handover",
+    "recovery": "Recovery",
+    "disposal": "Disposal",
+    "reports": "Reports"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "it_staff": "IT Staff",
+    "pur_staff": "Purchasing Staff",
+    "user": "End User"
+  },
+  "buttons": {
+    "add": "Add New",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "search": "Search",
+    "reset": "Reset",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "downloadTemplate": "Download Template"
+  },
+  "labels": {
+    "status": "Status",
+    "condition": "Condition",
+    "action": "Actions",
+    "all": "All",
+    "active": "Active",
+    "inactive": "Inactive",
+    "createdAt": "Created Date",
+    "updatedAt": "Updated Date",
+    "createdBy": "Created By",
+    "updatedBy": "Updated By",
+    "search": "Search...",
+    "select": "-- Select --",
+    "noData": "No data available",
+    "loading": "Loading data...",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "pagination": {
+    "showing": "Showing",
+    "to": "to",
+    "of": "of",
+    "items": "items",
+    "page": "Page",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "status": {
+    "IN_STOCK": "In Stock",
+    "IN_USE": "In Use",
+    "UNDER_REPAIR": "Under Repair",
+    "PENDING_DISPOSAL": "Pending Disposal",
+    "DISPOSED": "Disposed",
+    "RETIRED": "Retired",
+    "DRAFT": "Draft",
+    "PENDING": "Pending",
+    "APPROVED": "Approved",
+    "REJECTED": "Rejected",
+    "COMPLETED": "Completed"
+  },
+  "messages": {
+    "confirmDelete": "Are you sure you want to delete?",
+    "confirmDeleteDesc": "This action cannot be undone.",
+    "saveSuccess": "Saved successfully!",
+    "updateSuccess": "Updated successfully!",
+    "deleteSuccess": "Deleted successfully!",
+    "errorOccurred": "An error occurred, please try again.",
+    "networkError": "Cannot connect to server"
+  }
+}

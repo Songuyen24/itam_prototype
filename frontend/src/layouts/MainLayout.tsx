@@ -1,6 +1,10 @@
 import { Outlet, NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 
 function MainLayout() {
+  const { t } = useTranslation('common');
+
   return (
     <div className="app-container">
       {/* Sidebar */}
@@ -9,7 +13,7 @@ function MainLayout() {
           <div className="sidebar-logo-icon">IT</div>
           <div>
             <div className="sidebar-title">ITAM Pro</div>
-            <div className="sidebar-subtitle">Quản lý tài sản CNTT</div>
+            <div className="sidebar-subtitle">IT Asset Management</div>
           </div>
         </div>
 
@@ -20,7 +24,7 @@ function MainLayout() {
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
             <span>📊</span>
-            <span>Tổng quan</span>
+            <span>{t('nav.overview', 'Tổng quan')}</span>
           </NavLink>
 
           <NavLink
@@ -28,7 +32,7 @@ function MainLayout() {
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
             <span>📁</span>
-            <span>Quản lý Danh mục</span>
+            <span>{t('nav.catalogs', 'Quản lý Danh mục')}</span>
           </NavLink>
 
           <NavLink
@@ -36,7 +40,7 @@ function MainLayout() {
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
             <span>💻</span>
-            <span>Tài sản thiết bị</span>
+            <span>{t('nav.assets', 'Tài sản thiết bị')}</span>
           </NavLink>
 
           <NavLink
@@ -44,12 +48,12 @@ function MainLayout() {
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
             <span>👥</span>
-            <span>Người dùng</span>
+            <span>{t('nav.users', 'Người dùng')}</span>
           </NavLink>
         </nav>
 
         <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '12px', color: '#94a3b8' }}>
-          Phiên bản: 1.0.0 (T10-Catalog)
+          {t('version', 'Phiên bản: 1.0.0 (ITAM Bilingual)')}
         </div>
       </aside>
 
@@ -57,12 +61,15 @@ function MainLayout() {
       <div className="app-content-wrapper">
         <header className="app-navbar">
           <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)' }}>
-            HỆ THỐNG QUẢN LÝ VÀ THEO DÕI VÒNG ĐỜI TÀI SẢN CNTT
+            {t('systemTitle', 'HỆ THỐNG QUẢN LÝ VÀ THEO DÕI VÒNG ĐỜI TÀI SẢN CNTT')}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span className="badge badge-active">ADMIN</span>
-            <div style={{ fontSize: '14px', fontWeight: 500 }}>Quản trị viên</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <LanguageSwitcher />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="badge badge-active">ADMIN</span>
+              <div style={{ fontSize: '14px', fontWeight: 500 }}>{t('roles.admin', 'Quản trị viên')}</div>
+            </div>
           </div>
         </header>
 

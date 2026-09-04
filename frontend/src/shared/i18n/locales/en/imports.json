@@ -1,0 +1,58 @@
+{
+  "title": "Hardware Asset Excel Import",
+  "subtitle": "Supports .xlsx, .xls files up to 1,000 rows",
+  "steps": {
+    "upload": "1. Select Excel File",
+    "preview": "2. Validate & Preview",
+    "completed": "3. Import Result"
+  },
+  "upload": {
+    "dragDrop": "Drag and drop Excel file here or",
+    "browseFile": "Browse file from computer",
+    "supports": "Supported formats: .xlsx, .xls (Max 10MB, up to 1,000 rows)",
+    "fileSelected": "Selected file:",
+    "downloadTemplate": "Download Standard Excel Template",
+    "downloadHelp": "Template includes column structure and format guidelines",
+    "btnPreview": "Continue: Validate Data",
+    "analyzing": "Analyzing and validating Excel file..."
+  },
+  "preview": {
+    "summary": "Validation Summary:",
+    "totalRows": "Total Rows",
+    "validRows": "Valid",
+    "invalidRows": "Invalid / Errors",
+    "duplicateRows": "Duplicates",
+    "filterAll": "All",
+    "filterValid": "Valid Only",
+    "filterError": "Errors Only",
+    "warningSkip": "Note: Only valid rows will be imported into the database. Invalid rows will be skipped.",
+    "colRow": "Row",
+    "colTag": "Asset Tag",
+    "colName": "Asset Name",
+    "colSerial": "Serial Number",
+    "colType": "Asset Type",
+    "colStatus": "Status",
+    "colValidation": "Validation Status",
+    "colError": "Error Details",
+    "btnBack": "Choose Another File",
+    "btnConfirm": "Confirm Import ({{count}} rows)",
+    "importing": "Importing records into system..."
+  },
+  "completed": {
+    "successTitle": "Import Completed Successfully!",
+    "successMessage": "The system has successfully imported {{count}} new hardware assets.",
+    "batchCode": "Import Batch Code:",
+    "btnFinish": "Finish & Close"
+  },
+  "statusBadges": {
+    "VALID": "VALID",
+    "INVALID": "INVALID",
+    "DUPLICATE": "DUPLICATE"
+  },
+  "errors": {
+    "fileRequired": "Please select an Excel file",
+    "invalidFormat": "Only Excel file formats (.xlsx or .xls) are accepted",
+    "noValidRows": "No valid rows to import!",
+    "downloadFailed": "Could not download template. Please try again later."
+  }
+}

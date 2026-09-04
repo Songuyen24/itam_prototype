@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Department,
   LocationItem,
@@ -25,6 +26,7 @@ import { AssetDetailModal } from '../components/AssetDetailModal';
 import { AssetImportModal } from '../components/AssetImportModal';
 
 export const AssetsPage: React.FC = () => {
+  const { t } = useTranslation(['assets', 'common']);
   // Filters & Pagination
   const [keyword, setKeyword] = useState('');
   const [statusId, setStatusId] = useState<number | undefined>();
@@ -222,9 +224,9 @@ export const AssetsPage: React.FC = () => {
       {/* Page Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 className="page-title">💻 Quản lý tài sản phần cứng</h1>
+          <h1 className="page-title">💻 {t('assets:title', 'Quản lý tài sản phần cứng')}</h1>
           <p className="page-subtitle">
-            Theo dõi danh sách thiết bị, mã Asset Tag, Serial Number, cấu hình Default/Actual và trạng thái sử dụng
+            {t('assets:subtitle', 'Theo dõi danh sách thiết bị, mã Asset Tag, Serial Number, cấu hình Default/Actual và trạng thái sử dụng')}
           </p>
         </div>
 
@@ -236,12 +238,12 @@ export const AssetsPage: React.FC = () => {
             style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
           >
             <span>📥</span>
-            <span>Import Excel</span>
+            <span>{t('assets:actions.importExcel', 'Import Excel')}</span>
           </button>
 
           <button type="button" className="btn btn-primary" onClick={handleOpenCreate} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>➕</span>
-            <span>Thêm tài sản</span>
+            <span>{t('assets:actions.addAsset', 'Thêm tài sản')}</span>
           </button>
         </div>
       </div>
@@ -256,30 +258,30 @@ export const AssetsPage: React.FC = () => {
         }}
       >
         <div className="card" style={{ padding: '16px', borderLeft: '4px solid var(--primary)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>TỔNG SỐ TÀI SẢN</div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>{t('common:labels.all', 'TỔNG SỐ TÀI SẢN').toUpperCase()}</div>
           <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-main)', marginTop: '4px' }}>
             {totalElements}
           </div>
         </div>
 
         <div className="card" style={{ padding: '16px', borderLeft: '4px solid #10b981' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>ĐANG LƯU KHO (IN STOCK)</div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>{t('common:status.IN_STOCK', 'ĐANG LƯU KHO')} (IN STOCK)</div>
           <div style={{ fontSize: '24px', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
-            {inStockCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>(trang này)</span>
+            {inStockCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>({t('common:pagination.page', 'trang này')})</span>
           </div>
         </div>
 
         <div className="card" style={{ padding: '16px', borderLeft: '4px solid #3b82f6' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>ĐANG SỬ DỤNG (IN USE)</div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>{t('common:status.IN_USE', 'ĐANG SỬ DỤNG')} (IN USE)</div>
           <div style={{ fontSize: '24px', fontWeight: 700, color: '#3b82f6', marginTop: '4px' }}>
-            {inUseCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>(trang này)</span>
+            {inUseCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>({t('common:pagination.page', 'trang này')})</span>
           </div>
         </div>
 
         <div className="card" style={{ padding: '16px', borderLeft: '4px solid #f59e0b' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>SỬA CHỮA / KHÁC</div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>{t('common:status.UNDER_REPAIR', 'SỬA CHỮA / KHÁC')}</div>
           <div style={{ fontSize: '24px', fontWeight: 700, color: '#f59e0b', marginTop: '4px' }}>
-            {otherCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>(trang này)</span>
+            {otherCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>({t('common:pagination.page', 'trang này')})</span>
           </div>
         </div>
       </div>
@@ -312,27 +314,27 @@ export const AssetsPage: React.FC = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: '130px' }}>Asset Tag</th>
-                <th>Tên thiết bị</th>
-                <th style={{ width: '140px' }}>Số Serial</th>
-                <th style={{ width: '160px' }}>Loại & Model</th>
-                <th>Cấu hình hiệu lực (Effective)</th>
-                <th style={{ width: '120px' }}>Trạng thái</th>
-                <th style={{ width: '160px' }}>Người dùng / Vị trí</th>
-                <th style={{ width: '140px', textAlign: 'center' }}>Thao tác</th>
+                <th style={{ width: '130px' }}>{t('assets:fields.assetTag', 'Asset Tag')}</th>
+                <th>{t('assets:fields.name', 'Tên thiết bị')}</th>
+                <th style={{ width: '140px' }}>{t('assets:fields.serialNumber', 'Số Serial')}</th>
+                <th style={{ width: '160px' }}>{t('assets:fields.type', 'Loại & Model')}</th>
+                <th>{t('assets:fields.specs', 'Cấu hình hiệu lực (Effective)')}</th>
+                <th style={{ width: '120px' }}>{t('assets:fields.status', 'Trạng thái')}</th>
+                <th style={{ width: '160px' }}>{t('assets:fields.assignedTo', 'Người dùng / Vị trí')}</th>
+                <th style={{ width: '140px', textAlign: 'center' }}>{t('common:labels.action', 'Thao tác')}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                    ⏳ Đang tải dữ liệu tài sản...
+                    ⏳ {t('common:labels.loading', 'Đang tải dữ liệu tài sản...')}
                   </td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                    🔍 Không tìm thấy tài sản phần cứng nào phù hợp.
+                    🔍 {t('common:labels.noData', 'Không tìm thấy tài sản phần cứng nào phù hợp.')}
                   </td>
                 </tr>
               ) : (

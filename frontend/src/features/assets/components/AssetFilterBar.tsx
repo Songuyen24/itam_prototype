@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Department,
   LocationItem,
@@ -49,6 +50,8 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
   departments,
   locations,
 }) => {
+  const { t } = useTranslation(['assets', 'common']);
+
   return (
     <div
       style={{
@@ -81,7 +84,7 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
             type="text"
             className="form-control"
             style={{ paddingLeft: '36px' }}
-            placeholder="Tìm kiếm theo Asset Tag, Serial Number, Tên thiết bị..."
+            placeholder={t('assets:filters.searchPlaceholder', 'Tìm kiếm theo Asset Tag, Serial Number, Tên thiết bị...')}
             value={keyword}
             onChange={(e) => onKeywordChange(e.target.value)}
           />
@@ -90,9 +93,9 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
           type="button"
           className="btn btn-secondary"
           onClick={onReset}
-          title="Đặt lại tất cả bộ lọc"
+          title={t('assets:filters.resetFilter', 'Đặt lại tất cả bộ lọc')}
         >
-          🔄 Đặt lại
+          🔄 {t('common:buttons.reset', 'Đặt lại')}
         </button>
       </div>
 
@@ -107,14 +110,14 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
         {/* Status filter */}
         <div>
           <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
-            Trạng thái
+            {t('assets:fields.status', 'Trạng thái')}
           </label>
           <select
             className="form-control"
             value={statusId ?? ''}
             onChange={(e) => onStatusChange(e.target.value ? Number(e.target.value) : undefined)}
           >
-            <option value="">Tất cả trạng thái</option>
+            <option value="">{t('assets:filters.allStatuses', 'Tất cả trạng thái')}</option>
             {statuses.map((s) => (
               <option key={s.statusId} value={s.statusId}>
                 {s.name}
@@ -126,17 +129,17 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
         {/* Type filter */}
         <div>
           <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
-            Loại thiết bị
+            {t('assets:fields.type', 'Loại thiết bị')}
           </label>
           <select
             className="form-control"
             value={typeId ?? ''}
             onChange={(e) => onTypeChange(e.target.value ? Number(e.target.value) : undefined)}
           >
-            <option value="">Tất cả loại</option>
-            {types.map((t) => (
-              <option key={t.typeId} value={t.typeId}>
-                {t.name}
+            <option value="">{t('assets:filters.allTypes', 'Tất cả loại')}</option>
+            {types.map((tItem) => (
+              <option key={tItem.typeId} value={tItem.typeId}>
+                {tItem.name}
               </option>
             ))}
           </select>
@@ -145,14 +148,14 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
         {/* Model filter */}
         <div>
           <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
-            Model
+            {t('assets:fields.model', 'Model')}
           </label>
           <select
             className="form-control"
             value={modelId ?? ''}
             onChange={(e) => onModelChange(e.target.value ? Number(e.target.value) : undefined)}
           >
-            <option value="">Tất cả model</option>
+            <option value="">{t('assets:filters.allModels', 'Tất cả model')}</option>
             {models.map((m) => (
               <option key={m.modelId} value={m.modelId}>
                 {m.brand} - {m.name}
@@ -164,14 +167,14 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
         {/* Department filter */}
         <div>
           <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
-            Phòng ban
+            {t('assets:fields.department', 'Phòng ban')}
           </label>
           <select
             className="form-control"
             value={departmentId ?? ''}
             onChange={(e) => onDepartmentChange(e.target.value ? Number(e.target.value) : undefined)}
           >
-            <option value="">Tất cả phòng ban</option>
+            <option value="">{t('assets:filters.allDepartments', 'Tất cả phòng ban')}</option>
             {departments.map((d) => (
               <option key={d.departmentId} value={d.departmentId}>
                 {d.name}
@@ -183,14 +186,14 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
         {/* Location filter */}
         <div>
           <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
-            Vị trí
+            {t('assets:fields.location', 'Vị trí')}
           </label>
           <select
             className="form-control"
             value={locationId ?? ''}
             onChange={(e) => onLocationChange(e.target.value ? Number(e.target.value) : undefined)}
           >
-            <option value="">Tất cả vị trí</option>
+            <option value="">{t('assets:filters.allLocations', 'Tất cả vị trí')}</option>
             {locations.map((l) => (
               <option key={l.locationId} value={l.locationId}>
                 {l.name}

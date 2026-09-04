@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface TableColumn<T> {
   header: string;
@@ -26,10 +27,12 @@ export function CatalogTable<T>({
   onToggleActive,
   keyExtractor,
 }: CatalogTableProps<T>) {
+  const { t } = useTranslation(['catalogs', 'common']);
+
   if (isLoading) {
     return (
       <div className="empty-state">
-        <p>Đang tải dữ liệu danh mục...</p>
+        <p>{t('common:labels.loading', 'Đang tải dữ liệu danh mục...')}</p>
       </div>
     );
   }
@@ -37,7 +40,7 @@ export function CatalogTable<T>({
   if (data.length === 0) {
     return (
       <div className="empty-state">
-        <p>Không có dữ liệu phù hợp với tìm kiếm hoặc bộ lọc.</p>
+        <p>{t('common:labels.noData', 'Không có dữ liệu phù hợp với tìm kiếm hoặc bộ lọc.')}</p>
       </div>
     );
   }
@@ -52,7 +55,9 @@ export function CatalogTable<T>({
                 {col.header}
               </th>
             ))}
-            <th style={{ width: '180px', textAlign: 'center' }}>Thao tác</th>
+            <th style={{ width: '180px', textAlign: 'center' }}>
+              {t('common:labels.action', 'Thao tác')}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -78,27 +83,27 @@ export function CatalogTable<T>({
                       type="button"
                       className="btn btn-sm btn-secondary"
                       onClick={() => onEdit(row)}
-                      title="Chỉnh sửa"
+                      title={t('common:buttons.edit', 'Chỉnh sửa')}
                     >
-                      Sửa
+                      {t('common:buttons.edit', 'Sửa')}
                     </button>
                     {onToggleActive && (
                       <button
                         type="button"
                         className="btn btn-sm btn-secondary"
                         onClick={() => onToggleActive(row)}
-                        title={isActive ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                        title={isActive ? t('catalogs:columns.lock', 'Vô hiệu hóa') : t('catalogs:columns.unlock', 'Kích hoạt')}
                       >
-                        {isActive ? 'Khóa' : 'Mở'}
+                        {isActive ? t('catalogs:columns.lock', 'Khóa') : t('catalogs:columns.unlock', 'Mở')}
                       </button>
                     )}
                     <button
                       type="button"
                       className="btn btn-sm btn-danger"
                       onClick={() => onDelete(row)}
-                      title="Xóa danh mục"
+                      title={t('common:buttons.delete', 'Xóa danh mục')}
                     >
-                      Xóa
+                      {t('common:buttons.delete', 'Xóa')}
                     </button>
                   </div>
                 </td>

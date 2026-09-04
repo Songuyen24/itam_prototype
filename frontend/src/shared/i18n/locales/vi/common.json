@@ -1,0 +1,96 @@
+{
+  "systemTitle": "HỆ THỐNG QUẢN LÝ VÀ THEO DÕI VÒNG ĐỜI TÀI SẢN CNTT",
+  "version": "Phiên bản: 1.0.0 (ITAM Bilingual)",
+  "language": {
+    "vi": "Tiếng Việt",
+    "en": "English",
+    "switchLabel": "Ngôn ngữ"
+  },
+  "nav": {
+    "overview": "Tổng quan",
+    "catalogs": "Quản lý Danh mục",
+    "assets": "Tài sản thiết bị",
+    "users": "Người dùng",
+    "documents": "Hồ sơ chứng từ",
+    "receiving": "Nhập kho",
+    "handover": "Bàn giao",
+    "recovery": "Thu hồi",
+    "disposal": "Thanh lý",
+    "reports": "Báo cáo"
+  },
+  "roles": {
+    "admin": "Quản trị viên",
+    "it_staff": "Nhân viên IT",
+    "pur_staff": "Nhân viên Mua sắm",
+    "user": "Người sử dụng"
+  },
+  "buttons": {
+    "add": "Thêm mới",
+    "create": "Tạo mới",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa",
+    "save": "Lưu",
+    "saving": "Đang lưu...",
+    "cancel": "Hủy",
+    "close": "Đóng",
+    "search": "Tìm kiếm",
+    "reset": "Đặt lại",
+    "filter": "Lọc",
+    "export": "Xuất file",
+    "import": "Nhập file",
+    "confirm": "Xác nhận",
+    "back": "Quay lại",
+    "next": "Tiếp tục",
+    "finish": "Hoàn tất",
+    "downloadTemplate": "Tải file mẫu"
+  },
+  "labels": {
+    "status": "Trạng thái",
+    "condition": "Tình trạng",
+    "action": "Thao tác",
+    "all": "Tất cả",
+    "active": "Đang hoạt động",
+    "inactive": "Ngừng hoạt động",
+    "createdAt": "Ngày tạo",
+    "updatedAt": "Ngày cập nhật",
+    "createdBy": "Người tạo",
+    "updatedBy": "Người cập nhật",
+    "search": "Tìm kiếm...",
+    "select": "-- Chọn --",
+    "noData": "Không có dữ liệu",
+    "loading": "Đang tải dữ liệu...",
+    "yes": "Có",
+    "no": "Không"
+  },
+  "pagination": {
+    "showing": "Hiển thị",
+    "to": "đến",
+    "of": "trong tổng số",
+    "items": "bản ghi",
+    "page": "Trang",
+    "previous": "Trước",
+    "next": "Sau"
+  },
+  "status": {
+    "IN_STOCK": "Trong kho",
+    "IN_USE": "Đang sử dụng",
+    "UNDER_REPAIR": "Đang sửa chữa",
+    "PENDING_DISPOSAL": "Chờ thanh lý",
+    "DISPOSED": "Đã thanh lý",
+    "RETIRED": "Thanh lý / Ngừng sử dụng",
+    "DRAFT": "Bản nháp",
+    "PENDING": "Chờ duyệt",
+    "APPROVED": "Đã duyệt",
+    "REJECTED": "Từ chối",
+    "COMPLETED": "Hoàn thành"
+  },
+  "messages": {
+    "confirmDelete": "Bạn có chắc chắn muốn xóa?",
+    "confirmDeleteDesc": "Hành động này không thể hoàn tác.",
+    "saveSuccess": "Lưu dữ liệu thành công!",
+    "updateSuccess": "Cập nhật thành công!",
+    "deleteSuccess": "Xóa thành công!",
+    "errorOccurred": "Đã xảy ra lỗi, vui lòng thử lại.",
+    "networkError": "Không thể kết nối đến máy chủ"
+  }
+}
