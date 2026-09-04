@@ -1,0 +1,53 @@
+{
+  "title": "Catalog Management",
+  "subtitle": "Manage shared catalog data across the ITAM system",
+  "tabs": {
+    "departments": "Departments",
+    "locations": "Locations",
+    "suppliers": "Suppliers",
+    "categories": "Asset Categories",
+    "types": "Asset Types",
+    "statuses": "Asset Statuses",
+    "conditions": "Asset Conditions",
+    "models": "Device Models",
+    "software": "Software Catalog",
+    "licenseAssignments": "License Assignment Types",
+    "licenseTerms": "License Term Types"
+  },
+  "columns": {
+    "code": "Code",
+    "name": "Name",
+    "description": "Description",
+    "status": "Status",
+    "category": "Category",
+    "type": "Type",
+    "brand": "Brand / Manufacturer",
+    "model": "Model",
+    "manufacturer": "Manufacturer",
+    "supplier": "Supplier",
+    "contactPerson": "Contact Person",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "actions": "Actions"
+  },
+  "modal": {
+    "addTitle": "Add New",
+    "editTitle": "Edit",
+    "deleteTitle": "Confirm Deletion",
+    "inUseWarning": "Catalog item is currently in use in the system and cannot be deleted.",
+    "codeLabel": "Identifier Code",
+    "nameLabel": "Display Name",
+    "descLabel": "Detailed Description",
+    "categorySelect": "Select asset category",
+    "typeSelect": "Select asset type",
+    "statusActive": "Active",
+    "statusInactive": "Inactive"
+  },
+  "toasts": {
+    "createSuccess": "Created successfully",
+    "updateSuccess": "Updated successfully",
+    "deleteSuccess": "Deleted successfully",
+    "inUseError": "Cannot delete: Catalog item is currently in use by assets or other records in the system."
+  }
+}

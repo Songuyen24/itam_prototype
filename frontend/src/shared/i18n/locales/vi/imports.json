@@ -1,0 +1,58 @@
+{
+  "title": "Import tài sản phần cứng từ file Excel",
+  "subtitle": "Hỗ trợ định dạng .xlsx, .xls tối đa 1,000 dòng",
+  "steps": {
+    "upload": "1. Chọn file Excel",
+    "preview": "2. Xem trước & Kiểm tra",
+    "completed": "3. Kết quả Import"
+  },
+  "upload": {
+    "dragDrop": "Kéo thả file Excel vào đây hoặc",
+    "browseFile": "Chọn file từ máy tính",
+    "supports": "Định dạng hỗ trợ: .xlsx, .xls (Tối đa 10MB, tối đa 1,000 dòng)",
+    "fileSelected": "File đã chọn:",
+    "downloadTemplate": "Tải file Excel mẫu chuẩn",
+    "downloadHelp": "File mẫu đã có sẵn cấu trúc cột và hướng dẫn định dạng",
+    "btnPreview": "Tiếp tục: Kiểm tra dữ liệu",
+    "analyzing": "Đang phân tích và kiểm tra file Excel..."
+  },
+  "preview": {
+    "summary": "Kết quả kiểm tra dữ liệu:",
+    "totalRows": "Tổng số dòng",
+    "validRows": "Hợp lệ",
+    "invalidRows": "Không hợp lệ / Lỗi",
+    "duplicateRows": "Trùng lặp",
+    "filterAll": "Tất cả",
+    "filterValid": "Chỉ dòng hợp lệ",
+    "filterError": "Chỉ dòng lỗi",
+    "warningSkip": "Lưu ý: Chỉ các dòng hợp lệ mới được import vào cơ sở dữ liệu. Các dòng lỗi sẽ bị bỏ qua.",
+    "colRow": "Dòng",
+    "colTag": "Mã tài sản",
+    "colName": "Tên tài sản",
+    "colSerial": "Serial Number",
+    "colType": "Loại tài sản",
+    "colStatus": "Trạng thái",
+    "colValidation": "Trạng thái kiểm tra",
+    "colError": "Chi tiết lỗi",
+    "btnBack": "Chọn lại file khác",
+    "btnConfirm": "Xác nhận Import ({{count}} dòng)",
+    "importing": "Đang thực hiện import vào hệ thống..."
+  },
+  "completed": {
+    "successTitle": "Import dữ liệu thành công!",
+    "successMessage": "Hệ thống đã tạo thành công {{count}} tài sản phần cứng mới.",
+    "batchCode": "Mã đợt import:",
+    "btnFinish": "Hoàn tất & Đóng"
+  },
+  "statusBadges": {
+    "VALID": "HỢP LỆ",
+    "INVALID": "LỖI",
+    "DUPLICATE": "TRÙNG LẶP"
+  },
+  "errors": {
+    "fileRequired": "Vui lòng chọn một file Excel",
+    "invalidFormat": "Chỉ chấp nhận định dạng file Excel (.xlsx hoặc .xls)",
+    "noValidRows": "Không có dòng dữ liệu hợp lệ nào để import!",
+    "downloadFailed": "Không thể tải file mẫu. Vui lòng thử lại sau."
+  }
+}

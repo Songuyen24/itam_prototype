@@ -1,0 +1,63 @@
+{
+  "title": "Tài sản thiết bị",
+  "subtitle": "Quản lý, theo dõi thông tin và vòng đời tài sản phần cứng",
+  "actions": {
+    "addAsset": "Thêm tài sản",
+    "importExcel": "Import Excel",
+    "exportExcel": "Xuất Excel"
+  },
+  "fields": {
+    "assetTag": "Mã tài sản",
+    "name": "Tên tài sản",
+    "serialNumber": "Số Serial",
+    "type": "Loại tài sản",
+    "category": "Nhóm tài sản",
+    "status": "Trạng thái",
+    "condition": "Tình trạng",
+    "model": "Model thiết bị",
+    "department": "Phòng ban",
+    "location": "Vị trí",
+    "supplier": "Nhà cung cấp",
+    "assignedTo": "Người sử dụng",
+    "poNumber": "Số PO / Hóa đơn",
+    "purchaseDate": "Ngày mua",
+    "purchaseCost": "Giá mua (VNĐ)",
+    "warrantyExpiration": "Hạn bảo hành",
+    "cpu": "CPU thực tế",
+    "ram": "RAM thực tế",
+    "storage": "Ổ cứng thực tế",
+    "gpu": "Card đồ họa (GPU)",
+    "specs": "Cấu hình phần cứng",
+    "actions": "Thao tác"
+  },
+  "filters": {
+    "searchPlaceholder": "Tìm theo mã tài sản, tên, số serial...",
+    "allStatuses": "Tất cả trạng thái",
+    "allTypes": "Tất cả loại tài sản",
+    "allModels": "Tất cả model",
+    "allDepartments": "Tất cả phòng ban",
+    "allLocations": "Tất cả vị trí",
+    "resetFilter": "Đặt lại bộ lọc"
+  },
+  "modal": {
+    "createTitle": "Thêm mới tài sản phần cứng",
+    "editTitle": "Chỉnh sửa tài sản",
+    "detailTitle": "Chi tiết tài sản",
+    "basicSection": "1. Thông tin cơ bản",
+    "assignmentSection": "2. Trạng thái & Vị trí",
+    "financialSection": "3. Thông tin tài chính & Mua sắm",
+    "hardwareSection": "4. Cấu hình phần cứng & Serial",
+    "timelineSection": "5. Lịch sử vòng đời",
+    "validationTagChecking": "Đang kiểm tra tính duy nhất...",
+    "validationTagValid": "Mã tài sản hợp lệ",
+    "validationSerialValid": "Số serial hợp lệ",
+    "validationTagDuplicate": "Mã tài sản đã tồn tại trong hệ thống",
+    "validationSerialDuplicate": "Số serial đã tồn tại trong hệ thống"
+  },
+  "toasts": {
+    "createSuccess": "Thêm tài sản mới thành công!",
+    "updateSuccess": "Cập nhật thông tin tài sản thành công!",
+    "deleteSuccess": "Xóa tài sản thành công!",
+    "loadDetailError": "Không thể tải thông tin chi tiết tài sản"
+  }
+}

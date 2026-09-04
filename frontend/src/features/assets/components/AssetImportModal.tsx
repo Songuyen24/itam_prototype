@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { importApi } from '../api/importApi';
 import { ImportPreviewData, ValidationStatus } from '../types/import.types';
 
@@ -13,6 +14,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   onClose,
   onImportSuccess,
 }) => {
+  const { t } = useTranslation(['imports', 'common']);
   const [step, setStep] = useState<'upload' | 'preview' | 'completed'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -46,7 +48,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-        setErrorMessage('Vui lòng chọn file định dạng Excel (.xlsx hoặc .xls)');
+        setErrorMessage(t('imports:errors.invalidFormat', 'Vui lòng chọn file định dạng Excel (.xlsx hoặc .xls)'));
         return;
       }
       setSelectedFile(file);
@@ -58,13 +60,13 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     try {
       await importApi.downloadTemplate();
     } catch (err: any) {
-      setErrorMessage(err.message || 'Không thể tải file template mẫu');
+      setErrorMessage(err.message || t('imports:errors.downloadFailed', 'Không thể tải file template mẫu'));
     }
   };
 
   const handleUploadAndPreview = async () => {
     if (!selectedFile) {
-      setErrorMessage('Vui lòng chọn một file Excel trước');
+      setErrorMessage(t('imports:errors.fileRequired', 'Vui lòng chọn một file Excel trước'));
       return;
     }
 
@@ -94,7 +96,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
       .map((r) => r.rawData);
 
     if (validRows.length === 0) {
-      setErrorMessage('Không có dòng hợp lệ nào để import');
+      setErrorMessage(t('imports:errors.noValidRows', 'Không có dòng hợp lệ nào để import'));
       return;
     }
 
@@ -108,24 +110,22 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
       });
 
       if (res.success && res.data) {
-        const count = res.data.importedRows;
-        setImportedCount(count);
+        setImportedCount(res.data.importedRows);
         setStep('completed');
-        onImportSuccess(count);
+        onImportSuccess(res.data.importedRows);
       } else {
-        setErrorMessage(res.message || 'Nhập dữ liệu thất bại');
+        setErrorMessage(res.message || 'Import thất bại');
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Có lỗi xảy ra trong quá trình import dữ liệu');
+      setErrorMessage(err.message || 'Có lỗi xảy ra khi import tài sản');
     } finally {
       setIsImporting(false);
     }
   };
 
-  // Filter rows for preview table
-  const filteredRows = (previewData?.rows || []).filter((r) => {
-    if (activeFilter === 'VALID') return r.validationStatus === 'VALID';
-    if (activeFilter === 'ERROR') return r.validationStatus === 'INVALID' || r.validationStatus === 'DUPLICATE';
+  const filteredRows = (previewData?.rows || []).filter((row) => {
+    if (activeFilter === 'VALID') return row.validationStatus === 'VALID';
+    if (activeFilter === 'ERROR') return row.validationStatus === 'INVALID' || row.validationStatus === 'DUPLICATE';
     return true;
   });
 
@@ -144,7 +144,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             fontSize: '11px',
             fontWeight: 600,
           }}>
-            ✓ Hợp lệ
+            ✓ {t('imports:statusBadges.VALID', 'Hợp lệ')}
           </span>
         );
       case 'DUPLICATE':
@@ -160,7 +160,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             fontSize: '11px',
             fontWeight: 600,
           }}>
-            ⚠️ Trùng lặp
+            ⚠️ {t('imports:statusBadges.DUPLICATE', 'Trùng lặp')}
           </span>
         );
       case 'INVALID':
@@ -177,7 +177,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             fontSize: '11px',
             fontWeight: 600,
           }}>
-            ✕ Lỗi
+            ✕ {t('imports:statusBadges.INVALID', 'Lỗi')}
           </span>
         );
     }
@@ -230,12 +230,12 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             <span style={{ fontSize: '20px' }}>📥</span>
             <div>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                Import Tài Sản Từ Excel
+                {t('imports:title', 'Import tài sản phần cứng từ file Excel')}
               </h2>
               <div style={{ fontSize: '12px', color: '#64748b' }}>
-                {step === 'upload' && 'Bước 1/3: Chọn file dữ liệu & tải template'}
-                {step === 'preview' && 'Bước 2/3: Kiểm tra và xác nhận danh sách tài sản'}
-                {step === 'completed' && 'Bước 3/3: Kết quả import tài sản'}
+                {step === 'upload' && t('imports:steps.upload', '1. Chọn file Excel')}
+                {step === 'preview' && t('imports:steps.preview', '2. Xem trước & Kiểm tra')}
+                {step === 'completed' && t('imports:steps.completed', '3. Kết quả Import')}
               </div>
             </div>
           </div>
@@ -297,10 +297,10 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
               >
                 <div>
                   <div style={{ fontWeight: 600, color: '#166534', fontSize: '14px' }}>
-                    Chưa có file mẫu chuẩn?
+                    {t('imports:upload.downloadTemplate', 'Tải file Excel mẫu chuẩn')}
                   </div>
                   <div style={{ fontSize: '12px', color: '#15803d', marginTop: '2px' }}>
-                    Tải về file Excel mẫu đã định dạng sẵn các cột thông tin và hướng dẫn.
+                    {t('imports:upload.downloadHelp', 'File mẫu đã có sẵn cấu trúc cột và hướng dẫn định dạng')}
                   </div>
                 </div>
                 <button
@@ -318,7 +318,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   }}
                 >
                   <span>📄</span>
-                  <span>Tải file mẫu (.xlsx)</span>
+                  <span>{t('imports:upload.downloadTemplate', 'Tải file mẫu (.xlsx)')}</span>
                 </button>
               </div>
 
@@ -343,7 +343,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                       setSelectedFile(f);
                       setErrorMessage(null);
                     } else {
-                      setErrorMessage('Chỉ hỗ trợ file Excel (.xlsx, .xls)');
+                      setErrorMessage(t('imports:errors.invalidFormat', 'Chỉ hỗ trợ file Excel (.xlsx, .xls)'));
                     }
                   }
                 }}
@@ -364,16 +364,16 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                       {selectedFile.name}
                     </div>
                     <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                      {(selectedFile.size / 1024).toFixed(1)} KB — Nhấp để chọn file khác
+                      {(selectedFile.size / 1024).toFixed(1)} KB — {t('imports:preview.btnBack', 'Nhấp để chọn file khác')}
                     </div>
                   </div>
                 ) : (
                   <div>
                     <div style={{ fontWeight: 600, color: '#334155', fontSize: '14px' }}>
-                      Kéo thả file Excel vào đây hoặc nhấp để chọn file
+                      {t('imports:upload.dragDrop', 'Kéo thả file Excel vào đây hoặc')} {t('imports:upload.browseFile', 'Chọn file từ máy tính')}
                     </div>
                     <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-                      Định dạng hỗ trợ: .xlsx, .xls (Dung lượng tối đa 10MB, tối đa 1,000 dòng)
+                      {t('imports:upload.supports', 'Định dạng hỗ trợ: .xlsx, .xls (Tối đa 10MB, tối đa 1,000 dòng)')}
                     </div>
                   </div>
                 )}
@@ -381,7 +381,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
 
               {/* Guide notes */}
               <div style={{ fontSize: '12px', color: '#64748b', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px' }}>
-                <div style={{ fontWeight: 600, marginBottom: '4px', color: '#475569' }}>Quy tắc nhập liệu:</div>
+                <div style={{ fontWeight: 600, marginBottom: '4px', color: '#475569' }}>Quy tắc nhập liệu / Import Rules:</div>
                 <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <li>Cột có dấu <strong>(*)</strong> là bắt buộc: Mã tài sản, Tên tài sản, Loại tài sản.</li>
                   <li>Mã tài sản (Asset Tag) và Số Serial phải là duy nhất, không trùng trong file hoặc cơ sở dữ liệu.</li>
@@ -411,7 +411,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     backgroundColor: '#f8fafc',
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>TỔNG SỐ DÒNG</div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>{t('imports:preview.totalRows', 'TỔNG SỐ DÒNG')}</div>
                   <div style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a' }}>
                     {previewData.totalRows}
                   </div>
@@ -425,7 +425,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     backgroundColor: '#f0fdf4',
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#166534' }}>HỢP LỆ (SẴN SÀNG)</div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#166534' }}>{t('imports:preview.validRows', 'HỢP LỆ (SẴN SÀNG)')}</div>
                   <div style={{ fontSize: '22px', fontWeight: 700, color: '#16a34a' }}>
                     {previewData.validRows}
                   </div>
@@ -439,7 +439,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     backgroundColor: '#fffbeb',
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#92400e' }}>TRÙNG LẶP</div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#92400e' }}>{t('imports:preview.duplicateRows', 'TRÙNG LẶP')}</div>
                   <div style={{ fontSize: '22px', fontWeight: 700, color: '#d97706' }}>
                     {previewData.duplicateRows}
                   </div>
@@ -453,7 +453,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     backgroundColor: '#fef2f2',
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#991b1b' }}>DÒNG LỖI</div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#991b1b' }}>{t('imports:preview.invalidRows', 'DÒNG LỖI')}</div>
                   <div style={{ fontSize: '22px', fontWeight: 700, color: '#dc2626' }}>
                     {previewData.invalidRows}
                   </div>
@@ -476,7 +476,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     color: activeFilter === 'ALL' ? '#ffffff' : '#475569',
                   }}
                 >
-                  Tất cả ({previewData.totalRows})
+                  {t('imports:preview.filterAll', 'Tất cả')} ({previewData.totalRows})
                 </button>
                 <button
                   type="button"
@@ -492,7 +492,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     color: activeFilter === 'VALID' ? '#ffffff' : '#475569',
                   }}
                 >
-                  Chỉ dòng hợp lệ ({previewData.validRows})
+                  {t('imports:preview.filterValid', 'Chỉ dòng hợp lệ')} ({previewData.validRows})
                 </button>
                 <button
                   type="button"
@@ -508,7 +508,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     color: activeFilter === 'ERROR' ? '#ffffff' : '#475569',
                   }}
                 >
-                  Chỉ dòng lỗi & trùng ({previewData.invalidRows + previewData.duplicateRows})
+                  {t('imports:preview.filterError', 'Chỉ dòng lỗi & trùng')} ({previewData.invalidRows + previewData.duplicateRows})
                 </button>
               </div>
 
@@ -529,7 +529,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 >
                   <span>ℹ️</span>
                   <span>
-                    Hệ thống sẽ chỉ import <strong>{previewData.validRows}</strong> dòng hợp lệ. Các dòng bị lỗi hoặc trùng lặp sẽ tự động được bỏ qua.
+                    {t('imports:preview.warningSkip', 'Lưu ý: Chỉ các dòng hợp lệ mới được import vào cơ sở dữ liệu. Các dòng lỗi sẽ bị bỏ qua.')}
                   </span>
                 </div>
               )}
@@ -546,20 +546,20 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 <table className="data-table" style={{ width: '100%', fontSize: '12px' }}>
                   <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>
                     <tr>
-                      <th style={{ width: '60px', textAlign: 'center' }}>Dòng</th>
-                      <th style={{ width: '100px', textAlign: 'center' }}>Trạng thái</th>
-                      <th style={{ width: '140px' }}>Mã tài sản</th>
-                      <th>Tên tài sản</th>
-                      <th style={{ width: '100px' }}>Loại</th>
-                      <th style={{ width: '120px' }}>Serial</th>
-                      <th style={{ width: '220px' }}>Chi tiết lỗi / Ghi chú</th>
+                      <th style={{ width: '60px', textAlign: 'center' }}>{t('imports:preview.colRow', 'Dòng')}</th>
+                      <th style={{ width: '100px', textAlign: 'center' }}>{t('imports:preview.colValidation', 'Trạng thái')}</th>
+                      <th style={{ width: '140px' }}>{t('imports:preview.colTag', 'Mã tài sản')}</th>
+                      <th>{t('imports:preview.colName', 'Tên tài sản')}</th>
+                      <th style={{ width: '100px' }}>{t('imports:preview.colType', 'Loại')}</th>
+                      <th style={{ width: '120px' }}>{t('imports:preview.colSerial', 'Serial')}</th>
+                      <th style={{ width: '220px' }}>{t('imports:preview.colError', 'Chi tiết lỗi / Ghi chú')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredRows.length === 0 ? (
                       <tr>
                         <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
-                          Không có dòng dữ liệu nào phù hợp với bộ lọc hiện tại.
+                          {t('common:labels.noData', 'Không có dữ liệu')}
                         </td>
                       </tr>
                     ) : (
@@ -588,7 +588,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                                   ))}
                                 </div>
                               ) : (
-                                <span style={{ color: '#16a34a' }}>Sẵn sàng lưu kho</span>
+                                <span style={{ color: '#16a34a' }}>✓ {t('imports:statusBadges.VALID', 'Sẵn sàng lưu kho')}</span>
                               )}
                             </td>
                           </tr>
@@ -606,10 +606,10 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             <div style={{ textAlign: 'center', padding: '32px 16px' }}>
               <div style={{ fontSize: '56px', marginBottom: '16px' }}>🎉</div>
               <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
-                Import Dữ Liệu Hoàn Tất!
+                {t('imports:completed.successTitle', 'Import Dữ Liệu Hoàn Tất!')}
               </h3>
               <p style={{ fontSize: '14px', color: '#475569', maxWidth: '420px', margin: '0 auto 24px auto' }}>
-                Đã thêm thành công <strong>{importedCount}</strong> tài sản phần cứng mới vào hệ thống ở trạng thái Đang lưu kho (IN STOCK).
+                {t('imports:completed.successMessage', { count: importedCount, defaultValue: `Đã thêm thành công ${importedCount} tài sản phần cứng mới vào hệ thống.` })}
               </p>
               <button
                 type="button"
@@ -617,7 +617,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 onClick={handleClose}
                 style={{ padding: '8px 24px', fontSize: '14px' }}
               >
-                Đóng & Xem danh sách tài sản
+                {t('imports:completed.btnFinish', 'Đóng & Xem danh sách tài sản')}
               </button>
             </div>
           )}
@@ -643,7 +643,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   onClick={handleClose}
                   disabled={isUploading}
                 >
-                  Hủy bỏ
+                  {t('common:buttons.cancel', 'Hủy bỏ')}
                 </button>
 
                 <button
@@ -656,12 +656,12 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   {isUploading ? (
                     <>
                       <span>⏳</span>
-                      <span>Đang kiểm tra file...</span>
+                      <span>{t('imports:upload.analyzing', 'Đang kiểm tra file...')}</span>
                     </>
                   ) : (
                     <>
                       <span>🔍</span>
-                      <span>Kiểm tra dữ liệu (Preview)</span>
+                      <span>{t('imports:upload.btnPreview', 'Kiểm tra dữ liệu (Preview)')}</span>
                     </>
                   )}
                 </button>
@@ -674,7 +674,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   onClick={() => setStep('upload')}
                   disabled={isImporting}
                 >
-                  ← Chọn lại file khác
+                  {t('imports:preview.btnBack', '← Chọn lại file khác')}
                 </button>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -684,7 +684,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     onClick={handleClose}
                     disabled={isImporting}
                   >
-                    Đóng
+                    {t('common:buttons.close', 'Đóng')}
                   </button>
 
                   <button
@@ -703,13 +703,13 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     {isImporting ? (
                       <>
                         <span>⏳</span>
-                        <span>Đang nhập dữ liệu...</span>
+                        <span>{t('imports:preview.importing', 'Đang nhập dữ liệu...')}</span>
                       </>
                     ) : (
                       <>
                         <span>✓</span>
                         <span>
-                          Xác nhận Import ({previewData?.validRows || 0} dòng)
+                          {t('imports:preview.btnConfirm', { count: previewData?.validRows || 0, defaultValue: `Xác nhận Import (${previewData?.validRows || 0} dòng)` })}
                         </span>
                       </>
                     )}

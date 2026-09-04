@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   CatalogTabKey,
   Supplier,
@@ -42,6 +43,7 @@ const TABS: { key: CatalogTabKey; label: string }[] = [
 ];
 
 export const CatalogsPage: React.FC = () => {
+  const { t } = useTranslation(['catalogs', 'common']);
   const [activeTab, setActiveTab] = useState<CatalogTabKey>('departments');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
@@ -557,7 +559,24 @@ export const CatalogsPage: React.FC = () => {
     );
   };
 
-  const getActiveTabLabel = () => TABS.find((t) => t.key === activeTab)?.label || '';
+  const getTabLabel = (key: CatalogTabKey) => {
+    switch (key) {
+      case 'departments': return t('catalogs:tabs.departments', 'Phòng ban');
+      case 'locations': return t('catalogs:tabs.locations', 'Vị trí');
+      case 'suppliers': return t('catalogs:tabs.suppliers', 'Nhà cung cấp');
+      case 'categories': return t('catalogs:tabs.categories', 'Nhóm tài sản');
+      case 'types': return t('catalogs:tabs.types', 'Loại tài sản');
+      case 'statuses': return t('catalogs:tabs.statuses', 'Trạng thái tài sản');
+      case 'conditions': return t('catalogs:tabs.conditions', 'Tình trạng tài sản');
+      case 'models': return t('catalogs:tabs.models', 'Model thiết bị');
+      case 'software': return t('catalogs:tabs.software', 'Phần mềm');
+      case 'license-assignments': return t('catalogs:tabs.licenseAssignments', 'Loại gán License');
+      case 'license-terms': return t('catalogs:tabs.licenseTerms', 'Thời hạn License');
+      default: return '';
+    }
+  };
+
+  const getActiveTabLabel = () => getTabLabel(activeTab);
 
   // Data mapping for generic modal
   const getInitialGenericData = (): CatalogFormData | null => {
@@ -586,13 +605,13 @@ export const CatalogsPage: React.FC = () => {
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 className="page-title">Quản lý Danh mục hệ thống</h1>
+          <h1 className="page-title">{t('catalogs:title', 'Quản lý Danh mục')}</h1>
           <p className="page-description">
-            Quản lý tất cả danh mục dùng chung cho tài sản, thiết bị, phần mềm và nhà cung cấp.
+            {t('catalogs:subtitle', 'Quản lý tất cả danh mục dùng chung cho tài sản, thiết bị, phần mềm và nhà cung cấp.')}
           </p>
         </div>
         <button className="btn btn-primary" onClick={handleOpenAdd}>
-          + Thêm {getActiveTabLabel()}
+          + {t('common:buttons.add', 'Thêm')} {getActiveTabLabel()}
         </button>
       </div>
 
@@ -613,7 +632,7 @@ export const CatalogsPage: React.FC = () => {
             className={`tab-button ${activeTab === tab.key ? 'active' : ''}`}
             onClick={() => handleTabChange(tab.key)}
           >
-            {tab.label}
+            {getTabLabel(tab.key)}
           </button>
         ))}
       </div>
@@ -626,7 +645,7 @@ export const CatalogsPage: React.FC = () => {
               <input
                 type="text"
                 className="search-input"
-                placeholder={`Tìm kiếm ${getActiveTabLabel().toLowerCase()}...`}
+                placeholder={`${t('common:labels.search', 'Tìm kiếm')} ${getActiveTabLabel().toLowerCase()}...`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -637,14 +656,14 @@ export const CatalogsPage: React.FC = () => {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
             >
-              <option value="ALL">Tất cả trạng thái</option>
-              <option value="ACTIVE">Đang hoạt động</option>
-              <option value="INACTIVE">Đã khóa</option>
+              <option value="ALL">{t('common:labels.all', 'Tất cả trạng thái')}</option>
+              <option value="ACTIVE">{t('common:labels.active', 'Đang hoạt động')}</option>
+              <option value="INACTIVE">{t('common:labels.inactive', 'Ngừng hoạt động')}</option>
             </select>
           </div>
 
           <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Tổng số: <strong>{totalElements}</strong> mục
+            {t('common:pagination.showing', 'Tổng số')}: <strong>{totalElements}</strong> {t('common:pagination.items', 'mục')}
           </div>
         </div>
 
