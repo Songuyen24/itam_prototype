@@ -1,0 +1,78 @@
+{
+  "title": "Chứng từ",
+  "transactionsTitle": "Danh sách phiếu",
+  "listTitle": "Chứng từ đính kèm",
+  "fields": {
+    "transactionCode": "Mã phiếu",
+    "transactionType": "Loại phiếu",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "documentType": "Loại chứng từ",
+    "file": "File",
+    "uploadedBy": "Người tải lên / Thời gian",
+    "assetId": "ID tài sản",
+    "actions": "Thao tác"
+  },
+  "filters": {
+    "allTypes": "Tất cả loại phiếu",
+    "allStatuses": "Tất cả trạng thái"
+  },
+  "transactionTypes": {
+    "IMPORT": "Nhập kho",
+    "HANDOVER": "Bàn giao",
+    "RECOVERY": "Thu hồi",
+    "DISPOSAL": "Thanh lý"
+  },
+  "statuses": {
+    "PENDING": "Chờ xử lý",
+    "COMPLETED": "Hoàn tất",
+    "REJECTED": "Đã từ chối"
+  },
+  "documentTypes": {
+    "INVOICE": "Hóa đơn",
+    "PURCHASE_ORDER": "Đơn đặt hàng",
+    "IMPORT_RECEIPT": "Biên bản nhập kho",
+    "HANDOVER_REPORT": "Biên bản bàn giao",
+    "RECOVERY_REPORT": "Biên bản thu hồi",
+    "DISPOSAL_REPORT": "Biên bản thanh lý",
+    "CONTRACT": "Hợp đồng",
+    "OTHER": "Khác"
+  },
+  "actions": {
+    "download": "Tải xuống",
+    "downloadFile": "Tải {{name}}",
+    "upload": "Tải lên",
+    "uploading": "Đang tải lên...",
+    "retry": "Thử lại"
+  },
+  "states": {
+    "loading": "Đang tải...",
+    "noTransactions": "Không có phiếu phù hợp.",
+    "selectTransaction": "Chưa chọn phiếu.",
+    "noDocuments": "Chưa có chứng từ đính kèm.",
+    "readOnly": "Chỉ đọc",
+    "locked": "Đã khóa",
+    "downloading": "Đang tải file xuống...",
+    "uploading": "Đang tải file lên...",
+    "notAvailable": "Chưa có thông tin"
+  },
+  "pagination": {
+    "summary": "Trang {{page}} / {{pages}} ({{count}} bản ghi)",
+    "previous": "Trang trước",
+    "next": "Trang sau"
+  },
+  "errors": {
+    "transactions": "Không thể tải danh sách phiếu.",
+    "transaction": "Không thể tải thông tin phiếu.",
+    "documents": "Không thể tải danh sách chứng từ.",
+    "download": "Không thể tải file xuống.",
+    "upload": "Không thể tải file lên.",
+    "conflict": "Phiếu đã thay đổi hoặc đang bị khóa. Hãy tải lại phiếu trước khi chỉnh sửa."
+  },
+  "validation": {
+    "fileRequired": "Vui lòng chọn file.",
+    "emptyFile": "File đã chọn không có nội dung.",
+    "fileType": "Chỉ chấp nhận file PDF, PNG và JPEG có định dạng khớp với đuôi file.",
+    "fileTooLarge": "Kích thước file không được vượt quá 10 MB."
+  }
+}

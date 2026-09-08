@@ -10,8 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,6 +83,20 @@ public class GlobalExceptionHandler {
         String localizedMsg = messageHelper.getMessageWithDefault("VALIDATION_ERROR", ex.getMessage());
         ErrorResponse error = new ErrorResponse(localizedMsg, "VALIDATION_ERROR");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleUploadSizeException(MaxUploadSizeExceededException ex) {
+        String code = "DOCUMENT_FILE_TOO_LARGE";
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(new ErrorResponse(messageHelper.getMessage(code), code));
+    }
+
+    @ExceptionHandler({MissingServletRequestParameterException.class, MissingServletRequestPartException.class,
+            MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ErrorResponse> handleRequestBindingException(Exception ex) {
+        String code = "VALIDATION_ERROR";
+        return ResponseEntity.badRequest().body(new ErrorResponse(messageHelper.getMessage(code), code));
     }
 
     @ExceptionHandler(Exception.class)

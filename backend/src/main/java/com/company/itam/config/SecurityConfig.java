@@ -52,6 +52,17 @@ public class SecurityConfig {
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                     .requestMatchers("/v1/auth/me", "/api/v1/auth/me",
                             "/v1/auth/logout", "/api/v1/auth/logout").authenticated()
+                    // Document services also enforce transaction scope and report ownership.
+                    .requestMatchers(HttpMethod.GET, "/v1/documents/*/download", "/api/v1/documents/*/download")
+                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF", "USER")
+                    .requestMatchers(HttpMethod.GET, "/v1/documents", "/api/v1/documents",
+                            "/v1/documents/*", "/api/v1/documents/*", "/v1/transactions", "/api/v1/transactions",
+                            "/v1/transactions/*", "/api/v1/transactions/*")
+                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                    .requestMatchers(HttpMethod.POST, "/v1/documents", "/api/v1/documents")
+                            .hasAnyAuthority("ADMIN", "PUR_STAFF")
+                    .requestMatchers(HttpMethod.DELETE, "/v1/documents/*", "/api/v1/documents/*")
+                            .hasAnyAuthority("ADMIN", "PUR_STAFF")
                     // Detail access also requires the ownership check in AssetService.
                     .requestMatchers(HttpMethod.GET, "/v1/users/me/assets", "/api/v1/users/me/assets",
                             "/v1/assets/*", "/api/v1/assets/*")
