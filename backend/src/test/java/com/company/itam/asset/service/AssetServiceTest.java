@@ -27,6 +27,7 @@ import com.company.itam.supplier.repository.SupplierRepository;
 import com.company.itam.user.entity.UserEntity;
 import com.company.itam.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -124,6 +128,46 @@ class AssetServiceTest {
         sampleUser.setUserId(100L);
         sampleUser.setFullName("Nguyen Van A");
         sampleUser.setEmail("a.nguyen@company.com");
+
+        // Mutating asset operations resolve the actor from the authenticated session.
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        sampleUser.getEmail(), null,
+                        List.of(new SimpleGrantedAuthority("ADMIN"))));
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void getAssetById_withoutAuthentication_doesNotReadRepository() {
+        SecurityContextHolder.clearContext();
+
+        AppException exception = assertThrows(AppException.class, () -> assetService.getAssetById(77L));
+
+        assertEquals("UNAUTHORIZED", exception.getCode());
+        verifyNoInteractions(assetRepository);
+    }
+
+    @Test
+    @DisplayName("USER không đọc được chi tiết tài sản gán cho người khác")
+    void getAssetById_userScope_rejectsOtherUsersAsset() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        sampleUser.getEmail(), null,
+                        List.of(new SimpleGrantedAuthority("USER"))));
+        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
+
+        UserEntity anotherUser = new UserEntity();
+        anotherUser.setUserId(200L);
+        AssetEntity otherAsset = new AssetEntity();
+        otherAsset.setAssetId(77L);
+        otherAsset.setAssignedTo(anotherUser);
+        when(assetRepository.findByIdWithHardwareDetails(77L)).thenReturn(Optional.of(otherAsset));
+
+        assertThrows(ResourceNotFoundException.class, () -> assetService.getAssetById(77L));
     }
 
     @Test
@@ -143,7 +187,7 @@ class AssetServiceTest {
         when(assetTypeRepository.findById(1L)).thenReturn(Optional.of(sampleType));
         when(assetStatusRepository.findByCode(AssetStatus.IN_STOCK)).thenReturn(Optional.of(inStockStatus));
         when(modelRepository.findById(10L)).thenReturn(Optional.of(sampleModel));
-        when(userRepository.findAll()).thenReturn(List.of(sampleUser));
+        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
 
         when(assetRepository.save(any(AssetEntity.class))).thenAnswer(invocation -> {
             AssetEntity entity = invocation.getArgument(0);
@@ -195,7 +239,7 @@ class AssetServiceTest {
         when(assetTypeRepository.findById(1L)).thenReturn(Optional.of(sampleType));
         when(assetStatusRepository.findByCode(AssetStatus.IN_STOCK)).thenReturn(Optional.of(inStockStatus));
         when(modelRepository.findById(10L)).thenReturn(Optional.of(sampleModel));
-        when(userRepository.findAll()).thenReturn(List.of(sampleUser));
+        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
 
         when(assetRepository.save(any(AssetEntity.class))).thenAnswer(invocation -> {
             AssetEntity entity = invocation.getArgument(0);
@@ -333,7 +377,7 @@ class AssetServiceTest {
         when(assetRepository.findByAssetTag("AST-10-NEW")).thenReturn(Optional.empty());
         when(assetTypeRepository.findById(1L)).thenReturn(Optional.of(sampleType));
         when(modelRepository.findById(10L)).thenReturn(Optional.of(sampleModel));
-        when(userRepository.findAll()).thenReturn(List.of(sampleUser));
+        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
         when(assetHardwareDetailsRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(assetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 

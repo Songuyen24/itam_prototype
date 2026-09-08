@@ -24,6 +24,7 @@ public class AssetConditionController {
         this.catalogService = catalogService;
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<AssetConditionResponse>>> getConditions(
             @PageableDefault(size = 20, sort = "code", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -31,6 +32,7 @@ public class AssetConditionController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AssetConditionResponse>> getConditionById(@PathVariable Long id) {
         AssetConditionResponse result = catalogService.getAssetConditionById(id);

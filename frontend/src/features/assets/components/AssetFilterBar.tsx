@@ -9,6 +9,7 @@ import {
 } from '@/features/catalogs/types/catalog.types';
 
 interface AssetFilterBarProps {
+  showCatalogFilters?: boolean;
   keyword: string;
   onKeywordChange: (val: string) => void;
   statusId?: number;
@@ -31,6 +32,7 @@ interface AssetFilterBarProps {
 }
 
 export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
+  showCatalogFilters = true,
   keyword,
   onKeywordChange,
   statusId,
@@ -100,7 +102,7 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
       </div>
 
       {/* Row 2: Filter selects */}
-      <div
+      {showCatalogFilters && <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -201,7 +203,7 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
             ))}
           </select>
         </div>
-      </div>
+      </div>}
     </div>
   );
 };

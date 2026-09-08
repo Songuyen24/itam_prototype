@@ -1,5 +1,5 @@
 import { httpClient } from '@/shared/api/httpClient';
-import { LoginPayload, LoginResponse, CurrentUserResponse } from '../types/auth.types';
+import { AuthUser, LoginPayload, LoginResponse, CurrentUserResponse } from '../types/auth.types';
 
 export const authApi = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
@@ -13,12 +13,13 @@ export const authApi = {
     return (res as { success: boolean; data: LoginResponse }).data;
   },
 
-  async me(): Promise<CurrentUserResponse> {
+  async me(): Promise<AuthUser> {
     const res = await httpClient<{ success: boolean; data: CurrentUserResponse }>(
       '/v1/auth/me',
       { method: 'GET' }
     );
-    return (res as { success: boolean; data: CurrentUserResponse }).data;
+    const { roleCode, ...user } = res.data;
+    return { ...user, role: roleCode };
   },
 
   async logout(): Promise<void> {

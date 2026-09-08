@@ -11,6 +11,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,6 +24,7 @@ public class LocationController {
         this.locationService = locationService;
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<LocationResponse>>> getLocations(
             @RequestParam(required = false) String search,
@@ -32,18 +34,21 @@ public class LocationController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<LocationResponse>> getLocationById(@PathVariable Long id) {
         LocationResponse result = locationService.getLocationById(id);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PostMapping
     public ResponseEntity<ApiResponse<LocationResponse>> createLocation(@Valid @RequestBody LocationRequest request) {
         LocationResponse result = locationService.createLocation(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Tạo vị trí thành công", result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<LocationResponse>> updateLocation(
             @PathVariable Long id,
@@ -52,12 +57,14 @@ public class LocationController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật vị trí thành công", result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteLocation(@PathVariable Long id) {
         locationService.deleteLocation(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa vị trí thành công", null));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PatchMapping("/{id}/active")
     public ResponseEntity<ApiResponse<LocationResponse>> toggleActive(
             @PathVariable Long id,

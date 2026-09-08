@@ -1,7 +1,7 @@
 package com.company.itam.user.controller;
 
-import com.company.itam.asset.entity.AssetEntity;
-import com.company.itam.asset.repository.AssetRepository;
+import com.company.itam.asset.dto.response.AssetResponse;
+import com.company.itam.asset.service.AssetService;
 import com.company.itam.common.exception.AppException;
 import com.company.itam.common.pagination.PageResponse;
 import com.company.itam.common.response.ApiResponse;
@@ -14,26 +14,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/v1/users")
 public class UserController {
 
     private final UserRepository userRepository;
-    private final AssetRepository assetRepository;
+    private final AssetService assetService;
 
-    public UserController(UserRepository userRepository, AssetRepository assetRepository) {
+    public UserController(UserRepository userRepository, AssetService assetService) {
         this.userRepository = userRepository;
-        this.assetRepository = assetRepository;
+        this.assetService = assetService;
     }
 
     @GetMapping
@@ -79,22 +75,13 @@ public class UserController {
      * để nhận diện tài sản của họ (nếu có).
      */
     @GetMapping("/me/assets")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<Long>>> myAssets() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getName() == null
-                || "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
-        }
-        UserEntity user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new AppException(
-                        HttpStatus.UNAUTHORIZED,
-                        "UNAUTHORIZED",
-                        "User not found"
-                ));
-        Pageable pageable = PageRequest.of(0, 200);
-        Page<AssetEntity> assets = assetRepository.findByAssignedToUserId(user.getUserId(), pageable);
-        List<Long> ids = assets.getContent().stream().map(AssetEntity::getAssetId).toList();
-        return ResponseEntity.ok(ApiResponse.success("MY_ASSETS_SUCCESS", ids));
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'USER')")
+    public ResponseEntity<ApiResponse<PageResponse<AssetResponse>>> myAssets(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100),
+                org.springframework.data.domain.Sort.by("assetId").descending());
+        return ResponseEntity.ok(ApiResponse.success("MY_ASSETS_SUCCESS", assetService.getMyAssets(keyword, pageable)));
     }
 }

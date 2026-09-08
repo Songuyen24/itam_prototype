@@ -49,6 +49,8 @@ export const RoleSwitcher: React.FC = () => {
       setOpen(false);
       // Sau khi đổi role quay về trang chủ để đảm bảo dữ liệu reload đúng quyền
       navigate('/', { replace: true });
+    } catch {
+      navigate('/login', { replace: true });
     } finally {
       setBusy(false);
     }

@@ -6,6 +6,7 @@ import com.company.itam.supplier.dto.SupplierContactResponse;
 import com.company.itam.supplier.service.SupplierService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,6 +19,7 @@ public class SupplierContactController {
         this.supplierService = supplierService;
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<SupplierContactResponse>> updateContact(
             @PathVariable Long id,
@@ -26,6 +28,7 @@ public class SupplierContactController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật người liên hệ thành công", result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteContact(@PathVariable Long id) {
         supplierService.deleteContact(id);

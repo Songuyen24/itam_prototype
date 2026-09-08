@@ -110,6 +110,7 @@ class AuthControllerIntegrationTest {
     @Test
     void me_withValidToken_returnsUser() throws Exception {
         when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
+        when(userRepository.findByEmailWithDetails("admin@itam.example")).thenReturn(Optional.of(adminUser));
 
         String token = jwtTokenProvider.generateToken("admin@itam.example", "ADMIN");
         mockMvc.perform(get("/v1/auth/me")

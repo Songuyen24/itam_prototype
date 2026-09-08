@@ -141,6 +141,42 @@ body {
   width: 100%;
 }
 
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .app-sidebar {
+    width: 100%;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .app-navbar {
+    height: auto;
+    min-height: 64px;
+    padding: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .app-navbar > div {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .app-main {
+    padding: 16px;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+}
+
 /* Page Header */
 .page-header {
   margin-bottom: 24px;

@@ -46,7 +46,24 @@ export function registerUnauthorizedHandler(handler: (() => void) | null): void 
   onUnauthorized = handler;
 }
 
+let sessionRevision = 0;
+
+export function invalidateSessionRequests(): void {
+  sessionRevision += 1;
+}
+
+function assertCurrentSession(token: string | null, revision: number, language: string): void {
+  if (token !== getAuthToken() || revision !== sessionRevision) {
+    throw new ApiError(
+      language === 'en' ? 'The signed-in account has changed' : 'Tài khoản đăng nhập đã thay đổi',
+      0,
+      'SESSION_CHANGED'
+    );
+  }
+}
+
 function clearLocalSession(): void {
+  invalidateSessionRequests();
   try {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
@@ -73,6 +90,7 @@ async function httpClient<T>(
   }
 
   const token = getAuthToken();
+  const revision = sessionRevision;
   if (token && !headers['Authorization']) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -81,12 +99,9 @@ async function httpClient<T>(
     ...options,
     headers,
   });
+  assertCurrentSession(token, revision, currentLang);
 
   if (response.status === 401) {
-    clearLocalSession();
-    if (onUnauthorized) {
-      onUnauthorized();
-    }
     let errorMessage = currentLang === 'en' ? 'Unauthorized' : 'Chưa xác thực';
     try {
       const errorData = await response.json();
@@ -96,11 +111,15 @@ async function httpClient<T>(
     } catch {
       // ignore parse errors
     }
+    assertCurrentSession(token, revision, currentLang);
+    clearLocalSession();
+    onUnauthorized?.();
     throw new ApiError(errorMessage, 401, 'UNAUTHORIZED');
   }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: response.statusText }));
+    assertCurrentSession(token, revision, currentLang);
     throw new ApiError(
       errorData.message || (currentLang === 'en' ? 'An error occurred' : 'Có lỗi xảy ra'),
       response.status,
@@ -109,7 +128,9 @@ async function httpClient<T>(
     );
   }
 
-  return response.json();
+  const data = await response.json();
+  assertCurrentSession(token, revision, currentLang);
+  return data;
 }
 
 async function downloadFile(endpoint: string, fallbackFilename: string): Promise<void> {
@@ -118,11 +139,13 @@ async function downloadFile(endpoint: string, fallbackFilename: string): Promise
 
   const headers: Record<string, string> = { 'Accept-Language': currentLang };
   const token = getAuthToken();
+  const revision = sessionRevision;
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
   const response = await fetch(url, { headers });
+  assertCurrentSession(token, revision, currentLang);
 
   if (response.status === 401) {
     clearLocalSession();
@@ -144,6 +167,7 @@ async function downloadFile(endpoint: string, fallbackFilename: string): Promise
   }
 
   const blob = await response.blob();
+  assertCurrentSession(token, revision, currentLang);
   const downloadUrl = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = downloadUrl;

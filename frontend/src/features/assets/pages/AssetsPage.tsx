@@ -24,9 +24,13 @@ import { AssetFilterBar } from '../components/AssetFilterBar';
 import { AssetFormModal } from '../components/AssetFormModal';
 import { AssetDetailModal } from '../components/AssetDetailModal';
 import { AssetImportModal } from '../components/AssetImportModal';
+import { useAuth } from '@/features/auth/contexts/AuthContext';
+import { canManageInventory } from '@/features/auth/permissions';
 
-export const AssetsPage: React.FC = () => {
+export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false }) => {
   const { t } = useTranslation(['assets', 'common']);
+  const { user } = useAuth();
+  const canManageAssets = !myAssets && canManageInventory(user?.role);
   // Filters & Pagination
   const [keyword, setKeyword] = useState('');
   const [statusId, setStatusId] = useState<number | undefined>();
@@ -61,8 +65,18 @@ export const AssetsPage: React.FC = () => {
   const [selectedAssetDetail, setSelectedAssetDetail] = useState<AssetDetail | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load auxiliary catalog data on mount
+  // Load auxiliary catalog data only for roles allowed to manage the inventory.
   useEffect(() => {
+    if (!canManageAssets) {
+      setTypes([]);
+      setStatuses([]);
+      setConditions([]);
+      setModels([]);
+      setDepartments([]);
+      setLocations([]);
+      setSuppliers([]);
+      return;
+    }
     Promise.all([
       assetTypeApi.getAll(undefined, true, 0, 100),
       assetStatusApi.getAll(0, 100),
@@ -82,23 +96,34 @@ export const AssetsPage: React.FC = () => {
     }).catch((err) => {
       console.error('Error loading auxiliary catalogs:', err);
     });
-  }, []);
+  }, [canManageAssets, user?.id]);
+
+  useEffect(() => {
+    setAssets([]);
+    setSelectedAssetDetail(null);
+    setIsFormModalOpen(false);
+    setIsDetailModalOpen(false);
+    setCurrentPage(0);
+  }, [user?.id]);
 
   // Fetch asset list
   const fetchAssets = useCallback(async () => {
     setIsLoading(true);
     setToastMessage(null);
     try {
-      const res = await assetApi.getAssets({
+      const personalFilters = {
         keyword: keyword.trim() ? keyword.trim() : undefined,
+        page: currentPage,
+        size: pageSize,
+      };
+      const res = await (myAssets ? assetApi.getMyAssets(personalFilters) : assetApi.getAssets({
+        ...personalFilters,
         statusId,
         typeId,
         modelId,
         departmentId,
         locationId,
-        page: currentPage,
-        size: pageSize,
-      });
+      }));
 
       if (res.success && res.data) {
         setAssets(res.data.content);
@@ -106,11 +131,11 @@ export const AssetsPage: React.FC = () => {
         setTotalElements(res.data.totalElements);
       }
     } catch (err: any) {
-      setToastMessage({ type: 'error', text: err.message || 'Lỗi khi tải danh sách tài sản' });
+      setToastMessage({ type: 'error', text: err.message || t('assets:toasts.loadListError') });
     } finally {
       setIsLoading(false);
     }
-  }, [keyword, statusId, typeId, modelId, departmentId, locationId, currentPage, pageSize]);
+  }, [keyword, statusId, typeId, modelId, departmentId, locationId, currentPage, pageSize, user?.id, myAssets, t]);
 
   useEffect(() => {
     fetchAssets();
@@ -224,13 +249,13 @@ export const AssetsPage: React.FC = () => {
       {/* Page Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 className="page-title">💻 {t('assets:title', 'Quản lý tài sản phần cứng')}</h1>
-          <p className="page-subtitle">
+          <h1 className="page-title">💻 {t(myAssets ? 'assets:myAssetsTitle' : 'assets:title')}</h1>
+          {!myAssets && <p className="page-subtitle">
             {t('assets:subtitle', 'Theo dõi danh sách thiết bị, mã Asset Tag, Serial Number, cấu hình Default/Actual và trạng thái sử dụng')}
-          </p>
+          </p>}
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        {canManageAssets && <div style={{ display: 'flex', gap: '10px' }}>
           <button
             type="button"
             className="btn btn-secondary"
@@ -245,11 +270,11 @@ export const AssetsPage: React.FC = () => {
             <span>➕</span>
             <span>{t('assets:actions.addAsset', 'Thêm tài sản')}</span>
           </button>
-        </div>
+        </div>}
       </div>
 
       {/* Quick Stats Metric Cards */}
-      <div
+      {!myAssets && <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
@@ -284,10 +309,11 @@ export const AssetsPage: React.FC = () => {
             {otherCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>({t('common:pagination.page', 'trang này')})</span>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Filter Bar */}
       <AssetFilterBar
+        showCatalogFilters={!myAssets}
         keyword={keyword}
         onKeywordChange={(val) => { setKeyword(val); setCurrentPage(0); }}
         statusId={statusId}
@@ -416,15 +442,17 @@ export const AssetsPage: React.FC = () => {
                         >
                           👁️
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '4px 8px', fontSize: '12px' }}
-                          onClick={() => handleOpenEdit(asset)}
-                          title="Chỉnh sửa"
-                        >
-                          ✏️
-                        </button>
+                        {canManageAssets && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ padding: '4px 8px', fontSize: '12px' }}
+                            onClick={() => handleOpenEdit(asset)}
+                            title="Chỉnh sửa"
+                          >
+                            ✏️
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -493,7 +521,7 @@ export const AssetsPage: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <AssetFormModal
+      {canManageAssets && <AssetFormModal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
         initialData={selectedAssetDetail}
@@ -506,26 +534,26 @@ export const AssetsPage: React.FC = () => {
         departments={departments}
         locations={locations}
         suppliers={suppliers}
-      />
+      />}
 
       <AssetDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         asset={selectedAssetDetail}
-        onEdit={(asset) => {
+        onEdit={canManageAssets ? (asset) => {
           setSelectedAssetDetail(asset);
           setIsFormModalOpen(true);
-        }}
+        } : undefined}
       />
 
-      <AssetImportModal
+      {canManageAssets && <AssetImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={(count) => {
           setToastMessage({ type: 'success', text: `Import thành công ${count} tài sản từ Excel!` });
           fetchAssets();
         }}
-      />
+      />}
     </div>
   );
 };

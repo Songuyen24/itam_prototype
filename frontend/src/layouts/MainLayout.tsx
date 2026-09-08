@@ -2,9 +2,13 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { RoleSwitcher } from '@/shared/components/RoleSwitcher/RoleSwitcher';
+import { useAuth } from '@/features/auth/contexts/AuthContext';
+import { canManageInventory } from '@/features/auth/permissions';
 
 function MainLayout() {
   const { t } = useTranslation('common');
+  const { user } = useAuth();
+  const canViewInventory = canManageInventory(user?.role);
 
   return (
     <div className="app-container">
@@ -19,37 +23,33 @@ function MainLayout() {
         </div>
 
         <nav className="sidebar-nav">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          >
-            <span>📊</span>
-            <span>{t('nav.overview', 'Tổng quan')}</span>
-          </NavLink>
+          {canViewInventory && (
+            <NavLink
+              to="/catalogs"
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              <span>📁</span>
+              <span>{t('nav.catalogs', 'Quản lý Danh mục')}</span>
+            </NavLink>
+          )}
 
-          <NavLink
-            to="/catalogs"
-            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          >
-            <span>📁</span>
-            <span>{t('nav.catalogs', 'Quản lý Danh mục')}</span>
-          </NavLink>
+          {canViewInventory && (
+            <NavLink
+              to="/assets"
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              <span>💻</span>
+              <span>{t('nav.assets', 'Tài sản thiết bị')}</span>
+            </NavLink>
+          )}
 
-          <NavLink
-            to="/assets"
-            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          >
-            <span>💻</span>
-            <span>{t('nav.assets', 'Tài sản thiết bị')}</span>
-          </NavLink>
-
-          <NavLink
-            to="/users"
-            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          >
-            <span>👥</span>
-            <span>{t('nav.users', 'Người dùng')}</span>
+          {user?.role === 'USER' && (
+            <NavLink to="/my-assets" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <span>{t('nav.myAssets')}</span>
+            </NavLink>
+          )}
+          <NavLink to="/account" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <span>{t('nav.account')}</span>
           </NavLink>
         </nav>
 

@@ -24,6 +24,7 @@ public class AssetTypeController {
         this.catalogService = catalogService;
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<AssetTypeResponse>>> getTypes(
             @RequestParam(required = false) String search,
@@ -33,6 +34,7 @@ public class AssetTypeController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AssetTypeResponse>> getTypeById(@PathVariable Long id) {
         AssetTypeResponse result = catalogService.getAssetTypeById(id);

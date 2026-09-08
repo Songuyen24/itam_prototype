@@ -19,7 +19,15 @@ export interface LoginResponse {
   user: AuthUser;
 }
 
-export type CurrentUserResponse = AuthUser;
+export interface CurrentUserResponse {
+  id: number;
+  email: string;
+  fullName: string;
+  roleCode: string;
+  roleName?: string;
+  departmentName?: string;
+  accountStatus?: string;
+}
 
 export interface RolePreset {
   email: string;

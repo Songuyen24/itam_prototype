@@ -24,6 +24,7 @@ public class ModelController {
         this.catalogService = catalogService;
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ModelResponse>>> getModels(
             @RequestParam(required = false) String search,
@@ -33,6 +34,7 @@ public class ModelController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ModelResponse>> getModelById(@PathVariable Long id) {
         ModelResponse result = catalogService.getModelById(id);

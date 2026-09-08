@@ -5,9 +5,11 @@ import React, {
   useMemo,
   useState,
   useCallback,
+  useRef,
 } from 'react';
 import { AuthUser, LoginResponse } from '../types/auth.types';
 import { authApi } from '../api/authApi';
+import { invalidateSessionRequests, registerUnauthorizedHandler } from '@/shared/api/httpClient';
 
 const TOKEN_STORAGE_KEY = 'itam_auth_token';
 const USER_STORAGE_KEY = 'itam_auth_user';
@@ -27,16 +29,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function readUser(): AuthUser | null {
-  try {
-    const raw = localStorage.getItem(USER_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AuthUser;
-  } catch {
-    return null;
-  }
-}
-
 function persistToken(token: string | null, user: AuthUser | null) {
   if (token === null || user === null) {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -48,59 +40,102 @@ function persistToken(token: string | null, user: AuthUser | null) {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(() => readUser());
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem(TOKEN_STORAGE_KEY)
-  );
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const operation = useRef(0);
+
+  const clearSession = useCallback(() => {
+    operation.current += 1;
+    invalidateSessionRequests();
+    persistToken(null, null);
+    setUser(null);
+    setToken(null);
+    setLoading(false);
+  }, []);
 
   const applyLoginResponse = useCallback((res: LoginResponse) => {
+    operation.current += 1;
+    invalidateSessionRequests();
+    persistToken(res.token, res.user);
     setUser(res.user);
     setToken(res.token);
-    persistToken(res.token, res.user);
+    setLoading(false);
   }, []);
 
   const login = useCallback(async (payload: { email: string; password: string }) => {
+    clearSession();
+    const currentOperation = operation.current;
     setLoading(true);
     try {
       const res = await authApi.login(payload);
-      applyLoginResponse(res);
+      if (operation.current === currentOperation && localStorage.getItem(TOKEN_STORAGE_KEY) === null) {
+        applyLoginResponse(res);
+      }
     } finally {
-      setLoading(false);
+      if (operation.current === currentOperation) setLoading(false);
     }
-  }, [applyLoginResponse]);
+  }, [applyLoginResponse, clearSession]);
 
   const logout = useCallback(async () => {
+    const pendingLogout = authApi.logout();
+    clearSession();
+    const currentOperation = operation.current;
     setLoading(true);
     try {
-      try {
-        await authApi.logout();
-      } catch {
-        // Bỏ qua lỗi server để vẫn xóa session phía client
-      }
-      setUser(null);
-      setToken(null);
-      persistToken(null, null);
+      await pendingLogout;
+    } catch {
+      // Local logout takes effect even if the old request fails.
     } finally {
-      setLoading(false);
+      if (operation.current === currentOperation) setLoading(false);
     }
-  }, []);
+  }, [clearSession]);
 
   const switchRole = useCallback(async (email: string) => {
     await login({ email, password: 'Password@123' });
   }, [login]);
 
   useEffect(() => {
-    // Đồng bộ giữa tab: nếu token bị xóa thì cập nhật state
+    registerUnauthorizedHandler(clearSession);
+
+    const restoreSession = async () => {
+      const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (!storedToken) {
+        clearSession();
+        return;
+      }
+
+      const currentOperation = ++operation.current;
+      invalidateSessionRequests();
+      setUser(null);
+      setToken(null);
+      setLoading(true);
+      try {
+        const currentUser = await authApi.me();
+        if (operation.current === currentOperation && localStorage.getItem(TOKEN_STORAGE_KEY) === storedToken) {
+          applyLoginResponse({ token: storedToken, type: 'Bearer', user: currentUser });
+        }
+      } catch {
+        if (operation.current === currentOperation && localStorage.getItem(TOKEN_STORAGE_KEY) === storedToken) {
+          clearSession();
+        }
+      }
+    };
+
+    void restoreSession();
     const onStorage = (ev: StorageEvent) => {
-      if (ev.key === TOKEN_STORAGE_KEY) {
-        setToken(ev.newValue);
-        setUser(readUser());
+      if (ev.key === TOKEN_STORAGE_KEY || ev.key === null) {
+        void restoreSession();
       }
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+    return () => {
+      operation.current += 1;
+      invalidateSessionRequests();
+      registerUnauthorizedHandler(null);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [applyLoginResponse, clearSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

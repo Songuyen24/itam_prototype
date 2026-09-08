@@ -98,6 +98,24 @@ describe('Asset API & Hardware Asset Management', () => {
     expect(result.data.effectiveRam).toBe('32GB');
   });
 
+  it('getMyAssets uses the session endpoint and never forwards client-supplied identity', async () => {
+    const data = { content: [], totalPages: 0, totalElements: 0 };
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, data }),
+    } as unknown as Response);
+    vi.stubGlobal('fetch', mockFetch);
+
+    const clientParams = { keyword: 'Laptop', page: 1, size: 20, assignedTo: 99, userId: 99, role: 'ADMIN' };
+    const result = await assetApi.getMyAssets(clientParams);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/v1\/users\/me\/assets\?page=1&size=20&keyword=Laptop$/),
+      expect.anything()
+    );
+    expect(result.data).toEqual(data);
+  });
+
   it('assetApi.validateUniqueness posts tag and serial and parses result', async () => {
     const mockResponse = {
       success: true,

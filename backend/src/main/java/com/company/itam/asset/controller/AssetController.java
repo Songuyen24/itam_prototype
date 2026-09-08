@@ -29,6 +29,7 @@ public class AssetController {
         this.assetService = assetService;
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<AssetResponse>>> getAssets(
             @RequestParam(required = false) String keyword,
@@ -63,6 +64,7 @@ public class AssetController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'USER')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AssetDetailResponse>> getAssetById(@PathVariable Long id) {
         AssetDetailResponse result = assetService.getAssetById(id);
@@ -87,6 +89,7 @@ public class AssetController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật tài sản phần cứng thành công", result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PostMapping("/validate-uniqueness")
     public ResponseEntity<ApiResponse<UniquenessValidationResponse>> validateUniqueness(
             @RequestBody ValidateUniquenessRequest request) {

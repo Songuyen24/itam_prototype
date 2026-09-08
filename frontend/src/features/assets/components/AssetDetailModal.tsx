@@ -5,7 +5,7 @@ interface AssetDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   asset: AssetDetail | null;
-  onEdit: (asset: AssetDetail) => void;
+  onEdit?: (asset: AssetDetail) => void;
 }
 
 export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
@@ -259,7 +259,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Đóng
           </button>
-          <button
+          {onEdit && <button
             type="button"
             className="btn btn-primary"
             onClick={() => {
@@ -268,7 +268,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
             }}
           >
             ✏️ Chỉnh sửa tài sản
-          </button>
+          </button>}
         </div>
       </div>
     </div>

@@ -27,6 +27,7 @@ import { ModelModal } from '../components/ModelModal';
 import { SupplierModal } from '../components/SupplierModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { ApiError } from '@/shared/api/httpClient';
+import { useAuth } from '@/features/auth/contexts/AuthContext';
 
 const TABS: { key: CatalogTabKey; label: string }[] = [
   { key: 'departments', label: 'Phòng ban' },
@@ -44,6 +45,8 @@ const TABS: { key: CatalogTabKey; label: string }[] = [
 
 export const CatalogsPage: React.FC = () => {
   const { t } = useTranslation(['catalogs', 'common']);
+  const { user } = useAuth();
+  const canManageCatalogs = user?.role === 'ADMIN' || user?.role === 'IT_STAFF';
   const [activeTab, setActiveTab] = useState<CatalogTabKey>('departments');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
@@ -144,7 +147,7 @@ export const CatalogsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [activeTab, search, statusFilter, currentPage, pageSize]);
+  }, [activeTab, search, statusFilter, currentPage, pageSize, user?.id]);
 
   useEffect(() => {
     fetchTabItems();
@@ -610,9 +613,11 @@ export const CatalogsPage: React.FC = () => {
             {t('catalogs:subtitle', 'Quản lý tất cả danh mục dùng chung cho tài sản, thiết bị, phần mềm và nhà cung cấp.')}
           </p>
         </div>
-        <button className="btn btn-primary" onClick={handleOpenAdd}>
-          + {t('common:buttons.add', 'Thêm')} {getActiveTabLabel()}
-        </button>
+        {canManageCatalogs && (
+          <button className="btn btn-primary" onClick={handleOpenAdd}>
+            + {t('common:buttons.add', 'Thêm')} {getActiveTabLabel()}
+          </button>
+        )}
       </div>
 
       {toastMessage && (
@@ -671,9 +676,9 @@ export const CatalogsPage: React.FC = () => {
           columns={getColumns()}
           data={items}
           isLoading={isLoading}
-          onEdit={handleOpenEdit}
-          onDelete={handleOpenDelete}
-          onToggleActive={handleToggleActive}
+          onEdit={canManageCatalogs ? handleOpenEdit : undefined}
+          onDelete={canManageCatalogs ? handleOpenDelete : undefined}
+          onToggleActive={canManageCatalogs ? handleToggleActive : undefined}
           keyExtractor={getKeyExtractor}
         />
 

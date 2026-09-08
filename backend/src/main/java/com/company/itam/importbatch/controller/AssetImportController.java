@@ -29,7 +29,7 @@ public class AssetImportController {
         this.assetImportService = assetImportService;
     }
 
-    // Cho phép tất cả role tải template mẫu
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/template")
     public ResponseEntity<byte[]> getTemplate() {
         byte[] content = assetImportService.getTemplate();

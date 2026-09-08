@@ -4,8 +4,14 @@ import { CatalogsPage } from '@/features/catalogs/pages/CatalogsPage';
 import { AssetsPage } from '@/features/assets/pages/AssetsPage';
 import LoginPage from '@/features/auth/pages/LoginPage';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
+import { useAuth } from '@/features/auth/contexts/AuthContext';
+import { AccountPage } from '@/features/auth/pages/AccountPage';
+import { getHomePath, INVENTORY_ROLES } from '@/features/auth/permissions';
 
 function AppRoutes() {
+  const { user, token } = useAuth();
+  const homePath = getHomePath(user?.role);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
@@ -13,14 +19,37 @@ function AppRoutes() {
         path="/"
         element={
           <ProtectedRoute>
-            <MainLayout />
+            <MainLayout key={`${token}:${user?.id}:${user?.role}`} />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/catalogs" replace />} />
-        <Route path="catalogs" element={<CatalogsPage />} />
-        <Route path="assets" element={<AssetsPage />} />
-        <Route path="*" element={<Navigate to="/catalogs" replace />} />
+        <Route index element={<Navigate to={homePath} replace />} />
+        <Route
+          path="catalogs"
+          element={
+            <ProtectedRoute allowedRoles={INVENTORY_ROLES}>
+              <CatalogsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="assets"
+          element={
+            <ProtectedRoute allowedRoles={INVENTORY_ROLES}>
+              <AssetsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="my-assets"
+          element={
+            <ProtectedRoute allowedRoles={['USER']}>
+              <AssetsPage myAssets />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="account" element={<AccountPage />} />
+        <Route path="*" element={<Navigate to={homePath} replace />} />
       </Route>
     </Routes>
   );

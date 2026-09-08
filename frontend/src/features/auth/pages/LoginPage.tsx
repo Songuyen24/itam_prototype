@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher/LanguageSwitcher';
 import { ApiError } from '@/shared/api/httpClient';
 import { RolePreset } from '../types/auth.types';
+import { getHomePath } from '../permissions';
 
 const QUICK_LOGIN_PRESETS: RolePreset[] = [
   {
@@ -37,23 +38,20 @@ const DEFAULT_PASSWORD = 'Password@123';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common']);
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, loading, user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const redirectTo = (location.state as { from?: string } | null)?.from || '/';
-
   async function doLogin(loginEmail: string, loginPassword: string) {
     setError(null);
     setSubmitting(true);
     try {
       await login({ email: loginEmail, password: loginPassword });
-      navigate(redirectTo, { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -80,8 +78,8 @@ const LoginPage: React.FC = () => {
     await doLogin(preset.email, DEFAULT_PASSWORD);
   }
 
-  if (isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+  if (isAuthenticated && !loading) {
+    return <Navigate to={getHomePath(user?.role)} replace />;
   }
 
   return (

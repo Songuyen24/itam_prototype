@@ -5,6 +5,7 @@ import com.company.itam.auth.security.JwtAuthenticationEntryPoint;
 import com.company.itam.auth.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -49,9 +50,13 @@ public class SecurityConfig {
                     // Public endpoints: đăng nhập và Swagger/OpenAPI nếu có.
                     .requestMatchers("/v1/auth/login", "/api/v1/auth/login").permitAll()
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                    // Hỗ trợ cả path gốc (/v1/...) và context-path (/api/v1/...)
-                    .requestMatchers("/v1/**").authenticated()
-                    .requestMatchers("/api/v1/**").authenticated()
+                    .requestMatchers("/v1/auth/me", "/api/v1/auth/me",
+                            "/v1/auth/logout", "/api/v1/auth/logout").authenticated()
+                    // Detail access also requires the ownership check in AssetService.
+                    .requestMatchers(HttpMethod.GET, "/v1/users/me/assets", "/api/v1/users/me/assets",
+                            "/v1/assets/*", "/api/v1/assets/*")
+                            .hasAnyAuthority("ADMIN", "IT_STAFF", "USER")
+                    .requestMatchers("/v1/**", "/api/v1/**").hasAnyAuthority("ADMIN", "IT_STAFF")
                     .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

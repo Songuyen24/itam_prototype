@@ -24,6 +24,7 @@ public class AssetStatusController {
         this.catalogService = catalogService;
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<AssetStatusResponse>>> getStatuses(
             @PageableDefault(size = 20, sort = "code", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -31,6 +32,7 @@ public class AssetStatusController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AssetStatusResponse>> getStatusById(@PathVariable Long id) {
         AssetStatusResponse result = catalogService.getAssetStatusById(id);

@@ -1,5 +1,6 @@
 {
   "title": "Hardware Assets",
+  "myAssetsTitle": "My Assets",
   "subtitle": "Manage and track hardware asset information and lifecycle",
   "actions": {
     "addAsset": "Add Asset",
@@ -55,6 +56,7 @@
     "validationSerialDuplicate": "Serial number already exists in system"
   },
   "toasts": {
+    "loadListError": "Could not load assets",
     "createSuccess": "Asset created successfully!",
     "updateSuccess": "Asset updated successfully!",
     "deleteSuccess": "Asset deleted successfully!",

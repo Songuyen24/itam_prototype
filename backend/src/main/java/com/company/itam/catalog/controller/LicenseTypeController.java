@@ -28,6 +28,7 @@ public class LicenseTypeController {
     // ==========================================
     // LICENSE ASSIGNMENT TYPES
     // ==========================================
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/v1/license-assignment-types")
     public ResponseEntity<ApiResponse<PageResponse<LicenseAssignmentTypeResponse>>> getAssignmentTypes(
             @PageableDefault(size = 20, sort = "code", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -35,6 +36,7 @@ public class LicenseTypeController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/v1/license-assignment-types/{id}")
     public ResponseEntity<ApiResponse<LicenseAssignmentTypeResponse>> getAssignmentTypeById(@PathVariable Long id) {
         LicenseAssignmentTypeResponse result = catalogService.getLicenseAssignmentTypeById(id);
@@ -77,6 +79,7 @@ public class LicenseTypeController {
     // ==========================================
     // LICENSE TERM TYPES
     // ==========================================
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/v1/license-term-types")
     public ResponseEntity<ApiResponse<PageResponse<LicenseTermTypeResponse>>> getTermTypes(
             @PageableDefault(size = 20, sort = "code", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -84,6 +87,7 @@ public class LicenseTypeController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/v1/license-term-types/{id}")
     public ResponseEntity<ApiResponse<LicenseTermTypeResponse>> getTermTypeById(@PathVariable Long id) {
         LicenseTermTypeResponse result = catalogService.getLicenseTermTypeById(id);

@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -26,11 +26,13 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
 
     private final ObjectMapper objectMapper;
     private final MessageSource messageSource;
+    private final LocaleResolver localeResolver;
 
     @Autowired
-    public JwtAccessDeniedHandler(ObjectMapper objectMapper, MessageSource messageSource) {
+    public JwtAccessDeniedHandler(ObjectMapper objectMapper, MessageSource messageSource, LocaleResolver localeResolver) {
         this.objectMapper = objectMapper;
         this.messageSource = messageSource;
+        this.localeResolver = localeResolver;
     }
 
     @Override
@@ -43,7 +45,7 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
                 ERROR_CODE,
                 null,
                 "Access denied",
-                LocaleContextHolder.getLocale()
+                localeResolver.resolveLocale(request)
         );
 
         ErrorResponse body = new ErrorResponse(message, ERROR_CODE, new ArrayList<>());

@@ -12,8 +12,8 @@ interface CatalogTableProps<T> {
   columns: TableColumn<T>[];
   data: T[];
   isLoading: boolean;
-  onEdit: (row: T) => void;
-  onDelete: (row: T) => void;
+  onEdit?: (row: T) => void;
+  onDelete?: (row: T) => void;
   onToggleActive?: (row: T) => void;
   keyExtractor: (row: T) => string | number;
 }
@@ -55,9 +55,11 @@ export function CatalogTable<T>({
                 {col.header}
               </th>
             ))}
-            <th style={{ width: '180px', textAlign: 'center' }}>
-              {t('common:labels.action', 'Thao tác')}
-            </th>
+            {(onEdit || onDelete || onToggleActive) && (
+              <th style={{ width: '180px', textAlign: 'center' }}>
+                {t('common:labels.action', 'Thao tác')}
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -77,8 +79,10 @@ export function CatalogTable<T>({
                       : '-'}
                   </td>
                 ))}
-                <td style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'inline-flex', gap: '6px' }}>
+                {(onEdit || onDelete || onToggleActive) && (
+                  <td style={{ textAlign: 'center' }}>
+                    <div style={{ display: 'inline-flex', gap: '6px' }}>
+                    {onEdit && (
                     <button
                       type="button"
                       className="btn btn-sm btn-secondary"
@@ -87,6 +91,7 @@ export function CatalogTable<T>({
                     >
                       {t('common:buttons.edit', 'Sửa')}
                     </button>
+                    )}
                     {onToggleActive && (
                       <button
                         type="button"
@@ -97,6 +102,7 @@ export function CatalogTable<T>({
                         {isActive ? t('catalogs:columns.lock', 'Khóa') : t('catalogs:columns.unlock', 'Mở')}
                       </button>
                     )}
+                    {onDelete && (
                     <button
                       type="button"
                       className="btn btn-sm btn-danger"
@@ -105,8 +111,10 @@ export function CatalogTable<T>({
                     >
                       {t('common:buttons.delete', 'Xóa')}
                     </button>
+                    )}
                   </div>
-                </td>
+                  </td>
+                )}
               </tr>
             );
           })}

@@ -10,6 +10,14 @@ import {
 } from '../types/asset.types';
 
 export const assetApi = {
+  getMyAssets: (params: Pick<AssetFilterParams, 'keyword' | 'page' | 'size'> = {}) => {
+    const query = new URLSearchParams();
+    if (params.page !== undefined) query.append('page', String(params.page));
+    if (params.size !== undefined) query.append('size', String(params.size));
+    if (params.keyword) query.append('keyword', params.keyword);
+    return httpClient<ApiResponse<PageResponse<Asset>>>(`/v1/users/me/assets?${query.toString()}`);
+  },
+
   getAssets: (params: AssetFilterParams = {}) => {
     const query = new URLSearchParams();
     if (params.page !== undefined) query.append('page', String(params.page));

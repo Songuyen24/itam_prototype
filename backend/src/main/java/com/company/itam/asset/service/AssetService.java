@@ -31,12 +31,14 @@ import com.company.itam.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -81,13 +83,37 @@ public class AssetService {
     }
 
     public PageResponse<AssetResponse> getAssets(AssetSearchCriteria criteria, Pageable pageable) {
+        Authentication authentication = requireAuthentication();
+        if (!canReadInventory(authentication)) {
+            throw new AccessDeniedException("Access denied");
+        }
+        Page<AssetEntity> page = assetRepository.findAll(new AssetSpecification(criteria), pageable);
+        return PageResponse.of(page.map(assetMapper::toResponse));
+    }
+
+    public PageResponse<AssetResponse> getMyAssets(String keyword, Pageable pageable) {
+        Authentication authentication = requireAuthentication();
+        requireAssetReader(authentication);
+        AssetSearchCriteria criteria = new AssetSearchCriteria();
+        criteria.setKeyword(keyword);
+        criteria.setAssignedTo(resolveCurrentUser(authentication).getUserId());
         Page<AssetEntity> page = assetRepository.findAll(new AssetSpecification(criteria), pageable);
         return PageResponse.of(page.map(assetMapper::toResponse));
     }
 
     public AssetDetailResponse getAssetById(Long id) {
+        Authentication authentication = requireAuthentication();
+        requireAssetReader(authentication);
         AssetEntity asset = assetRepository.findByIdWithHardwareDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id));
+        if (!canReadInventory(authentication)) {
+            UserEntity currentUser = resolveCurrentUser(authentication);
+            if (asset.getAssignedTo() == null
+                    || !Objects.equals(asset.getAssignedTo().getUserId(), currentUser.getUserId())) {
+                // Do not reveal whether another user's asset exists.
+                throw new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id);
+            }
+        }
         return assetMapper.toDetailResponse(asset);
     }
 
@@ -346,16 +372,35 @@ public class AssetService {
     }
 
     private UserEntity resolveCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && auth.getName() != null && !"anonymousUser".equals(auth.getName())) {
-            Optional<UserEntity> user = userRepository.findByEmail(auth.getName());
-            if (user.isPresent()) {
-                return user.get();
-            }
+        return resolveCurrentUser(requireAuthentication());
+    }
+
+    private UserEntity resolveCurrentUser(Authentication authentication) {
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required"));
+    }
+
+    private Authentication requireAuthentication() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName() == null || "anonymousUser".equals(authentication.getName())) {
+            throw new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
         }
-        // Fallback to first user in repository (prototype default)
-        return userRepository.findAll().stream().findFirst()
-                .orElse(null);
+        return authentication;
+    }
+
+    private boolean hasAuthority(Authentication authentication, String authority) {
+        return authentication.getAuthorities().stream().anyMatch(a -> authority.equals(a.getAuthority()));
+    }
+
+    private boolean canReadInventory(Authentication authentication) {
+        return hasAuthority(authentication, "ADMIN") || hasAuthority(authentication, "IT_STAFF");
+    }
+
+    private void requireAssetReader(Authentication authentication) {
+        if (!canReadInventory(authentication) && !hasAuthority(authentication, "USER")) {
+            throw new AccessDeniedException("Access denied");
+        }
     }
 
     private String normalizeString(String val) {
