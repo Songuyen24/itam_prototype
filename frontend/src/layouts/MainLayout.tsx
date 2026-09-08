@@ -4,6 +4,7 @@ import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { RoleSwitcher } from '@/shared/components/RoleSwitcher/RoleSwitcher';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { canManageInventory } from '@/features/auth/permissions';
+import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
 
 function MainLayout() {
   const { t } = useTranslation('common');
@@ -46,6 +47,11 @@ function MainLayout() {
           {user?.role === 'USER' && (
             <NavLink to="/my-assets" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               <span>{t('nav.myAssets')}</span>
+            </NavLink>
+          )}
+          {user?.role && DOCUMENT_ROLES.includes(user.role) && (
+            <NavLink to="/documents" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <span>{t('documents:title')}</span>
             </NavLink>
           )}
           <NavLink to="/account" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>

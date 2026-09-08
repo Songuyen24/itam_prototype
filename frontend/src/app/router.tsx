@@ -7,6 +7,8 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { AccountPage } from '@/features/auth/pages/AccountPage';
 import { getHomePath, INVENTORY_ROLES } from '@/features/auth/permissions';
+import { DocumentsPage } from '@/features/documents/pages/DocumentsPage';
+import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
 
 function AppRoutes() {
   const { user, token } = useAuth();
@@ -45,6 +47,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['USER']}>
               <AssetsPage myAssets />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="documents"
+          element={
+            <ProtectedRoute allowedRoles={DOCUMENT_ROLES}>
+              <DocumentsPage />
             </ProtectedRoute>
           }
         />

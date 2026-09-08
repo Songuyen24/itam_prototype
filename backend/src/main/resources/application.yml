@@ -2,6 +2,11 @@ spring:
   application:
     name: itam-backend
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+
   messages:
     basename: messages
     encoding: UTF-8
@@ -51,3 +56,8 @@ logging:
 jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-key-for-jwt-signing-must-be-at-least-32-characters-long}
   access-token-ttl: 86400000   # 24 hours in milliseconds
+
+itam:
+  documents:
+    storage-root: ${DOCUMENT_STORAGE_ROOT:../storage}
+    max-file-size: 10485760

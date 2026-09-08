@@ -1,0 +1,78 @@
+{
+  "title": "Documents",
+  "transactionsTitle": "Transactions",
+  "listTitle": "Attached documents",
+  "fields": {
+    "transactionCode": "Transaction code",
+    "transactionType": "Transaction type",
+    "status": "Status",
+    "createdAt": "Created at",
+    "documentType": "Document type",
+    "file": "File",
+    "uploadedBy": "Uploaded by / Date",
+    "assetId": "Asset ID",
+    "actions": "Actions"
+  },
+  "filters": {
+    "allTypes": "All types",
+    "allStatuses": "All statuses"
+  },
+  "transactionTypes": {
+    "IMPORT": "Import",
+    "HANDOVER": "Handover",
+    "RECOVERY": "Recovery",
+    "DISPOSAL": "Disposal"
+  },
+  "statuses": {
+    "PENDING": "Pending",
+    "COMPLETED": "Completed",
+    "REJECTED": "Rejected"
+  },
+  "documentTypes": {
+    "INVOICE": "Invoice",
+    "PURCHASE_ORDER": "Purchase order",
+    "IMPORT_RECEIPT": "Import receipt",
+    "HANDOVER_REPORT": "Handover report",
+    "RECOVERY_REPORT": "Recovery report",
+    "DISPOSAL_REPORT": "Disposal report",
+    "CONTRACT": "Contract",
+    "OTHER": "Other"
+  },
+  "actions": {
+    "download": "Download",
+    "downloadFile": "Download {{name}}",
+    "upload": "Upload",
+    "uploading": "Uploading...",
+    "retry": "Retry"
+  },
+  "states": {
+    "loading": "Loading...",
+    "noTransactions": "No matching transactions.",
+    "selectTransaction": "No transaction selected.",
+    "noDocuments": "No attached documents.",
+    "readOnly": "Read-only",
+    "locked": "Locked",
+    "downloading": "Downloading file...",
+    "uploading": "Upload in progress...",
+    "notAvailable": "Unavailable"
+  },
+  "pagination": {
+    "summary": "Page {{page}} of {{pages}} ({{count}} records)",
+    "previous": "Previous page",
+    "next": "Next page"
+  },
+  "errors": {
+    "transactions": "Unable to load transactions.",
+    "transaction": "Unable to load this transaction.",
+    "documents": "Unable to load documents.",
+    "download": "Unable to download this file.",
+    "upload": "Unable to upload this file.",
+    "conflict": "This transaction has changed or is locked. Reload it before making changes."
+  },
+  "validation": {
+    "fileRequired": "Choose a file.",
+    "emptyFile": "The selected file is empty.",
+    "fileType": "Only PDF, PNG and JPEG files with matching file types are accepted.",
+    "fileTooLarge": "The file must not exceed 10 MB."
+  }
+}
