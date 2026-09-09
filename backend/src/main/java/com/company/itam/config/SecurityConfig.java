@@ -52,8 +52,9 @@ public class SecurityConfig {
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                     .requestMatchers("/v1/auth/me", "/api/v1/auth/me",
                             "/v1/auth/logout", "/api/v1/auth/logout").authenticated()
-                    .requestMatchers(HttpMethod.GET, "/v1/import-drafts/*/content", "/v1/import-drafts/*/revisions")
+                    .requestMatchers(HttpMethod.GET, "/v1/import-drafts/*/content", "/v1/import-drafts/*/revisions", "/v1/import-drafts/*/events", "/v1/import-drafts/reference-data")
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                    .requestMatchers(HttpMethod.POST, "/v1/import-drafts/*/approve", "/v1/import-drafts/*/reject").hasAnyAuthority("ADMIN", "IT_STAFF")
                     .requestMatchers("/v1/import-drafts/**").hasAnyAuthority("ADMIN", "PUR_STAFF")
                     // Document services also enforce transaction scope and report ownership.
                     .requestMatchers(HttpMethod.GET, "/v1/documents/*/download", "/api/v1/documents/*/download")

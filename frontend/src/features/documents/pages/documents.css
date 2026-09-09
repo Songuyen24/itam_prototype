@@ -276,3 +276,5 @@
 .document-draft-panel button { justify-self: start; white-space: normal; }
 .document-draft-panel li button { margin-left: 8px; }
 .document-draft-panel textarea { min-height: 80px; resize: vertical; }
+
+.receiving-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:12px 0}.receiving-grid dd{margin:3px 0;overflow-wrap:anywhere}.receiving-grid dt{font-size:12px;color:var(--text-muted)}.receiving-form fieldset{border:1px solid var(--border-color,#ddd);padding:16px;border-radius:8px;margin:16px 0;min-width:0}.receiving-line{border-bottom:1px solid var(--border-color,#ddd);padding:16px 0}.receiving-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.receiving-reject{position:fixed;inset:0;z-index:1000;background:#0007;display:flex;align-items:center;justify-content:center;padding:16px}.receiving-reject form{background:white;padding:24px;border-radius:10px;max-width:520px;width:100%}.receiving-reject textarea{min-height:110px}.document-draft-panel details{margin:12px 0}.document-draft-panel summary{cursor:pointer;padding:8px 0}

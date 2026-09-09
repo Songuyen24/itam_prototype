@@ -168,11 +168,9 @@ public class AssetService {
         if ((status.getCode() == AssetStatus.PENDING_IMPORT) != draft) {
             throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
         }
-        if (draft && type.getCategory()!=null && type.getCategory().getCode()!=com.company.itam.common.enums.AssetCategory.DEVICE) {
-            throw new AppException(HttpStatus.BAD_REQUEST,"VALIDATION_ERROR","This endpoint supports devices only");
-        }
+
         boolean license = type.getCategory()!=null && type.getCategory().getCode()==com.company.itam.common.enums.AssetCategory.LICENSE;
-        if (license && (request.getAssignedToUserId()!=null || status.getCode()!=AssetStatus.IN_STOCK))
+        if (license && (request.getAssignedToUserId()!=null || (!draft && status.getCode()!=AssetStatus.IN_STOCK)))
             throw new AppException(HttpStatus.CONFLICT,"ASSET_WORKFLOW_REQUIRED","ASSET_WORKFLOW_REQUIRED");
         if (!license && request.getLicense()!=null) throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_DETAILS_REQUIRED","LICENSE_DETAILS_REQUIRED");
         validateStatusAndAssignment(status.getCode(), request.getAssignedToUserId());
@@ -257,18 +255,31 @@ public class AssetService {
 
     @Transactional
     public AssetDetailResponse updateHardwareAsset(Long id, UpdateHardwareAssetRequest request) {
+        return updateHardware(id, request, false);
+    }
+
+    /** Internal receiving operation; caller holds the draft and asset locks. */
+    @Transactional
+    public AssetDetailResponse updateReceivingAsset(Long id, UpdateHardwareAssetRequest request) {
+        Authentication auth = requireAuthentication();
+        if (!hasAuthority(auth,"ADMIN") && !hasAuthority(auth,"PUR_STAFF")) throw new AccessDeniedException("Access denied");
+        return updateHardware(id, request, true);
+    }
+
+    private AssetDetailResponse updateHardware(Long id, UpdateHardwareAssetRequest request, boolean receiving) {
         AssetEntity asset = assetRepository.lockById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id));
 
-        if (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT || assetRepository.hasReceivingHistory(id)) {
+        if (receiving ? asset.getStatus().getCode() != AssetStatus.PENDING_IMPORT
+                : (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT || assetRepository.hasReceivingHistory(id))) {
             throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
         }
         var before = audit.snapshot(asset);
         String assetTag = normalizeString(request.getAssetTag());
-        if (assetTag != null && !assetTag.equals(asset.getAssetTag())) {
+        if (!receiving && assetTag != null && !assetTag.equals(asset.getAssetTag())) {
             throw new AppException(HttpStatus.CONFLICT, "ASSET_TAG_IMMUTABLE", "Asset tag cannot be changed after saving");
         }
-        assetTag = asset.getAssetTag();
+        if (assetTag == null) assetTag = asset.getAssetTag();
         Optional<AssetEntity> existingTag = assetRepository.findByAssetTag(assetTag);
         if (existingTag.isPresent() && !existingTag.get().getAssetId().equals(id)) {
             throw new DuplicateResourceException("DUPLICATE_ASSET_TAG", "Mã tài sản đã tồn tại: " + assetTag);
@@ -352,6 +363,10 @@ public class AssetService {
         if (license) {
             if (serialNumber!=null || request.getModelId()!=null || request.getConditionId()!=null || request.getWarrantyExpiration()!=null || request.getActualCpu()!=null || request.getActualRam()!=null || request.getActualStorage()!=null || request.getActualGraphicsCard()!=null)
                 throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_HARDWARE_FIELDS","LICENSE_HARDWARE_FIELDS");
+            if (receiving && request.getLicense()!=null) {
+                var l=request.getLicense();
+                request.setLicense(new com.company.itam.asset.dto.request.LicenseDetailsRequest(l.softwareCatalogId(),l.assignmentTypeId(),l.termTypeId(),l.seatCount(),asset.getLicenseDetails().getLicenseKey(),l.expiryDate()));
+            }
             licenses.save(asset,request.getLicense());
             audit.record(id,"UPDATE",currentUser,before,audit.snapshot(asset));
             var response=assetMapper.toDetailResponse(asset); response.setLicense(licenses.response(asset,true)); return response;
