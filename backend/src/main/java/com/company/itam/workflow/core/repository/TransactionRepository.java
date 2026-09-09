@@ -15,6 +15,9 @@ import java.util.Optional;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<TransactionEntity, Long>, JpaSpecificationExecutor<TransactionEntity> {
+    @Override
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths={"requester","processedBy"})
+    Page<TransactionEntity> findAll(org.springframework.data.jpa.domain.Specification<TransactionEntity> spec, Pageable pageable);
     Optional<TransactionEntity> findByTransactionCode(String transactionCode);
     boolean existsByTransactionCode(String transactionCode);
 

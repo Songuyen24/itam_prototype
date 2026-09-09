@@ -106,9 +106,11 @@ class MigrationAndConcurrencyIntegrationTest {
         var draft=drafts.create("concurrency sample",null);
         var hardware=new com.company.itam.asset.dto.request.CreateHardwareAssetRequest();
         hardware.setName("Concurrent upload sample");
+        hardware.setConditionId(jdbc.queryForObject("SELECT min(condition_id) FROM asset_conditions WHERE is_active",Long.class));
         hardware.setTypeId(jdbc.queryForObject("SELECT type_id FROM asset_types WHERE code='LAPTOP'",Long.class));
         draft=drafts.addHardware(draft.transactionId(),draft.expectedVersion(),hardware);
-        final var target=draft;
+        documents.upload(new org.springframework.mock.web.MockMultipartFile("file","initial.pdf","application/pdf","%PDF-1.4\nINITIAL".getBytes()),draft.transactionId(),com.company.itam.common.enums.DocumentType.INVOICE,null,draft.expectedVersion());
+        final var target=new com.company.itam.workflow.core.dto.TransactionSummaryResponse(draft.transactionId(),draft.transactionCode(),draft.type(),draft.status(),draft.createdAt(),true,null,draft.expectedVersion()+1,0,draft.requesterName(),null,null);
         SecurityContextHolder.clearContext();
         try(var pool=Executors.newFixedThreadPool(2)) {
             CountDownLatch start=new CountDownLatch(1);
@@ -131,7 +133,7 @@ class MigrationAndConcurrencyIntegrationTest {
             assertThat(submitted).isNotEqualTo(uploaded);
             if(uploaded) { login("pur01@itam.example"); drafts.submit(target.transactionId(),target.expectedVersion()+1); SecurityContextHolder.clearContext(); }
             assertThat(jdbc.queryForObject("SELECT jsonb_array_length(snapshot->'documents') FROM transaction_revisions WHERE transaction_id=? AND revision=1",Integer.class,target.transactionId()))
-                    .isEqualTo(uploaded?1:0);
+                    .isEqualTo(uploaded?2:1);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_revisions WHERE transaction_id=?",Integer.class,target.transactionId())).isEqualTo(1);
         }
         // Intentionally retain this tiny fictional submitted fixture: immutable history must not be removed for test cleanup.

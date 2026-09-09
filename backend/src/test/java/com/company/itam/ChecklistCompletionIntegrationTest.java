@@ -52,6 +52,7 @@ class ChecklistCompletionIntegrationTest {
     CreateHardwareAssetRequest hardware() {
         var request=new CreateHardwareAssetRequest(); request.setName("Checklist sample device");
         request.setTypeId(jdbc.queryForObject("SELECT type_id FROM asset_types WHERE code='LAPTOP'",Long.class));
+        request.setConditionId(jdbc.queryForObject("SELECT min(condition_id) FROM asset_conditions WHERE is_active",Long.class));
         request.setSerialNumber("CHECK-"+UUID.randomUUID()); return request;
     }
     MockMultipartFile file(String name,String text) {
@@ -169,7 +170,8 @@ class ChecklistCompletionIntegrationTest {
         documents.delete(doc.documentId(),copy.transactionId(),copy.expectedVersion());
         assertThat(documents.getDocuments(sourceId,0,20).getContent()).hasSize(1);
         assertThat(documents.download(doc.documentId()).content()).isEqualTo(file("source.pdf","unchanged").getBytes());
-        assertThat(drafts.submit(copy.transactionId(),copy.expectedVersion()+1).status().name()).isEqualTo("PENDING");
+        documents.upload(file("replacement.pdf","replacement"),copy.transactionId(),DocumentType.INVOICE,null,copy.expectedVersion()+1);
+        assertThat(drafts.submit(copy.transactionId(),copy.expectedVersion()+2).status().name()).isEqualTo("PENDING");
         assertThat(drafts.revisions(sourceId)).hasSize(1);
     }
 

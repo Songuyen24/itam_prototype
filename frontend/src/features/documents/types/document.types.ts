@@ -21,6 +21,10 @@ export interface DocumentTransaction {
   documentsEditable: boolean;
   editBlockedReason?: string;
   expectedVersion?: number;
+  submittedRevision?: number;
+  requesterName?: string;
+  processedByName?: string;
+  rejectionReason?: string;
 }
 
 export interface DocumentItem {

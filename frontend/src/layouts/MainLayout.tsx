@@ -54,6 +54,7 @@ function MainLayout() {
               <span>{t('documents:title')}</span>
             </NavLink>
           )}
+          {user?.role && DOCUMENT_ROLES.includes(user.role) && <NavLink to="/receivings" className={({isActive})=>`nav-link ${isActive?'active':''}`}><span>{t('documents:receiving.title')}</span></NavLink>}
           <NavLink to="/account" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <span>{t('nav.account')}</span>
           </NavLink>

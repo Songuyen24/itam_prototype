@@ -58,6 +58,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route path="receivings" element={<ProtectedRoute allowedRoles={DOCUMENT_ROLES}><DocumentsPage receiving /></ProtectedRoute>} />
         <Route path="account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to={homePath} replace />} />
       </Route>

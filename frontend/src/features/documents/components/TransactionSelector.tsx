@@ -6,16 +6,17 @@ import { DocumentTransaction, TransactionStatus, TransactionType } from '../type
 import { DocumentPagination } from './DocumentPagination';
 
 interface TransactionSelectorProps {
+  receiving?: boolean;
   selectedId: number | null;
   onSelect: (transactionId: number) => void;
 }
 
-export function TransactionSelector({ selectedId, onSelect }: TransactionSelectorProps) {
+export function TransactionSelector({ selectedId, onSelect, receiving=false }: TransactionSelectorProps) {
   const { t, i18n } = useTranslation('documents');
   const { user } = useAuth();
   const [keyword, setKeyword] = useState('');
   const [type, setType] = useState<TransactionType | ''>('');
-  const [status, setStatus] = useState<TransactionStatus | ''>('');
+  const [status, setStatus] = useState<TransactionStatus | ''>(receiving&&user?.role==='IT_STAFF'?'PENDING':'');
   const [page, setPage] = useState(0);
   const [transactions, setTransactions] = useState<DocumentTransaction[]>([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -29,7 +30,7 @@ export function TransactionSelector({ selectedId, onSelect }: TransactionSelecto
     setLoading(true);
     setError(null);
     setTransactions([]);
-    documentApi.getTransactions({ keyword, type: user?.role === 'PUR_STAFF' ? 'IMPORT' : type || undefined, status: status || undefined, page, size: 8 })
+    documentApi.getTransactions({ keyword, type: receiving || user?.role === 'PUR_STAFF' ? 'IMPORT' : type || undefined, status: status || undefined, page, size: 8 })
       .then((response) => {
         if (!active) return;
         if (!response.success || !response.data) throw new Error(response.message || t('errors.transactions'));
@@ -42,7 +43,7 @@ export function TransactionSelector({ selectedId, onSelect }: TransactionSelecto
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [keyword, type, status, page, reload, user?.role, t]);
+  }, [keyword, type, status, page, reload, user?.role, receiving, t]);
 
   return (
     <section className="document-transactions" aria-labelledby="document-transactions-title">
@@ -52,7 +53,7 @@ export function TransactionSelector({ selectedId, onSelect }: TransactionSelecto
         <input id="document-keyword" className="form-input" type="search" value={keyword}
           onChange={(event) => { setKeyword(event.target.value); setPage(0); }} />
         <div className="document-filter-pair">
-          {user?.role !== 'PUR_STAFF' && <label className="form-label">
+          {!receiving && user?.role !== 'PUR_STAFF' && <label className="form-label">
             {t('fields.transactionType')}
             <select className="form-select" value={type} onChange={(event) => { setType(event.target.value as TransactionType | ''); setPage(0); }}>
               <option value="">{t('filters.allTypes')}</option>
