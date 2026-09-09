@@ -1,4 +1,5 @@
 import React from 'react';
+import { AssetRelationships } from './AssetRelationships';
 import { useTranslation } from 'react-i18next';
 import { AssetDetail } from '../types/asset.types';
 
@@ -51,7 +52,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop">
+    <div className="modal-overlay" role="dialog" aria-modal="true">
       <div
         className="modal-content"
         style={{ maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
@@ -78,6 +79,8 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
 
         {/* Modal Body */}
         <div style={{ overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {onEdit && <AssetRelationships key={asset.assetId} asset={asset} />}
+          {!onEdit && asset.license && <p>{asset.license.softwareName} · {t(`license.${asset.license.assignmentTypeCode}`)} · {t(`license.${asset.license.termTypeCode}`)}</p>}
           {/* Section 1: Overview Grid */}
           <div
             style={{
@@ -176,6 +179,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
           </div>
 
           {/* Section 2: Hardware Specs Breakdown (3 Columns Table) */}
+          {!asset.license && <>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
               {t('detail.config')}
@@ -235,6 +239,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
           </div>
 
           {/* Section 3: Audit Information */}
+          </>}
           <div
             style={{
               display: 'flex',

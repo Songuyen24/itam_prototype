@@ -159,6 +159,12 @@ public class CatalogService {
         AssetTypeEntity entity = typeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại tài sản với ID: " + id));
 
+        if (!java.util.Objects.equals(entity.getCategory().getCategoryId(), request.getCategoryId())
+                && assetRepository.existsByTypeTypeId(id)) {
+            throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.CONFLICT,
+                    "ASSET_WORKFLOW_REQUIRED", "ASSET_WORKFLOW_REQUIRED");
+        }
+
         if (!entity.getCode().equalsIgnoreCase(request.getCode().trim())
                 && typeRepository.existsByCodeIgnoreCase(request.getCode().trim())) {
             throw new DuplicateResourceException("Mã loại tài sản đã tồn tại: " + request.getCode());

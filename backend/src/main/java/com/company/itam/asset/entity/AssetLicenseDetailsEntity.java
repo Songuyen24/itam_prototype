@@ -36,6 +36,11 @@ public class AssetLicenseDetailsEntity {
     @Column(name = "expiry_date")
     private LocalDate expiryDate;
 
+    @Column(name = "seat_count", nullable = false)
+    private int seatCount = 1;
+    public int getSeatCount() { return seatCount; }
+    public void setSeatCount(int value) { seatCount = value; }
+
     public Long getAssetId() { return assetId; }
     public AssetEntity getAsset() { return asset; }
     public void setAsset(AssetEntity asset) { this.asset = asset; }

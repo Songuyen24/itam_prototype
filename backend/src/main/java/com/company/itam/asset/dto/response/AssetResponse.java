@@ -5,6 +5,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 public class AssetResponse {
+    private String licenseAssignmentTypeCode;
+    public String getLicenseAssignmentTypeCode() { return licenseAssignmentTypeCode; }
+    public void setLicenseAssignmentTypeCode(String value) { licenseAssignmentTypeCode = value; }
     private Long assetId;
     private String assetTag;
     private String name;

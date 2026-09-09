@@ -11,6 +11,12 @@ import java.util.List;
 
 @Repository
 public interface AssetRelationshipRepository extends JpaRepository<AssetRelationshipEntity, Long> {
+    @Query("SELECT r.parentAsset.assetId, r.childAsset.assetId FROM AssetRelationshipEntity r WHERE r.relationshipId=:id")
+    List<Object[]> endpointIds(@Param("id") Long id);
+    java.util.Optional<AssetRelationshipEntity> findByAllocationAllocationId(Long id);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths={"parentAsset.type.category","parentAsset.status","parentAsset.assignedTo","childAsset.type.category","childAsset.status","childAsset.assignedTo","childAsset.licenseDetails.assignmentType","allocation"})
+    @Query("SELECT r FROM AssetRelationshipEntity r WHERE r.parentAsset.assetId=:id OR r.childAsset.assetId=:id")
+    org.springframework.data.domain.Page<AssetRelationshipEntity> findAllForAsset(@Param("id") Long id, org.springframework.data.domain.Pageable pageable);
     List<AssetRelationshipEntity> findByParentAssetAssetId(Long parentAssetId);
     List<AssetRelationshipEntity> findByChildAssetAssetId(Long childAssetId);
 

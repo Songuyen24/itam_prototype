@@ -401,16 +401,17 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     <td>
                       <div style={{ fontSize: '13px', fontWeight: 500 }}>{asset.typeName || '—'}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {asset.modelBrand ? `${asset.modelBrand} ` : ''}{asset.modelName || t('assets:list.noModel')}
+                        {asset.categoryCode==='LICENSE' ? t('assets:license.title') : <>{asset.modelBrand ? `${asset.modelBrand} ` : ''}{asset.modelName || t('assets:list.noModel')}</>}
                       </div>
                     </td>
 
                     {/* Effective Specs summary */}
                     <td style={{ fontSize: '12px' }}>
+                      {asset.categoryCode==='LICENSE' ? t('assets:license.detailHint') : <>
                       <div>💻 {asset.effectiveCpu || '—'}</div>
                       <div style={{ color: 'var(--text-muted)' }}>
                         RAM: {asset.effectiveRam || '—'} | {t('assets:fields.storage')}: {asset.effectiveStorage || '—'}
-                      </div>
+                      </div></>}
                     </td>
 
                     {/* Status */}
@@ -423,7 +424,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                           👤 {asset.assignedToFullName}
                         </div>
                       ) : (
-                        <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('assets:detail.unassigned')}</div>
+                        <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t(asset.categoryCode==='LICENSE'?'assets:license.allocations':'assets:detail.unassigned')}</div>
                       )}
                       <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
                         📍 {asset.locationName || asset.departmentName || '—'}

@@ -4,6 +4,9 @@ import java.time.LocalDate;
 
 public class AssetDetailResponse extends AssetResponse {
 
+    private LicenseDetailsResponse license;
+    public LicenseDetailsResponse getLicense() { return license; }
+    public void setLicense(LicenseDetailsResponse value) { license = value; }
     private LocalDate warrantyExpiration;
     private HardwareConfigDto hardwareConfig;
 

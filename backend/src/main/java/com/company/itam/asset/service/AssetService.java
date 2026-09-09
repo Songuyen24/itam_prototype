@@ -56,6 +56,8 @@ public class AssetService {
     private final SupplierRepository supplierRepository;
     private final UserRepository userRepository;
     private final AssetMapper assetMapper;
+    private final LicenseDetailsService licenses;
+    private final AssetAuditService audit;
 
     public AssetService(
             AssetRepository assetRepository,
@@ -68,7 +70,8 @@ public class AssetService {
             LocationRepository locationRepository,
             SupplierRepository supplierRepository,
             UserRepository userRepository,
-            AssetMapper assetMapper) {
+            AssetMapper assetMapper, LicenseDetailsService licenses, AssetAuditService audit) {
+        this.licenses = licenses; this.audit = audit;
         this.assetRepository = assetRepository;
         this.assetHardwareDetailsRepository = assetHardwareDetailsRepository;
         this.assetTypeRepository = assetTypeRepository;
@@ -108,13 +111,16 @@ public class AssetService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id));
         if (!canReadInventory(authentication)) {
             UserEntity currentUser = resolveCurrentUser(authentication);
-            if (asset.getAssignedTo() == null
-                    || !Objects.equals(asset.getAssignedTo().getUserId(), currentUser.getUserId())) {
+            if ((asset.getAssignedTo() == null
+                    || !Objects.equals(asset.getAssignedTo().getUserId(), currentUser.getUserId()))
+                    && !(asset.getLicenseDetails()!=null && licenses.assignedTo(id,currentUser.getUserId()))) {
                 // Do not reveal whether another user's asset exists.
                 throw new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id);
             }
         }
-        return assetMapper.toDetailResponse(asset);
+        var response = assetMapper.toDetailResponse(asset);
+        if (asset.getLicenseDetails()!=null) response.setLicense(licenses.response(asset, canReadInventory(authentication)));
+        return response;
     }
 
     @Transactional
@@ -162,9 +168,13 @@ public class AssetService {
         if ((status.getCode() == AssetStatus.PENDING_IMPORT) != draft) {
             throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
         }
-        if (type.getCategory()!=null && type.getCategory().getCode()!=com.company.itam.common.enums.AssetCategory.DEVICE) {
+        if (draft && type.getCategory()!=null && type.getCategory().getCode()!=com.company.itam.common.enums.AssetCategory.DEVICE) {
             throw new AppException(HttpStatus.BAD_REQUEST,"VALIDATION_ERROR","This endpoint supports devices only");
         }
+        boolean license = type.getCategory()!=null && type.getCategory().getCode()==com.company.itam.common.enums.AssetCategory.LICENSE;
+        if (license && (request.getAssignedToUserId()!=null || status.getCode()!=AssetStatus.IN_STOCK))
+            throw new AppException(HttpStatus.CONFLICT,"ASSET_WORKFLOW_REQUIRED","ASSET_WORKFLOW_REQUIRED");
+        if (!license && request.getLicense()!=null) throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_DETAILS_REQUIRED","LICENSE_DETAILS_REQUIRED");
         validateStatusAndAssignment(status.getCode(), request.getAssignedToUserId());
 
         AssetEntity asset = new AssetEntity();
@@ -206,6 +216,13 @@ public class AssetService {
 
         AssetEntity savedAsset = assetRepository.save(asset);
 
+        if (license) {
+            if (serialNumber!=null || request.getModelId()!=null || request.getConditionId()!=null || request.getWarrantyExpiration()!=null || request.getActualCpu()!=null || request.getActualRam()!=null || request.getActualStorage()!=null || request.getActualGraphicsCard()!=null)
+                throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_HARDWARE_FIELDS","LICENSE_HARDWARE_FIELDS");
+            licenses.save(savedAsset,request.getLicense());
+            audit.record(savedAsset.getAssetId(),"CREATE",currentUser,null,audit.snapshot(savedAsset));
+            var response=assetMapper.toDetailResponse(savedAsset); response.setLicense(licenses.response(savedAsset,true)); return response;
+        }
         // Save Hardware Details
         AssetHardwareDetailsEntity hwDetails = new AssetHardwareDetailsEntity();
 
@@ -234,17 +251,19 @@ public class AssetService {
         AssetHardwareDetailsEntity savedHwDetails = assetHardwareDetailsRepository.save(hwDetails);
         savedAsset.setHardwareDetails(savedHwDetails);
 
+        audit.record(savedAsset.getAssetId(),"CREATE",currentUser,null,audit.snapshot(savedAsset));
         return assetMapper.toDetailResponse(savedAsset);
     }
 
     @Transactional
     public AssetDetailResponse updateHardwareAsset(Long id, UpdateHardwareAssetRequest request) {
-        AssetEntity asset = assetRepository.findByIdWithHardwareDetails(id)
+        AssetEntity asset = assetRepository.lockById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id));
 
         if (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT || assetRepository.hasReceivingHistory(id)) {
             throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
         }
+        var before = audit.snapshot(asset);
         String assetTag = normalizeString(request.getAssetTag());
         if (assetTag != null && !assetTag.equals(asset.getAssetTag())) {
             throw new AppException(HttpStatus.CONFLICT, "ASSET_TAG_IMMUTABLE", "Asset tag cannot be changed after saving");
@@ -278,6 +297,11 @@ public class AssetService {
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy trạng thái với ID: " + request.getStatusId()));
         }
 
+        if (!Objects.equals(type.getTypeId(),asset.getType().getTypeId()) || status.getCode()!=asset.getStatus().getCode()
+                || !Objects.equals(request.getAssignedToUserId(),asset.getAssignedTo()==null?null:asset.getAssignedTo().getUserId()))
+            throw new AppException(HttpStatus.CONFLICT,"ASSET_WORKFLOW_REQUIRED","ASSET_WORKFLOW_REQUIRED");
+        boolean license = asset.getLicenseDetails()!=null;
+        if (!license && request.getLicense()!=null) throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_DETAILS_REQUIRED","LICENSE_DETAILS_REQUIRED");
         validateStatusAndAssignment(status.getCode(), request.getAssignedToUserId());
 
         asset.setAssetTag(assetTag);
@@ -325,6 +349,13 @@ public class AssetService {
         UserEntity currentUser = resolveCurrentUser();
         asset.setUpdatedBy(currentUser);
 
+        if (license) {
+            if (serialNumber!=null || request.getModelId()!=null || request.getConditionId()!=null || request.getWarrantyExpiration()!=null || request.getActualCpu()!=null || request.getActualRam()!=null || request.getActualStorage()!=null || request.getActualGraphicsCard()!=null)
+                throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_HARDWARE_FIELDS","LICENSE_HARDWARE_FIELDS");
+            licenses.save(asset,request.getLicense());
+            audit.record(id,"UPDATE",currentUser,before,audit.snapshot(asset));
+            var response=assetMapper.toDetailResponse(asset); response.setLicense(licenses.response(asset,true)); return response;
+        }
         // Update hardware details
         AssetHardwareDetailsEntity hwDetails = asset.getHardwareDetails();
         if (hwDetails == null) {
@@ -343,6 +374,8 @@ public class AssetService {
         if (request.getModelId() != null) {
             ModelEntity model = modelRepository.findById(request.getModelId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy model với ID: " + request.getModelId()));
+            if (model.getType()!=null && !Objects.equals(model.getType().getTypeId(),type.getTypeId()))
+                throw new AppException(HttpStatus.BAD_REQUEST,"MODEL_TYPE_MISMATCH","MODEL_TYPE_MISMATCH");
             hwDetails.setModel(model);
         } else {
             hwDetails.setModel(null);
@@ -360,6 +393,7 @@ public class AssetService {
         asset.setHardwareDetails(savedHw);
 
         AssetEntity savedAsset = assetRepository.save(asset);
+        audit.record(id,"UPDATE",currentUser,before,audit.snapshot(savedAsset));
         return assetMapper.toDetailResponse(savedAsset);
     }
 

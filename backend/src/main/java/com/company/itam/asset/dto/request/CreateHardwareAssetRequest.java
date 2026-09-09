@@ -13,6 +13,11 @@ public class CreateHardwareAssetRequest {
     @Size(max = 100, message = "{validation.size}")
     private String assetTag;
 
+    @jakarta.validation.Valid
+    private LicenseDetailsRequest license;
+    public LicenseDetailsRequest getLicense() { return license; }
+    public void setLicense(LicenseDetailsRequest license) { this.license = license; }
+
     @NotBlank(message = "{validation.required}")
     @Size(max = 255, message = "{validation.size}")
     private String name;
