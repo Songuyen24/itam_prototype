@@ -90,8 +90,9 @@ public class DocumentController {
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'PUR_STAFF')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        documentService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @RequestParam(required=false) Long transactionId,
+            @RequestParam(required=false) Long expectedVersion) {
+        documentService.delete(id, transactionId, expectedVersion);
         return ResponseEntity.noContent().build();
     }
 }

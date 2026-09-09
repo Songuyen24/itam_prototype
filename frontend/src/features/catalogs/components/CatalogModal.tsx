@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { AssetCategoryItem } from '../types/catalog.types';
 
@@ -43,6 +44,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const { t } = useTranslation('catalogs');
   const [formData, setFormData] = useState<CatalogFormData>({
     code: '',
     name: '',
@@ -77,19 +79,19 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (showCodeField && !formData.code?.trim()) {
-      setValidationError('Mã không được để trống');
+      setValidationError(t('forms.codeRequired'));
       return;
     }
     if (!formData.name?.trim()) {
-      setValidationError('Tên không được để trống');
+      setValidationError(t('forms.nameRequired'));
       return;
     }
     if (showCategorySelect && !formData.categoryId) {
-      setValidationError('Vui lòng chọn nhóm tài sản');
+      setValidationError(t('forms.categoryRequired'));
       return;
     }
     if (showSoftwareFields && !formData.manufacturer?.trim()) {
-      setValidationError('Nhà sản xuất không được để trống');
+      setValidationError(t('forms.manufacturerRequired'));
       return;
     }
 
@@ -102,7 +104,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
-            <h3 className="modal-title">{title}</h3>
+            <h3 className="modal-title">{title ?? t('forms.deleteTitle')}</h3>
             <button type="button" className="alert-close-btn" onClick={onClose}>
               &times;
             </button>
@@ -117,7 +119,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
 
             {showCodeField && (
               <div className="form-group">
-                <label className="form-label required">Mã</label>
+                <label className="form-label required">{t('forms.code')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -131,7 +133,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
 
             {showCategorySelect && (
               <div className="form-group">
-                <label className="form-label required">Nhóm tài sản</label>
+                <label className="form-label required">{t('forms.category')}</label>
                 <select
                   className="form-select"
                   value={formData.categoryId || ''}
@@ -139,7 +141,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
                     setFormData({ ...formData, categoryId: Number(e.target.value) })
                   }
                 >
-                  <option value="">-- Chọn nhóm tài sản --</option>
+                  <option value="">{t('forms.chooseCategory')}</option>
                   {categories.map((c) => (
                     <option key={c.categoryId} value={c.categoryId}>
                       {c.name} ({c.code})
@@ -150,20 +152,20 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
             )}
 
             <div className="form-group">
-              <label className="form-label required">Tên</label>
+              <label className="form-label required">{t('forms.name')}</label>
               <input
                 type="text"
                 className="form-input"
                 value={formData.name || ''}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nhập tên..."
+                placeholder={t('forms.namePlaceholder')}
               />
             </div>
 
             {showSoftwareFields && (
               <>
                 <div className="form-group">
-                  <label className="form-label required">Nhà sản xuất</label>
+                  <label className="form-label required">{t('forms.manufacturer')}</label>
                   <input
                     type="text"
                     className="form-input"
@@ -175,7 +177,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Phiên bản</label>
+                  <label className="form-label">{t('forms.version')}</label>
                   <input
                     type="text"
                     className="form-input"
@@ -189,12 +191,12 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
 
             {showAddressField && (
               <div className="form-group">
-                <label className="form-label">Địa chỉ</label>
+                <label className="form-label">{t('forms.address')}</label>
                 <textarea
                   className="form-textarea"
                   value={formData.address || ''}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Nhập địa chỉ vị trí..."
+                  placeholder={t('forms.locationAddress')}
                 />
               </div>
             )}
@@ -208,17 +210,17 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
                     setFormData({ ...formData, isActive: e.target.checked })
                   }
                 />
-                <span>Kích hoạt hoạt động</span>
+                <span>{t('forms.active')}</span>
               </label>
             </div>
           </div>
 
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              Hủy
+              {t('forms.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSaving}>
-              {isSaving ? 'Đang lưu...' : 'Lưu lại'}
+              {isSaving ? t('forms.saving') : t('forms.save')}
             </button>
           </div>
         </form>

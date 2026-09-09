@@ -8,10 +8,10 @@ import java.util.Map;
 
 public class ImportConfirmRequest {
 
-    @NotBlank(message = "Tên file không được để trống")
+    @NotBlank(message = "{validation.required}")
     private String fileName;
 
-    @NotEmpty(message = "Danh sách dòng xác nhận import không được rỗng")
+    @NotEmpty(message = "{validation.required}")
     private List<Map<String, Object>> validRows;
 
     public ImportConfirmRequest() {}

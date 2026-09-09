@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { documentApi } from '../api/documentApi';
 import { DocumentItem, DocumentTransaction } from '../types/document.types';
 import { DocumentPagination } from './DocumentPagination';
+import { ImportDraftPanel } from './ImportDraftPanel';
 import { DocumentUpload } from './DocumentUpload';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 
-export function TransactionDocuments({ transactionId }: { transactionId: number | null }) {
+export function TransactionDocuments({ transactionId, onUpdated }: { transactionId: number | null; onUpdated?: () => void }) {
   const { t, i18n } = useTranslation('documents');
   const { user } = useAuth();
   const [transaction, setTransaction] = useState<DocumentTransaction | null>(null);
@@ -55,6 +56,8 @@ export function TransactionDocuments({ transactionId }: { transactionId: number 
     return () => { active = false; };
   }, [transactionId, page, reload, t]);
 
+  function refresh() { setReload(v => v + 1); onUpdated?.(); }
+
   async function download(document: DocumentItem) {
     if (downloadingId !== null) return;
     setDownloadingId(document.documentId);
@@ -90,8 +93,9 @@ export function TransactionDocuments({ transactionId }: { transactionId: number 
         <div><dt>{t('fields.status')}</dt><dd>{t(`statuses.${transaction.status}`)}</dd></div>
         <div><dt>{t('fields.createdAt')}</dt><dd>{new Date(transaction.createdAt).toLocaleString(i18n.language)}</dd></div>
       </dl>
+      {transaction.type === 'IMPORT' && <ImportDraftPanel transaction={transaction} onChanged={refresh} />}
       <DocumentUpload transactionId={transaction.transactionId} documentsEditable={canUpload} expectedVersion={transaction.expectedVersion}
-        onUploaded={() => { setPage(0); setReload((value) => value + 1); }} />
+        onUploaded={() => { setPage(0); refresh(); }} />
       {downloadError && <div className="alert-banner alert-danger" role="alert">{downloadError}</div>}
       <div className="document-list-heading">
         <h3>{t('listTitle')}</h3>
@@ -122,7 +126,12 @@ export function TransactionDocuments({ transactionId }: { transactionId: number 
               </td>
               <td data-label={t('fields.actions')}><button type="button" className="btn btn-secondary btn-sm document-download" disabled={downloadingId !== null}
                 aria-label={t('actions.downloadFile', { name: document.originalFileName })}
-                onClick={() => void download(document)}>{t('actions.download')}</button></td>
+                onClick={() => void download(document)}>{t('actions.download')}</button>
+                {canUpload && <button type="button" className="btn btn-secondary btn-sm" onClick={() => {
+                  if (!window.confirm(t('draft.detachConfirm'))) return;
+                  void documentApi.detach(document.documentId, transaction.transactionId, transaction.expectedVersion!)
+                    .then(refresh).catch(cause => setDownloadError(cause.message));
+                }}>{t('draft.detach')}</button>}</td>
             </tr>)}</tbody>
           </table>
         </div>

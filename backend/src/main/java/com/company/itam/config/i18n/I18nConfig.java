@@ -57,6 +57,16 @@ public class I18nConfig implements WebMvcConfigurer {
         return messageSource;
     }
 
+    @Bean
+    public org.springframework.validation.beanvalidation.LocalValidatorFactoryBean validator() {
+        var validator = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
+        validator.setValidationMessageSource(messageSource());
+        return validator;
+    }
+
+    @Override
+    public org.springframework.validation.Validator getValidator() { return validator(); }
+
     public static class CustomLocaleResolver extends AcceptHeaderLocaleResolver {
         private static final String LOCALE_REQUEST_ATTRIBUTE_NAME = CustomLocaleResolver.class.getName() + ".LOCALE";
 

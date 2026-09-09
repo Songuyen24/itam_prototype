@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { Supplier, SupplierContact } from '../types/catalog.types';
 
@@ -20,6 +21,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const { t } = useTranslation('catalogs');
   const [formData, setFormData] = useState<Partial<Supplier>>({
     code: '',
     name: '',
@@ -73,7 +75,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
 
   const handleAddContact = () => {
     if (!newContact.name.trim()) {
-      alert('Vui lòng nhập tên người liên hệ');
+      alert(t('forms.contactRequired'));
       return;
     }
     setContacts([...contacts, { ...newContact }]);
@@ -87,11 +89,11 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.code?.trim()) {
-      setValidationError('Mã nhà cung cấp không được để trống');
+      setValidationError(t('forms.supplierCodeRequired'));
       return;
     }
     if (!formData.name?.trim()) {
-      setValidationError('Tên nhà cung cấp không được để trống');
+      setValidationError(t('forms.supplierNameRequired'));
       return;
     }
 
@@ -104,7 +106,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
       <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
-            <h3 className="modal-title">{title}</h3>
+            <h3 className="modal-title">{title ?? t('forms.deleteTitle')}</h3>
             <button type="button" className="alert-close-btn" onClick={onClose}>
               &times;
             </button>
@@ -119,7 +121,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label required">Mã nhà cung cấp</label>
+                <label className="form-label required">{t('forms.supplierCode')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -131,7 +133,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label required">Tên nhà cung cấp</label>
+                <label className="form-label required">{t('forms.supplierName')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -144,7 +146,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">Mã số thuế</label>
+                <label className="form-label">{t('forms.taxCode')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -155,7 +157,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Số điện thoại</label>
+                <label className="form-label">{t('forms.phone')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -168,7 +170,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">Email liên hệ</label>
+                <label className="form-label">{t('forms.email')}</label>
                 <input
                   type="email"
                   className="form-input"
@@ -179,13 +181,13 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Địa chỉ</label>
+                <label className="form-label">{t('forms.address')}</label>
                 <input
                   type="text"
                   className="form-input"
                   value={formData.address || ''}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Nhập địa chỉ trụ sở..."
+                  placeholder={t('forms.supplierAddress')}
                 />
               </div>
             </div>
@@ -197,14 +199,14 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                 />
-                <span>Kích hoạt nhà cung cấp</span>
+                <span>{t('forms.supplierActive')}</span>
               </label>
             </div>
 
             {/* Contacts Section */}
             <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
               <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: 'var(--text-main)' }}>
-                DANH SÁCH NGƯỜI LIÊN HỆ
+                {t('forms.contacts')}
               </div>
 
               {contacts.length > 0 ? (
@@ -212,11 +214,11 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                   <table className="data-table" style={{ border: '1px solid var(--border-color)' }}>
                     <thead>
                       <tr>
-                        <th>Họ tên</th>
-                        <th>Chức vụ</th>
-                        <th>Điện thoại</th>
+                        <th>{t('forms.fullName')}</th>
+                        <th>{t('forms.position')}</th>
+                        <th>{t('forms.contactPhone')}</th>
                         <th>Email</th>
-                        <th>Thao tác</th>
+                        <th>{t('forms.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -232,7 +234,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                               className="btn btn-sm btn-danger"
                               onClick={() => handleRemoveContact(idx)}
                             >
-                              Xóa
+                              {t('forms.delete')}
                             </button>
                           </td>
                         </tr>
@@ -242,7 +244,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                 </div>
               ) : (
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                  Chưa có người liên hệ nào.
+                  {t('forms.noContacts')}
                 </p>
               )}
 
@@ -256,20 +258,20 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                 }}
               >
                 <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
-                  + Thêm người liên hệ
+                  {t('forms.addContact')}
                 </div>
                 <div className="form-grid-2" style={{ marginBottom: '8px' }}>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Họ tên *"
+                    placeholder={t('forms.contactName')}
                     value={newContact.name}
                     onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
                   />
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Chức vụ"
+                    placeholder={t('forms.position')}
                     value={newContact.position || ''}
                     onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
                   />
@@ -278,7 +280,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Số điện thoại"
+                    placeholder={t('forms.phone')}
                     value={newContact.phone || ''}
                     onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
                   />
@@ -295,7 +297,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                   className="btn btn-sm btn-secondary"
                   onClick={handleAddContact}
                 >
-                  Thêm vào danh sách
+                  {t('forms.addToList')}
                 </button>
               </div>
             </div>
@@ -303,10 +305,10 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
 
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              Hủy
+              {t('forms.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSaving}>
-              {isSaving ? 'Đang lưu...' : 'Lưu nhà cung cấp'}
+              {isSaving ? t('forms.saving') : t('forms.saveSupplier')}
             </button>
           </div>
         </form>

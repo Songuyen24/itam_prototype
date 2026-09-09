@@ -21,4 +21,7 @@ public interface SoftwareCatalogRepository extends JpaRepository<SoftwareCatalog
             String version
     );
     boolean existsByNameIgnoreCaseAndManufacturerIgnoreCase(String name, String manufacturer);
+    @org.springframework.data.jpa.repository.Query("SELECT e FROM SoftwareCatalogEntity e WHERE (:active IS NULL OR e.isActive=:active) AND (lower(e.name) LIKE lower(concat('%',:search,'%')) OR lower(e.manufacturer) LIKE lower(concat('%',:search,'%')))")
+    Page<SoftwareCatalogEntity> searchActive(@org.springframework.data.repository.query.Param("search") String search,
+        @org.springframework.data.repository.query.Param("active") Boolean active, Pageable pageable);
 }

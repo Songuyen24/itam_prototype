@@ -4,15 +4,15 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class LocationRequest {
-    @NotBlank(message = "Mã vị trí không được để trống")
-    @Size(max = 50, message = "Mã vị trí tối đa 50 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 50, message = "{validation.size}")
     private String code;
 
-    @NotBlank(message = "Tên vị trí không được để trống")
-    @Size(max = 255, message = "Tên vị trí tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
-    @Size(max = 500, message = "Địa chỉ tối đa 500 ký tự")
+    @Size(max = 500, message = "{validation.size}")
     private String address;
 
     private Boolean isActive = true;

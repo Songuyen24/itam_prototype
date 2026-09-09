@@ -79,10 +79,10 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
         setPreviewData(res.data);
         setStep('preview');
       } else {
-        setErrorMessage(res.message || 'Kiểm tra file thất bại');
+        setErrorMessage(res.message || t('imports:errors.previewFailed'));
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Có lỗi xảy ra khi đọc file Excel');
+      setErrorMessage(err.message || t('imports:errors.previewFailed'));
     } finally {
       setIsUploading(false);
     }
@@ -114,10 +114,10 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
         setStep('completed');
         onImportSuccess(res.data.importedRows);
       } else {
-        setErrorMessage(res.message || 'Import thất bại');
+        setErrorMessage(res.message || t('imports:errors.importFailed'));
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Có lỗi xảy ra khi import tài sản');
+      setErrorMessage(err.message || t('imports:errors.importFailed'));
     } finally {
       setIsImporting(false);
     }
@@ -257,6 +257,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
           </button>
         </div>
 
+        <p style={{ padding: '0 24px' }}>{t('imports:openingInventory')}</p>
         {/* Error Alert if any */}
         {errorMessage && (
           <div

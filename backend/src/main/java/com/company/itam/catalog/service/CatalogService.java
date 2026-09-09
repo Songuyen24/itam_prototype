@@ -122,7 +122,7 @@ public class CatalogService {
     public PageResponse<AssetTypeResponse> getAssetTypes(String search, Boolean isActive, Pageable pageable) {
         Page<AssetTypeEntity> page;
         if (search != null && !search.isBlank()) {
-            page = typeRepository.findByNameContainingIgnoreCase(search.trim(), pageable);
+            page = typeRepository.searchActive(search.trim(), isActive, pageable);
         } else if (isActive != null) {
             page = typeRepository.findByIsActive(isActive, pageable);
         } else {
@@ -228,6 +228,7 @@ public class CatalogService {
     public AssetStatusResponse updateAssetStatus(Long id, AssetStatusRequest request) {
         AssetStatusEntity entity = statusRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy trạng thái với ID: " + id));
+        if (entity.getCode()!=request.getCode() || Boolean.FALSE.equals(request.getIsActive())) throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.CONFLICT,"SYSTEM_CATALOG_LOCKED","System catalog code cannot be changed, disabled or deleted");
         if (entity.getCode() != request.getCode() && statusRepository.existsByCode(request.getCode())) {
             throw new DuplicateResourceException("Mã trạng thái đã tồn tại: " + request.getCode());
         }
@@ -243,6 +244,7 @@ public class CatalogService {
     public void deleteAssetStatus(Long id) {
         AssetStatusEntity entity = statusRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy trạng thái với ID: " + id));
+        if (entity.getCode()!=null) throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.CONFLICT,"SYSTEM_CATALOG_LOCKED","System catalog code cannot be changed, disabled or deleted");
         if (assetRepository.existsByStatusCode(entity.getCode())) {
             throw new CatalogInUseException("Trạng thái đang được sử dụng bởi tài sản, không thể xóa");
         }
@@ -253,6 +255,7 @@ public class CatalogService {
     public AssetStatusResponse toggleActiveStatus(Long id, Boolean active) {
         AssetStatusEntity entity = statusRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy trạng thái với ID: " + id));
+        if (!Boolean.TRUE.equals(active)) throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.CONFLICT,"SYSTEM_CATALOG_LOCKED","System catalog code cannot be changed, disabled or deleted");
         entity.setIsActive(active != null ? active : !Boolean.TRUE.equals(entity.getIsActive()));
         return toStatusResponse(statusRepository.save(entity));
     }
@@ -325,7 +328,7 @@ public class CatalogService {
     public PageResponse<ModelResponse> getModels(String search, Boolean isActive, Pageable pageable) {
         Page<ModelEntity> page;
         if (search != null && !search.isBlank()) {
-            page = modelRepository.findByNameContainingIgnoreCaseOrBrandContainingIgnoreCase(search.trim(), search.trim(), pageable);
+            page = modelRepository.searchActive(search.trim(), isActive, pageable);
         } else if (isActive != null) {
             page = modelRepository.findByIsActive(isActive, pageable);
         } else {
@@ -419,8 +422,7 @@ public class CatalogService {
     public PageResponse<SoftwareCatalogResponse> getSoftwareCatalog(String search, Boolean isActive, Pageable pageable) {
         Page<SoftwareCatalogEntity> page;
         if (search != null && !search.isBlank()) {
-            page = softwareCatalogRepository.findByNameContainingIgnoreCaseOrManufacturerContainingIgnoreCase(
-                    search.trim(), search.trim(), pageable);
+            page = softwareCatalogRepository.searchActive(search.trim(), isActive, pageable);
         } else if (isActive != null) {
             page = softwareCatalogRepository.findByIsActive(isActive, pageable);
         } else {
@@ -517,6 +519,7 @@ public class CatalogService {
     public LicenseAssignmentTypeResponse updateLicenseAssignmentType(Long id, LicenseAssignmentTypeRequest request) {
         LicenseAssignmentTypeEntity entity = assignmentTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại gán license với ID: " + id));
+        if (java.util.Set.of("OEM","PER_USER").contains(entity.getCode()) && (!entity.getCode().equals(request.getCode()) || Boolean.FALSE.equals(request.getActive()))) throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.CONFLICT,"SYSTEM_CATALOG_LOCKED","System catalog code cannot be changed, disabled or deleted");
         if (!entity.getCode().equalsIgnoreCase(request.getCode().trim())
                 && assignmentTypeRepository.existsByCode(request.getCode().trim())) {
             throw new DuplicateResourceException("Mã loại gán license đã tồn tại: " + request.getCode());
@@ -533,6 +536,7 @@ public class CatalogService {
     public void deleteLicenseAssignmentType(Long id) {
         LicenseAssignmentTypeEntity entity = assignmentTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại gán license với ID: " + id));
+        if (java.util.Set.of("OEM","PER_USER").contains(entity.getCode())) throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.CONFLICT,"SYSTEM_CATALOG_LOCKED","System catalog code cannot be changed, disabled or deleted");
         if (licenseDetailsRepository.existsByAssignmentTypeId(id)) {
             throw new CatalogInUseException("Loại gán license đang được sử dụng, không thể xóa");
         }
@@ -543,6 +547,7 @@ public class CatalogService {
     public LicenseAssignmentTypeResponse toggleActiveAssignmentType(Long id, Boolean active) {
         LicenseAssignmentTypeEntity entity = assignmentTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại gán license với ID: " + id));
+        if (java.util.Set.of("OEM","PER_USER").contains(entity.getCode()) && !Boolean.TRUE.equals(active)) throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.CONFLICT,"SYSTEM_CATALOG_LOCKED","System catalog code cannot be changed, disabled or deleted");
         entity.setActive(active != null ? active : !Boolean.TRUE.equals(entity.getActive()));
         return toAssignmentTypeResponse(assignmentTypeRepository.save(entity));
     }
@@ -579,6 +584,7 @@ public class CatalogService {
     public LicenseTermTypeResponse updateLicenseTermType(Long id, LicenseTermTypeRequest request) {
         LicenseTermTypeEntity entity = termTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại thời hạn license với ID: " + id));
+        if (java.util.Set.of("PERPETUAL","SUBSCRIPTION").contains(entity.getCode()) && (!entity.getCode().equals(request.getCode()) || Boolean.FALSE.equals(request.getActive()))) throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.CONFLICT,"SYSTEM_CATALOG_LOCKED","System catalog code cannot be changed, disabled or deleted");
         if (!entity.getCode().equalsIgnoreCase(request.getCode().trim())
                 && termTypeRepository.existsByCode(request.getCode().trim())) {
             throw new DuplicateResourceException("Mã loại thời hạn license đã tồn tại: " + request.getCode());
@@ -595,6 +601,7 @@ public class CatalogService {
     public void deleteLicenseTermType(Long id) {
         LicenseTermTypeEntity entity = termTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại thời hạn license với ID: " + id));
+        if (java.util.Set.of("PERPETUAL","SUBSCRIPTION").contains(entity.getCode())) throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.CONFLICT,"SYSTEM_CATALOG_LOCKED","System catalog code cannot be changed, disabled or deleted");
         if (licenseDetailsRepository.existsByTermTypeId(id)) {
             throw new CatalogInUseException("Loại thời hạn license đang được sử dụng, không thể xóa");
         }
@@ -605,6 +612,7 @@ public class CatalogService {
     public LicenseTermTypeResponse toggleActiveTermType(Long id, Boolean active) {
         LicenseTermTypeEntity entity = termTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại thời hạn license với ID: " + id));
+        if (java.util.Set.of("PERPETUAL","SUBSCRIPTION").contains(entity.getCode()) && !Boolean.TRUE.equals(active)) throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.CONFLICT,"SYSTEM_CATALOG_LOCKED","System catalog code cannot be changed, disabled or deleted");
         entity.setActive(active != null ? active : !Boolean.TRUE.equals(entity.getActive()));
         return toTermTypeResponse(termTypeRepository.save(entity));
     }

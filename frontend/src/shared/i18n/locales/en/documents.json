@@ -26,7 +26,8 @@
   "statuses": {
     "PENDING": "Pending",
     "COMPLETED": "Completed",
-    "REJECTED": "Rejected"
+    "REJECTED": "Rejected",
+    "DRAFT": "Draft"
   },
   "documentTypes": {
     "INVOICE": "Invoice",
@@ -74,5 +75,25 @@
     "emptyFile": "The selected file is empty.",
     "fileType": "Only PDF, PNG and JPEG files with matching file types are accepted.",
     "fileTooLarge": "The file must not exceed 10 MB."
+  },
+  "draft": {
+    "create": "Create receiving draft",
+    "notes": "Notes",
+    "saveNotes": "Save notes",
+    "addAsset": "Add device pending receipt",
+    "assetName": "Device name",
+    "assetType": "Device type",
+    "assetTag": "Asset tag (leave blank to generate)",
+    "serial": "Serial (optional)",
+    "assets": "Devices on this transaction",
+    "noAssets": "No devices yet. Add a device before submitting.",
+    "submit": "Submit for IT review — lock content",
+    "withdraw": "Withdraw to edit draft",
+    "history": "Submitted revisions (read only)",
+    "noHistory": "No submitted revisions.",
+    "revision": "Revision {{number}}",
+    "detach": "Detach from draft",
+    "detachConfirm": "Remove this draft link? Documents in earlier revisions will be preserved.",
+    "copyRejected": "Create a new draft from this rejected transaction"
   }
 }

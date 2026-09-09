@@ -4,12 +4,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class LicenseTermTypeRequest {
-    @NotBlank(message = "Mã loại thời hạn license không được để trống")
-    @Size(max = 50, message = "Mã loại thời hạn license tối đa 50 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 50, message = "{validation.size}")
     private String code;
 
-    @NotBlank(message = "Tên loại thời hạn license không được để trống")
-    @Size(max = 255, message = "Tên loại thời hạn license tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
     private Boolean active = true;

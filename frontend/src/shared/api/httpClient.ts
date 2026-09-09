@@ -128,6 +128,7 @@ async function httpClient<T>(
     );
   }
 
+  if (response.status === 204 || response.status === 205) return undefined as T;
   const data = await response.json();
   assertCurrentSession(token, revision, currentLang);
   return data;

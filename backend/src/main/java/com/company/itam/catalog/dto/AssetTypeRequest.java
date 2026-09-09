@@ -5,15 +5,15 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class AssetTypeRequest {
-    @NotBlank(message = "Mã loại tài sản không được để trống")
-    @Size(max = 50, message = "Mã loại tài sản tối đa 50 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 50, message = "{validation.size}")
     private String code;
 
-    @NotNull(message = "Nhóm tài sản không được để trống")
+    @NotNull(message = "{validation.required}")
     private Long categoryId;
 
-    @NotBlank(message = "Tên loại tài sản không được để trống")
-    @Size(max = 255, message = "Tên loại tài sản tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
     private Boolean isActive = true;

@@ -25,4 +25,7 @@ public interface ModelRepository extends JpaRepository<ModelEntity, Long> {
     boolean existsByTypeTypeId(Long typeId);
     boolean existsByTypeTypeIdAndBrandIgnoreCaseAndNameIgnoreCase(Long typeId, String brand, String name);
     boolean existsByBrandIgnoreCaseAndNameIgnoreCase(String brand, String name);
+    @org.springframework.data.jpa.repository.Query("SELECT e FROM ModelEntity e WHERE (:active IS NULL OR e.isActive=:active) AND (lower(e.name) LIKE lower(concat('%',:search,'%')) OR lower(e.brand) LIKE lower(concat('%',:search,'%')))")
+    Page<ModelEntity> searchActive(@org.springframework.data.repository.query.Param("search") String search,
+        @org.springframework.data.repository.query.Param("active") Boolean active, Pageable pageable);
 }

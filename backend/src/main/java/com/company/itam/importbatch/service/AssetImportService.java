@@ -185,6 +185,7 @@ public class AssetImportService {
             Map<String, Object> data = rowDetail.getRawData();
 
             String assetTag = AssetImportValidator.normalize(data.get("assetTag"));
+            if (assetTag == null) assetTag = assetRepository.nextGeneratedAssetTag();
             String name = AssetImportValidator.normalize(data.get("name"));
             String typeStr = AssetImportValidator.normalize(data.get("type"));
             String modelStr = AssetImportValidator.normalize(data.get("model"));
@@ -229,7 +230,7 @@ public class AssetImportService {
 
             // 2. Create Hardware Details
             AssetHardwareDetailsEntity hw = new AssetHardwareDetailsEntity();
-            hw.setAssetId(savedAsset.getAssetId());
+
             hw.setAsset(savedAsset);
             hw.setSerialNumber(serialNumber);
             hw.setModel(modelEntity);
@@ -371,10 +372,6 @@ public class AssetImportService {
                 return user.get();
             }
         }
-        // Prototype fallback: khi chưa tích hợp auth thực, lấy user đầu tiên làm actor.
-        // TODO: Khi tích hợp JWT/OAuth, xóa fallback này và ném UNAUTHORIZED.
-        return userRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED",
-                        "Không xác định được người dùng thực hiện. Hệ thống chưa có user nào."));
+        throw new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authenticated user is required");
     }
 }

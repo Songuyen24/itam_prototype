@@ -53,6 +53,9 @@
     "fileRequired": "Vui lòng chọn một file Excel",
     "invalidFormat": "Chỉ chấp nhận định dạng file Excel (.xlsx hoặc .xls)",
     "noValidRows": "Không có dòng dữ liệu hợp lệ nào để import!",
-    "downloadFailed": "Không thể tải file mẫu. Vui lòng thử lại sau."
-  }
+    "downloadFailed": "Không thể tải file mẫu. Vui lòng thử lại sau.",
+    "previewFailed": "Không thể đọc và kiểm tra file Excel.",
+    "importFailed": "Không thể import tài sản."
+  },
+  "openingInventory": "Import dữ liệu nền / tồn đầu kỳ mẫu. Mã trống được tự sinh khi xác nhận; mua mới phải qua phiếu nhập kho."
 }

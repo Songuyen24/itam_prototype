@@ -5,24 +5,24 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class SupplierRequest {
-    @NotBlank(message = "Mã nhà cung cấp không được để trống")
-    @Size(max = 50, message = "Mã nhà cung cấp tối đa 50 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 50, message = "{validation.size}")
     private String code;
 
-    @NotBlank(message = "Tên nhà cung cấp không được để trống")
-    @Size(max = 255, message = "Tên nhà cung cấp tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
-    @Size(max = 100, message = "Mã số thuế tối đa 100 ký tự")
+    @Size(max = 100, message = "{validation.size}")
     private String taxCode;
 
-    @Size(max = 500, message = "Địa chỉ tối đa 500 ký tự")
+    @Size(max = 500, message = "{validation.size}")
     private String address;
 
-    @Size(max = 50, message = "Số điện thoại tối đa 50 ký tự")
+    @Size(max = 50, message = "{validation.size}")
     private String phone;
 
-    @Email(message = "Email không đúng định dạng")
+    @Email(message = "{validation.email}")
     private String email;
 
     private Boolean isActive = true;

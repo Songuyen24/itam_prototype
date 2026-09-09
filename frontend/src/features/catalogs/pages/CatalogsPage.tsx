@@ -141,7 +141,7 @@ export const CatalogsPage: React.FC = () => {
     } catch (err: any) {
       setToastMessage({
         type: 'error',
-        text: err.message || 'Không thể tải danh sách dữ liệu danh mục',
+        text: err.message || t('catalogs:feedback.loadError'),
       });
       setItems([]);
     } finally {
@@ -227,7 +227,7 @@ export const CatalogsPage: React.FC = () => {
             await licenseTermTypeApi.update(id, { code: data.code!, name: data.name, active: data.isActive });
             break;
         }
-        setToastMessage({ type: 'success', text: 'Cập nhật danh mục thành công!' });
+        setToastMessage({ type: 'success', text: t('catalogs:feedback.updated') });
       } else {
         // CREATE
         switch (activeTab) {
@@ -259,13 +259,13 @@ export const CatalogsPage: React.FC = () => {
             await licenseTermTypeApi.create({ code: data.code!, name: data.name, active: data.isActive });
             break;
         }
-        setToastMessage({ type: 'success', text: 'Thêm mới danh mục thành công!' });
+        setToastMessage({ type: 'success', text: t('catalogs:feedback.created') });
       }
 
       setIsGenericModalOpen(false);
       fetchTabItems();
     } catch (err: any) {
-      setModalErrorMessage(err.message || 'Lỗi khi lưu danh mục');
+      setModalErrorMessage(err.message || t('catalogs:feedback.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -278,15 +278,15 @@ export const CatalogsPage: React.FC = () => {
     try {
       if (selectedItem) {
         await modelApi.update(selectedItem.modelId, data);
-        setToastMessage({ type: 'success', text: 'Cập nhật model thành công!' });
+        setToastMessage({ type: 'success', text: t('catalogs:feedback.modelUpdated') });
       } else {
         await modelApi.create(data);
-        setToastMessage({ type: 'success', text: 'Tạo model thành công!' });
+        setToastMessage({ type: 'success', text: t('catalogs:feedback.modelCreated') });
       }
       setIsModelModalOpen(false);
       fetchTabItems();
     } catch (err: any) {
-      setModalErrorMessage(err.message || 'Lỗi khi lưu model');
+      setModalErrorMessage(err.message || t('catalogs:feedback.modelError'));
     } finally {
       setIsSaving(false);
     }
@@ -302,7 +302,7 @@ export const CatalogsPage: React.FC = () => {
         const res = await supplierApi.update(selectedItem.supplierId, data);
         savedSupplier = res.data;
         // Sync contacts if needed
-        setToastMessage({ type: 'success', text: 'Cập nhật nhà cung cấp thành công!' });
+        setToastMessage({ type: 'success', text: t('catalogs:feedback.supplierUpdated') });
       } else {
         const res = await supplierApi.create(data);
         savedSupplier = res.data;
@@ -312,12 +312,12 @@ export const CatalogsPage: React.FC = () => {
             await supplierApi.addContact(savedSupplier.supplierId, c);
           }
         }
-        setToastMessage({ type: 'success', text: 'Tạo nhà cung cấp thành công!' });
+        setToastMessage({ type: 'success', text: t('catalogs:feedback.supplierCreated') });
       }
       setIsSupplierModalOpen(false);
       fetchTabItems();
     } catch (err: any) {
-      setModalErrorMessage(err.message || 'Lỗi khi lưu nhà cung cấp');
+      setModalErrorMessage(err.message || t('catalogs:feedback.supplierError'));
     } finally {
       setIsSaving(false);
     }
@@ -367,13 +367,13 @@ export const CatalogsPage: React.FC = () => {
 
       setToastMessage({
         type: 'success',
-        text: `Đã ${targetActive ? 'kích hoạt' : 'vô hiệu hóa'} thành công!`,
+        text: t('catalogs:feedback.statusChanged'),
       });
       fetchTabItems();
     } catch (err: any) {
       setToastMessage({
         type: 'error',
-        text: err.message || 'Lỗi khi đổi trạng thái hoạt động',
+        text: err.message || t('catalogs:feedback.statusError'),
       });
     }
   };
@@ -428,15 +428,15 @@ export const CatalogsPage: React.FC = () => {
       }
 
       setIsDeleteModalOpen(false);
-      setToastMessage({ type: 'success', text: 'Đã xóa danh mục thành công!' });
+      setToastMessage({ type: 'success', text: t('catalogs:feedback.deleted') });
       fetchTabItems();
     } catch (err: any) {
       if (err instanceof ApiError && err.code === 'CATALOG_IN_USE') {
         setModalErrorMessage(
-          'Không thể xóa: Bản ghi danh mục này đang được liên kết với tài sản, người dùng hoặc linh kiện trong hệ thống!'
+          t('catalogs:feedback.inUse')
         );
       } else {
-        setModalErrorMessage(err.message || 'Có lỗi xảy ra khi thực hiện xóa');
+        setModalErrorMessage(err.message || t('catalogs:feedback.deleteError'));
       }
     } finally {
       setIsDeleting(false);
@@ -693,14 +693,14 @@ export const CatalogsPage: React.FC = () => {
               disabled={currentPage === 0 || isLoading}
               onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
             >
-              &larr; Trang trước
+              &larr; {t('common:pagination.previous')}
             </button>
             <button
               className="btn btn-sm btn-secondary"
               disabled={currentPage + 1 >= totalPages || isLoading}
               onClick={() => setCurrentPage((prev) => prev + 1)}
             >
-              Trang sau &rarr;
+              {t('common:pagination.next')} &rarr;
             </button>
           </div>
         </div>
@@ -709,7 +709,7 @@ export const CatalogsPage: React.FC = () => {
       {/* Modals */}
       <CatalogModal
         isOpen={isGenericModalOpen}
-        title={`${selectedItem ? 'Chỉnh sửa' : 'Thêm mới'} ${getActiveTabLabel()}`}
+        title={`${selectedItem ? t('common:buttons.edit') : t('common:buttons.add')} ${getActiveTabLabel()}`}
         initialData={getInitialGenericData()}
         categories={categories}
         showCodeField={activeTab !== 'software'}
@@ -725,7 +725,7 @@ export const CatalogsPage: React.FC = () => {
 
       <ModelModal
         isOpen={isModelModalOpen}
-        title={`${selectedItem ? 'Chỉnh sửa' : 'Thêm mới'} Model thiết bị`}
+        title={`${selectedItem ? t('common:buttons.edit') : t('common:buttons.add')} ${t('catalogs:tabs.models')}`}
         initialData={selectedItem}
         assetTypes={types}
         isSaving={isSaving}
@@ -736,7 +736,7 @@ export const CatalogsPage: React.FC = () => {
 
       <SupplierModal
         isOpen={isSupplierModalOpen}
-        title={`${selectedItem ? 'Chỉnh sửa' : 'Thêm mới'} Nhà cung cấp`}
+        title={`${selectedItem ? t('common:buttons.edit') : t('common:buttons.add')} ${t('catalogs:tabs.suppliers')}`}
         initialData={selectedItem}
         isSaving={isSaving}
         errorMessage={modalErrorMessage}

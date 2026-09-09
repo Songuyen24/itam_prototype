@@ -18,4 +18,7 @@ public interface DocumentRepository extends JpaRepository<DocumentEntity, Long> 
     List<DocumentEntity> findByAssetAssetId(Long assetId);
     Page<DocumentEntity> findByDocumentType(DocumentType documentType, Pageable pageable);
     Page<DocumentEntity> findByUploadedByUserId(Long userId, Pageable pageable);
+    @org.springframework.data.jpa.repository.Query(value = "SELECT d.* FROM documents d JOIN transaction_document_links l ON l.document_id=d.document_id WHERE l.transaction_id=:id ORDER BY d.created_at DESC, d.document_id DESC",
+        countQuery = "SELECT count(*) FROM transaction_document_links WHERE transaction_id=:id", nativeQuery = true)
+    Page<DocumentEntity> findLinked(@org.springframework.data.repository.query.Param("id") Long id, Pageable pageable);
 }

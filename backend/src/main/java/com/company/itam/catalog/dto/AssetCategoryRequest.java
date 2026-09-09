@@ -6,11 +6,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class AssetCategoryRequest {
-    @NotNull(message = "Mã nhóm tài sản không được để trống")
+    @NotNull(message = "{validation.required}")
     private AssetCategory code;
 
-    @NotBlank(message = "Tên nhóm tài sản không được để trống")
-    @Size(max = 255, message = "Tên nhóm tài sản tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
     private Boolean isActive = true;

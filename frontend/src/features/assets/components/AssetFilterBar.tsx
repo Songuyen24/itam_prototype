@@ -122,7 +122,7 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
             <option value="">{t('assets:filters.allStatuses', 'Tất cả trạng thái')}</option>
             {statuses.map((s) => (
               <option key={s.statusId} value={s.statusId}>
-                {s.name}
+                {t(`common:status.${s.code}`, {defaultValue:s.name})}
               </option>
             ))}
           </select>

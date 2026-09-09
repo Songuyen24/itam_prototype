@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AssetDetail } from '../types/asset.types';
 
 interface AssetDetailModalProps {
@@ -14,19 +15,20 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   asset,
   onEdit,
 }) => {
+  const { t, i18n } = useTranslation('assets');
   if (!isOpen || !asset) return null;
 
   const cfg = asset.hardwareConfig || {};
 
   const formatCurrency = (val?: number) => {
-    if (val === undefined || val === null) return '0 VNĐ';
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+    if (val === undefined || val === null) return new Intl.NumberFormat(i18n.language, {style:'currency',currency:'VND'}).format(0);
+    return new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'VND' }).format(val);
   };
 
   const formatDate = (val?: string) => {
     if (!val) return '—';
     try {
-      return new Date(val).toLocaleDateString('vi-VN');
+      return new Date(val).toLocaleDateString(i18n.language);
     } catch {
       return val;
     }
@@ -62,7 +64,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
                 {asset.assetTag}
               </span>
               <span className={`badge ${getStatusBadgeClass(asset.statusCode)}`}>
-                {asset.statusName || asset.statusCode || 'N/A'}
+                {asset.statusCode ? t(`common:status.${asset.statusCode}`, { defaultValue: asset.statusName || asset.statusCode }) : '—'}
               </span>
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -89,84 +91,84 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
             }}
           >
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>LOẠI THIẾT BỊ</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.type')}</div>
               <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>
                 {asset.typeName || '—'} ({asset.categoryName || 'Device'})
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>MODEL & HÃNG</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.model')}</div>
               <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>
                 {asset.modelBrand ? `${asset.modelBrand} ` : ''}{asset.modelName || '—'}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>SỐ SERIAL (S/N)</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.serial')}</div>
               <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px', fontFamily: 'monospace' }}>
                 {asset.serialNumber || '—'}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>TÌNH TRẠNG</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.condition')}</div>
               <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
                 {asset.conditionName || '—'}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>HẠN BẢO HÀNH</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.warranty')}</div>
               <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
                 {formatDate(asset.warrantyExpiration)}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>NGƯỜI ĐANG SỬ DỤNG</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.assigned')}</div>
               <div style={{ fontSize: '14px', fontWeight: 600, color: asset.assignedToFullName ? 'var(--primary)' : 'var(--text-muted)', marginTop: '2px' }}>
-                {asset.assignedToFullName ? `👤 ${asset.assignedToFullName}` : 'Chưa bàn giao'}
+                {asset.assignedToFullName ? `👤 ${asset.assignedToFullName}` : t('detail.unassigned')}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>PHÒNG BAN</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.department')}</div>
               <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
                 {asset.departmentName || '—'}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>VỊ TRÍ LƯU TRỮ</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.location')}</div>
               <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
                 {asset.locationName || '—'}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>NHÀ CUNG CẤP</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.supplier')}</div>
               <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
                 {asset.supplierName || '—'}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>SỐ PO</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.po')}</div>
               <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
                 {asset.poNumber || '—'}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>NGÀY MUA</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.date')}</div>
               <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
                 {formatDate(asset.purchaseDate)}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>GIÁ MUA</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.cost')}</div>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a', marginTop: '2px' }}>
                 {formatCurrency(asset.purchaseCost)}
               </div>
@@ -176,53 +178,53 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
           {/* Section 2: Hardware Specs Breakdown (3 Columns Table) */}
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
-              ⚙️ Chi tiết cấu hình phần cứng (Default vs Actual vs Effective)
+              {t('detail.config')}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-              Khi cấu hình thực tế để trống, hệ thống tự động kế thừa cấu hình mặc định của Model thiết bị.
+              {t('detail.hint')}
             </div>
 
             <div className="table-container" style={{ border: '1px solid var(--border-color)', borderRadius: '8px' }}>
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '20%' }}>Thành phần</th>
-                    <th style={{ width: '26%' }}>Cấu hình mặc định (Model)</th>
-                    <th style={{ width: '26%' }}>Cấu hình thực tế (Actual)</th>
+                    <th style={{ width: '20%' }}>{t('detail.component')}</th>
+                    <th style={{ width: '26%' }}>{t('detail.default')}</th>
+                    <th style={{ width: '26%' }}>{t('detail.actual')}</th>
                     <th style={{ width: '28%', backgroundColor: '#eff6ff', color: '#1e3a8a' }}>
-                      Cấu hình hiệu lực (Effective)
+                      {t('detail.effective')}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td><strong>Bộ vi xử lý (CPU)</strong></td>
+                    <td><strong>{t('detail.cpu')}</strong></td>
                     <td style={{ color: 'var(--text-muted)' }}>{cfg.defaultCpu || '—'}</td>
-                    <td>{cfg.actualCpu ? <span>{cfg.actualCpu}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Theo mặc định</span>}</td>
+                    <td>{cfg.actualCpu ? <span>{cfg.actualCpu}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('detail.inherit')}</span>}</td>
                     <td style={{ backgroundColor: '#eff6ff', fontWeight: 600, color: '#1d4ed8' }}>
                       {cfg.effectiveCpu || '—'}
                     </td>
                   </tr>
                   <tr>
-                    <td><strong>Bộ nhớ (RAM)</strong></td>
+                    <td><strong>{t('detail.ram')}</strong></td>
                     <td style={{ color: 'var(--text-muted)' }}>{cfg.defaultRam || '—'}</td>
-                    <td>{cfg.actualRam ? <span>{cfg.actualRam}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Theo mặc định</span>}</td>
+                    <td>{cfg.actualRam ? <span>{cfg.actualRam}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('detail.inherit')}</span>}</td>
                     <td style={{ backgroundColor: '#eff6ff', fontWeight: 600, color: '#1d4ed8' }}>
                       {cfg.effectiveRam || '—'}
                     </td>
                   </tr>
                   <tr>
-                    <td><strong>Ổ cứng lưu trữ</strong></td>
+                    <td><strong>{t('detail.storage')}</strong></td>
                     <td style={{ color: 'var(--text-muted)' }}>{cfg.defaultStorage || '—'}</td>
-                    <td>{cfg.actualStorage ? <span>{cfg.actualStorage}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Theo mặc định</span>}</td>
+                    <td>{cfg.actualStorage ? <span>{cfg.actualStorage}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('detail.inherit')}</span>}</td>
                     <td style={{ backgroundColor: '#eff6ff', fontWeight: 600, color: '#1d4ed8' }}>
                       {cfg.effectiveStorage || '—'}
                     </td>
                   </tr>
                   <tr>
-                    <td><strong>Card màn hình (GPU)</strong></td>
+                    <td><strong>{t('detail.gpu')}</strong></td>
                     <td style={{ color: 'var(--text-muted)' }}>{cfg.defaultGraphicsCard || '—'}</td>
-                    <td>{cfg.actualGraphicsCard ? <span>{cfg.actualGraphicsCard}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Theo mặc định</span>}</td>
+                    <td>{cfg.actualGraphicsCard ? <span>{cfg.actualGraphicsCard}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('detail.inherit')}</span>}</td>
                     <td style={{ backgroundColor: '#eff6ff', fontWeight: 600, color: '#1d4ed8' }}>
                       {cfg.effectiveGraphicsCard || '—'}
                     </td>
@@ -244,11 +246,11 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
             }}
           >
             <div>
-              Tạo bởi: <strong>{asset.createdByFullName || 'Hệ thống'}</strong> ({formatDate(asset.createdAt)})
+              {t('detail.created')} <strong>{asset.createdByFullName || t('detail.system')}</strong> ({formatDate(asset.createdAt)})
             </div>
             {asset.updatedAt && (
               <div>
-                Cập nhật lần cuối: <strong>{asset.updatedByFullName || 'Hệ thống'}</strong> ({formatDate(asset.updatedAt)})
+                {t('detail.updated')} <strong>{asset.updatedByFullName || t('detail.system')}</strong> ({formatDate(asset.updatedAt)})
               </div>
             )}
           </div>
@@ -257,7 +259,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
         {/* Modal Footer */}
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onClose}>
-            Đóng
+            {t('detail.close')}
           </button>
           {onEdit && <button
             type="button"
@@ -267,7 +269,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
               onEdit(asset);
             }}
           >
-            ✏️ Chỉnh sửa tài sản
+            {t('detail.edit')}
           </button>}
         </div>
       </div>

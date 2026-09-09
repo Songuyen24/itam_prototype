@@ -28,4 +28,7 @@ public interface AssetTypeRepository extends JpaRepository<AssetTypeEntity, Long
      */
     @Query("SELECT t FROM AssetTypeEntity t LEFT JOIN FETCH t.category WHERE t.typeId = :id")
     Optional<AssetTypeEntity> findByIdWithCategory(@Param("id") Long id);
+    @org.springframework.data.jpa.repository.Query("SELECT e FROM AssetTypeEntity e WHERE (:active IS NULL OR e.isActive=:active) AND (lower(e.name) LIKE lower(concat('%',:search,'%')))")
+    Page<AssetTypeEntity> searchActive(@org.springframework.data.repository.query.Param("search") String search,
+        @org.springframework.data.repository.query.Param("active") Boolean active, Pageable pageable);
 }

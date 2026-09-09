@@ -16,7 +16,16 @@ import java.util.Optional;
 
 @Repository
 public interface AssetRepository extends JpaRepository<AssetEntity, Long>, JpaSpecificationExecutor<AssetEntity> {
+    @Override
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"type.category","status","assignedTo","department","location","supplier","hardwareDetails.model","hardwareDetails.condition"})
+    Page<AssetEntity> findAll(org.springframework.data.jpa.domain.Specification<AssetEntity> specification, Pageable pageable);
+
+    @Query(value = "SELECT next_asset_tag()", nativeQuery = true)
+    String nextGeneratedAssetTag();
+
     Optional<AssetEntity> findByAssetTag(String assetTag);
+    @Query(value="SELECT EXISTS(SELECT 1 FROM transaction_assets a JOIN transactions t USING(transaction_id) WHERE a.asset_id=:id AND t.type='IMPORT')",nativeQuery=true)
+    boolean hasReceivingHistory(@Param("id") Long id);
     boolean existsByAssetTag(String assetTag);
 
     Page<AssetEntity> findByStatusCode(AssetStatus status, Pageable pageable);

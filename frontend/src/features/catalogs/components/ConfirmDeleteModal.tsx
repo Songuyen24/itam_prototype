@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 
 interface ConfirmDeleteModalProps {
@@ -13,7 +14,7 @@ interface ConfirmDeleteModalProps {
 
 export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   isOpen,
-  title = 'Xác nhận xóa',
+  title,
   itemName,
   itemTypeLabel,
   errorMessage,
@@ -21,13 +22,14 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   onConfirm,
   onClose,
 }) => {
+  const { t } = useTranslation('catalogs');
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3 className="modal-title">{title}</h3>
+          <h3 className="modal-title">{title ?? t('forms.deleteTitle')}</h3>
           <button className="alert-close-btn" onClick={onClose}>
             &times;
           </button>
@@ -37,26 +39,26 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
           {errorMessage && (
             <div className="alert-banner alert-danger">
               <div>
-                <strong>Lỗi không thể xóa:</strong>
+                <strong>{t('forms.deleteError')}</strong>
                 <div>{errorMessage}</div>
               </div>
             </div>
           )}
 
           <p style={{ fontSize: '15px', color: 'var(--text-main)' }}>
-            Bạn có chắc chắn muốn xóa {itemTypeLabel}: <strong>{itemName}</strong>?
+            {t('forms.deletePrompt', { kind: itemTypeLabel })} <strong>{itemName}</strong>?
           </p>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Hành động này không thể hoàn tác nếu danh mục chưa được sử dụng ở bất kỳ bản ghi nào.
+            {t('forms.deleteHint')}
           </p>
         </div>
 
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose} disabled={isDeleting}>
-            Hủy bỏ
+            {t('forms.cancelDelete')}
           </button>
           <button className="btn btn-danger" onClick={onConfirm} disabled={isDeleting}>
-            {isDeleting ? 'Đang xóa...' : 'Xác nhận xóa'}
+            {isDeleting ? t('forms.deleting') : t('forms.deleteTitle')}
           </button>
         </div>
       </div>

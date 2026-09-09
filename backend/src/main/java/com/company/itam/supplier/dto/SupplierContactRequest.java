@@ -5,17 +5,17 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class SupplierContactRequest {
-    @NotBlank(message = "Tên người liên hệ không được để trống")
-    @Size(max = 255, message = "Tên người liên hệ tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
-    @Size(max = 255, message = "Chức vụ tối đa 255 ký tự")
+    @Size(max = 255, message = "{validation.size}")
     private String position;
 
-    @Size(max = 50, message = "Số điện thoại tối đa 50 ký tự")
+    @Size(max = 50, message = "{validation.size}")
     private String phone;
 
-    @Email(message = "Email không đúng định dạng")
+    @Email(message = "{validation.email}")
     private String email;
 
     public SupplierContactRequest() {}
