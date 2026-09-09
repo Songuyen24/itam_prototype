@@ -4,12 +4,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class DepartmentRequest {
-    @NotBlank(message = "Mã phòng ban không được để trống")
-    @Size(max = 50, message = "Mã phòng ban tối đa 50 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 50, message = "{validation.size}")
     private String code;
 
-    @NotBlank(message = "Tên phòng ban không được để trống")
-    @Size(max = 255, message = "Tên phòng ban tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
     private Boolean isActive = true;

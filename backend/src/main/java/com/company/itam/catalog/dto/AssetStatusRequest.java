@@ -6,11 +6,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class AssetStatusRequest {
-    @NotNull(message = "Mã trạng thái không được để trống")
+    @NotNull(message = "{validation.required}")
     private AssetStatus code;
 
-    @NotBlank(message = "Tên trạng thái không được để trống")
-    @Size(max = 255, message = "Tên trạng thái tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
     private Boolean isActive = true;

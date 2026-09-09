@@ -84,7 +84,10 @@
     "PENDING": "Chờ duyệt",
     "APPROVED": "Đã duyệt",
     "REJECTED": "Từ chối",
-    "COMPLETED": "Hoàn thành"
+    "COMPLETED": "Hoàn thành",
+    "PENDING_IMPORT": "Chờ duyệt nhập",
+    "IN_REPAIR": "Đang sửa chữa",
+    "DAMAGED": "Hỏng"
   },
   "messages": {
     "confirmDelete": "Bạn có chắc chắn muốn xóa?",

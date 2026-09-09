@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   Department,
@@ -45,6 +46,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
   locations,
   suppliers,
 }) => {
+  const { t } = useTranslation('assets');
   const isEdit = !!initialData;
 
   // Form states
@@ -170,20 +172,16 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
     e.preventDefault();
     setFormError(null);
 
-    if (!assetTag.trim()) {
-      setFormError('Mã tài sản (Asset Tag) là bắt buộc');
-      return;
-    }
     if (!name.trim()) {
-      setFormError('Tên tài sản là bắt buộc');
+      setFormError(t('form.nameRequired'));
       return;
     }
     if (!typeId) {
-      setFormError('Vui lòng chọn loại tài sản');
+      setFormError(t('form.typeRequired'));
       return;
     }
     if (purchaseCost !== '' && Number(purchaseCost) < 0) {
-      setFormError('Giá mua không được âm');
+      setFormError(t('form.costInvalid'));
       return;
     }
 
@@ -192,6 +190,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
       name: name.trim(),
       typeId: Number(typeId),
       statusId: statusId !== '' ? Number(statusId) : undefined,
+      assignedToUserId: initialData?.assignedToUserId,
       departmentId: departmentId !== '' ? Number(departmentId) : undefined,
       locationId: locationId !== '' ? Number(locationId) : undefined,
       supplierId: supplierId !== '' ? Number(supplierId) : undefined,
@@ -212,7 +211,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
     try {
       await onSubmit(payload);
     } catch (err: any) {
-      setFormError(err.message || 'Lỗi khi lưu tài sản');
+      setFormError(err.message || t('form.saveError'));
     }
   };
 
@@ -224,7 +223,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
         {/* Header */}
         <div className="modal-header">
           <div className="modal-title">
-            {isEdit ? `✏️ Cập nhật tài sản: ${initialData.assetTag}` : '➕ Thêm mới tài sản phần cứng'}
+            {isEdit ? `${t('modal.editTitle')}: ${initialData.assetTag}` : t('modal.createTitle')}
           </div>
           <button type="button" className="btn-close" onClick={onClose} disabled={isSaving}>
             ✕
@@ -233,6 +232,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
         {/* Body */}
         <form onSubmit={handleSubmit} style={{ overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <p className="text-muted">{t('form.opening')}</p>
           {formError && (
             <div style={{ backgroundColor: 'var(--danger-light)', color: 'var(--danger)', padding: '12px 16px', borderRadius: '6px', fontSize: '14px', fontWeight: 500 }}>
               ⚠️ {formError}
@@ -242,14 +242,14 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
           {/* Section 1: Basic Information */}
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary)', marginBottom: '12px', borderBottom: '2px solid var(--primary-light)', paddingBottom: '6px' }}>
-              1. Thông tin chung
+              {t('form.basic')}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
               {/* Asset Tag */}
               <div className="form-group">
                 <label className="form-label">
-                  Mã tài sản (Asset Tag) <span style={{ color: 'var(--danger)' }}>*</span>
+                  {t('form.autoTag')}
                 </label>
                 <input
                   type="text"
@@ -257,8 +257,8 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                   value={assetTag}
                   onChange={(e) => setAssetTag(e.target.value)}
                   onBlur={checkTagUniqueness}
-                  placeholder="VD: AST-LAP-001"
-                  required
+                  placeholder="AST-…"
+                  disabled={isEdit}
                 />
                 {tagError && <div className="form-error">{tagError}</div>}
               </div>
@@ -266,7 +266,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
               {/* Asset Name */}
               <div className="form-group">
                 <label className="form-label">
-                  Tên tài sản <span style={{ color: 'var(--danger)' }}>*</span>
+                  {t('fields.name')} <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -281,7 +281,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
               {/* Asset Type */}
               <div className="form-group">
                 <label className="form-label">
-                  Loại tài sản <span style={{ color: 'var(--danger)' }}>*</span>
+                  {t('fields.type')} <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <select
                   className="form-control"
@@ -289,7 +289,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                   onChange={(e) => setTypeId(e.target.value ? Number(e.target.value) : '')}
                   required
                 >
-                  <option value="">-- Chọn loại tài sản --</option>
+                  <option value="">{t('form.chooseType')}</option>
                   {types.map((t) => (
                     <option key={t.typeId} value={t.typeId}>
                       {t.name} ({t.categoryName || 'Device'})
@@ -300,32 +300,33 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
               {/* Status */}
               <div className="form-group">
-                <label className="form-label">Trạng thái tài sản</label>
+                <label className="form-label">{t('fields.status')}</label>
                 <select
                   className="form-control"
                   value={statusId}
+                  disabled={!!initialData?.assignedToUserId}
                   onChange={(e) => setStatusId(e.target.value ? Number(e.target.value) : '')}
                 >
-                  {statuses.map((s) => (
+                  {statuses.filter(s => s.code !== 'PENDING_IMPORT' && (s.code !== 'IN_USE' || initialData?.statusCode === 'IN_USE')).map((s) => (
                     <option key={s.statusId} value={s.statusId}>
-                      {s.name}
+                      {t(`common:status.${s.code}`, {defaultValue:s.name})}
                     </option>
                   ))}
                 </select>
                 <small style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-                  Lưu ý: Tài sản In Stock không được gán người dùng.
+                  {t('form.inStockHint')}
                 </small>
               </div>
 
               {/* Department */}
               <div className="form-group">
-                <label className="form-label">Phòng ban quản lý</label>
+                <label className="form-label">{t('fields.department')}</label>
                 <select
                   className="form-control"
                   value={departmentId}
                   onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : '')}
                 >
-                  <option value="">-- Chọn phòng ban --</option>
+                  <option value="">{t('form.chooseDepartment')}</option>
                   {departments.map((d) => (
                     <option key={d.departmentId} value={d.departmentId}>
                       {d.name}
@@ -336,13 +337,13 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
               {/* Location */}
               <div className="form-group">
-                <label className="form-label">Vị trí lưu trữ / đặt máy</label>
+                <label className="form-label">{t('fields.location')}</label>
                 <select
                   className="form-control"
                   value={locationId}
                   onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : '')}
                 >
-                  <option value="">-- Chọn vị trí --</option>
+                  <option value="">{t('form.chooseLocation')}</option>
                   {locations.map((l) => (
                     <option key={l.locationId} value={l.locationId}>
                       {l.name}
@@ -353,13 +354,13 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
               {/* Supplier */}
               <div className="form-group">
-                <label className="form-label">Nhà cung cấp</label>
+                <label className="form-label">{t('fields.supplier')}</label>
                 <select
                   className="form-control"
                   value={supplierId}
                   onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')}
                 >
-                  <option value="">-- Chọn nhà cung cấp --</option>
+                  <option value="">{t('form.chooseSupplier')}</option>
                   {suppliers.map((s) => (
                     <option key={s.supplierId} value={s.supplierId}>
                       {s.name}
@@ -370,19 +371,19 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
               {/* PO Number */}
               <div className="form-group">
-                <label className="form-label">Số đơn hàng (PO)</label>
+                <label className="form-label">{t('fields.poNumber')}</label>
                 <input
                   type="text"
                   className="form-control"
                   value={poNumber}
                   onChange={(e) => setPoNumber(e.target.value)}
-                  placeholder="VD: PO-2026-001"
+                  placeholder="PO-2026-001"
                 />
               </div>
 
               {/* Purchase Date */}
               <div className="form-group">
-                <label className="form-label">Ngày mua</label>
+                <label className="form-label">{t('fields.purchaseDate')}</label>
                 <input
                   type="date"
                   className="form-control"
@@ -393,7 +394,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
               {/* Purchase Cost */}
               <div className="form-group">
-                <label className="form-label">Giá mua (VNĐ)</label>
+                <label className="form-label">{t('fields.purchaseCost')}</label>
                 <input
                   type="number"
                   min="0"
@@ -410,19 +411,19 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
           {/* Section 2: Hardware Details & Specs */}
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary)', marginBottom: '12px', borderBottom: '2px solid var(--primary-light)', paddingBottom: '6px' }}>
-              2. Chi tiết phần cứng & Cấu hình (Default vs Actual)
+              {t('form.hardware')}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
               {/* Model */}
               <div className="form-group">
-                <label className="form-label">Model thiết bị</label>
+                <label className="form-label">{t('fields.model')}</label>
                 <select
                   className="form-control"
                   value={modelId}
                   onChange={(e) => setModelId(e.target.value ? Number(e.target.value) : '')}
                 >
-                  <option value="">-- Chọn Model --</option>
+                  <option value="">{t('form.chooseModel')}</option>
                   {models.map((m) => (
                     <option key={m.modelId} value={m.modelId}>
                       {m.brand} - {m.name}
@@ -433,27 +434,27 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
               {/* Serial Number */}
               <div className="form-group">
-                <label className="form-label">Số Serial (Serial Number)</label>
+                <label className="form-label">{t('fields.serialNumber')}</label>
                 <input
                   type="text"
                   className="form-control"
                   value={serialNumber}
                   onChange={(e) => setSerialNumber(e.target.value)}
                   onBlur={checkSerialUniqueness}
-                  placeholder="VD: PF4X89L1"
+                  placeholder="PF4X89L1"
                 />
                 {serialError && <div className="form-error">{serialError}</div>}
               </div>
 
               {/* Condition */}
               <div className="form-group">
-                <label className="form-label">Tình trạng vật lý</label>
+                <label className="form-label">{t('fields.condition')}</label>
                 <select
                   className="form-control"
                   value={conditionId}
                   onChange={(e) => setConditionId(e.target.value ? Number(e.target.value) : '')}
                 >
-                  <option value="">-- Chọn tình trạng --</option>
+                  <option value="">{t('form.chooseCondition')}</option>
                   {conditions.map((c) => (
                     <option key={c.conditionId} value={c.conditionId}>
                       {c.name}
@@ -464,7 +465,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
               {/* Warranty Expiration */}
               <div className="form-group">
-                <label className="form-label">Ngày hết hạn bảo hành</label>
+                <label className="form-label">{t('fields.warrantyExpiration')}</label>
                 <input
                   type="date"
                   className="form-control"
@@ -486,16 +487,16 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 }}
               >
                 <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary-hover)', marginBottom: '8px' }}>
-                  📌 Cấu hình mặc định của Model: {selectedModel.brand} {selectedModel.name}
+                  {t('form.defaultTitle')} {selectedModel.brand} {selectedModel.name}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '12px', color: '#1e3a8a' }}>
-                  <div>• <strong>CPU:</strong> {selectedModel.defaultCpu || 'Không có'}</div>
-                  <div>• <strong>RAM:</strong> {selectedModel.defaultRam || 'Không có'}</div>
-                  <div>• <strong>Ổ cứng:</strong> {selectedModel.defaultStorage || 'Không có'}</div>
-                  <div>• <strong>GPU:</strong> {selectedModel.defaultGraphicsCard || 'Không có'}</div>
+                  <div>• <strong>CPU:</strong> {selectedModel.defaultCpu || t('form.none')}</div>
+                  <div>• <strong>RAM:</strong> {selectedModel.defaultRam || t('form.none')}</div>
+                  <div>• <strong>{t('fields.storage')}</strong> {selectedModel.defaultStorage || t('form.none')}</div>
+                  <div>• <strong>GPU:</strong> {selectedModel.defaultGraphicsCard || t('form.none')}</div>
                 </div>
                 <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                  * Nếu cấu hình thực tế để trống, hệ thống sẽ tự động dùng cấu hình mặc định trên.
+                  {t('form.defaultHint')}
                 </div>
               </div>
             )}
@@ -503,46 +504,46 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
             {/* Actual Specs Fields */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginTop: '12px' }}>
               <div className="form-group">
-                <label className="form-label">CPU Thực tế (Actual CPU)</label>
+                <label className="form-label">{t('fields.cpu')}</label>
                 <input
                   type="text"
                   className="form-control"
                   value={actualCpu}
                   onChange={(e) => setActualCpu(e.target.value)}
-                  placeholder={selectedModel?.defaultCpu ? `Mặc định: ${selectedModel.defaultCpu}` : 'Nhập CPU thực tế'}
+                  placeholder={selectedModel?.defaultCpu ? t('form.defaultValue', { value: selectedModel.defaultCpu }) : t('form.cpu')}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">RAM Thực tế (Actual RAM)</label>
+                <label className="form-label">{t('fields.ram')}</label>
                 <input
                   type="text"
                   className="form-control"
                   value={actualRam}
                   onChange={(e) => setActualRam(e.target.value)}
-                  placeholder={selectedModel?.defaultRam ? `Mặc định: ${selectedModel.defaultRam}` : 'Nhập RAM thực tế'}
+                  placeholder={selectedModel?.defaultRam ? t('form.defaultValue', { value: selectedModel.defaultRam }) : t('form.ram')}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Ổ cứng Thực tế (Actual Storage)</label>
+                <label className="form-label">{t('fields.storage')}</label>
                 <input
                   type="text"
                   className="form-control"
                   value={actualStorage}
                   onChange={(e) => setActualStorage(e.target.value)}
-                  placeholder={selectedModel?.defaultStorage ? `Mặc định: ${selectedModel.defaultStorage}` : 'Nhập Ổ cứng thực tế'}
+                  placeholder={selectedModel?.defaultStorage ? t('form.defaultValue', { value: selectedModel.defaultStorage }) : t('form.storage')}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Card màn hình (Actual GPU)</label>
+                <label className="form-label">{t('fields.gpu')}</label>
                 <input
                   type="text"
                   className="form-control"
                   value={actualGraphicsCard}
                   onChange={(e) => setActualGraphicsCard(e.target.value)}
-                  placeholder={selectedModel?.defaultGraphicsCard ? `Mặc định: ${selectedModel.defaultGraphicsCard}` : 'Nhập GPU thực tế'}
+                  placeholder={selectedModel?.defaultGraphicsCard ? t('form.defaultValue', { value: selectedModel.defaultGraphicsCard }) : t('form.gpu')}
                 />
               </div>
             </div>
@@ -551,10 +552,10 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
           {/* Footer */}
           <div className="modal-footer" style={{ padding: '16px 0 0 0', marginTop: '10px' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              Hủy
+              {t('form.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSaving}>
-              {isSaving ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Tạo tài sản'}
+              {isSaving ? t('form.saving') : isEdit ? t('form.save') : t('form.create')}
             </button>
           </div>
         </form>

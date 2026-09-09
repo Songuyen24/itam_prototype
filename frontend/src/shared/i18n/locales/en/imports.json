@@ -53,6 +53,9 @@
     "fileRequired": "Please select an Excel file",
     "invalidFormat": "Only Excel file formats (.xlsx or .xls) are accepted",
     "noValidRows": "No valid rows to import!",
-    "downloadFailed": "Could not download template. Please try again later."
-  }
+    "downloadFailed": "Could not download template. Please try again later.",
+    "previewFailed": "Could not read and validate the Excel file.",
+    "importFailed": "Could not import assets."
+  },
+  "openingInventory": "Import sample opening inventory. Blank tags are generated on confirmation; new purchases require a receiving transaction."
 }

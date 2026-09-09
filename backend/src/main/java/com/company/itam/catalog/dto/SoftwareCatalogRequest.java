@@ -4,15 +4,15 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class SoftwareCatalogRequest {
-    @NotBlank(message = "Tên phần mềm không được để trống")
-    @Size(max = 255, message = "Tên phần mềm tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
-    @NotBlank(message = "Nhà sản xuất không được để trống")
-    @Size(max = 255, message = "Nhà sản xuất tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String manufacturer;
 
-    @Size(max = 100, message = "Phiên bản tối đa 100 ký tự")
+    @Size(max = 100, message = "{validation.size}")
     private String version;
 
     private Boolean isActive = true;

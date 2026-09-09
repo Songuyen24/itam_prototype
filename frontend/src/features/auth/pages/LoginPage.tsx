@@ -1,3 +1,4 @@
+import { demoLoginEnabled } from '../demo';
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -144,7 +145,7 @@ const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        <div className="login-divider">
+        {demoLoginEnabled && <><div className="login-divider">
           <span>{t('auth:quickLoginHeader', 'Đăng nhập nhanh theo vai trò')}</span>
         </div>
 
@@ -158,8 +159,8 @@ const LoginPage: React.FC = () => {
               disabled={submitting}
             >
               <span className={`role-badge role-${preset.role}`}>{preset.role}</span>
-              <strong>{preset.label}</strong>
-              <small>{preset.description}</small>
+              <strong>{t(`auth:roles.${preset.role}`)}</strong>
+              <small>{t(`auth:roleDescriptions.${preset.role}`)}</small>
               <code>{preset.email}</code>
             </button>
           ))}
@@ -168,7 +169,7 @@ const LoginPage: React.FC = () => {
         <p className="login-footer">
           {t('auth:defaultPasswordHint', 'Mật khẩu mặc định cho tài khoản seed: ')}
           <code>Password@123</code>
-        </p>
+        </p></>}
       </div>
     </div>
   );

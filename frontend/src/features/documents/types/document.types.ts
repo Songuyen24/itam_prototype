@@ -1,7 +1,7 @@
 export const DOCUMENT_ROLES = ['ADMIN', 'IT_STAFF', 'PUR_STAFF'];
 
 export type TransactionType = 'IMPORT' | 'HANDOVER' | 'RECOVERY' | 'DISPOSAL';
-export type TransactionStatus = 'PENDING' | 'COMPLETED' | 'REJECTED';
+export type TransactionStatus = 'DRAFT' | 'PENDING' | 'COMPLETED' | 'REJECTED';
 export type DocumentType =
   | 'INVOICE'
   | 'PURCHASE_ORDER'

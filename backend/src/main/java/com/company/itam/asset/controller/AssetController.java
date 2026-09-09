@@ -24,8 +24,10 @@ import org.springframework.web.bind.annotation.*;
 public class AssetController {
 
     private final AssetService assetService;
+    private final com.company.itam.common.util.MessageHelper messages;
 
-    public AssetController(AssetService assetService) {
+    public AssetController(AssetService assetService, com.company.itam.common.util.MessageHelper messages) {
+        this.messages = messages;
         this.assetService = assetService;
     }
 
@@ -77,7 +79,7 @@ public class AssetController {
             @Valid @RequestBody CreateHardwareAssetRequest request) {
         AssetDetailResponse result = assetService.createHardwareAsset(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Tạo tài sản phần cứng thành công", result));
+                .body(ApiResponse.success(messages.getMessage("ASSET_CREATE_SUCCESS"), result));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
@@ -86,7 +88,7 @@ public class AssetController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateHardwareAssetRequest request) {
         AssetDetailResponse result = assetService.updateHardwareAsset(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật tài sản phần cứng thành công", result));
+        return ResponseEntity.ok(ApiResponse.success(messages.getMessage("ASSET_UPDATE_SUCCESS"), result));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
@@ -94,6 +96,8 @@ public class AssetController {
     public ResponseEntity<ApiResponse<UniquenessValidationResponse>> validateUniqueness(
             @RequestBody ValidateUniquenessRequest request) {
         UniquenessValidationResponse result = assetService.validateUniqueness(request);
+        result.setAssetTagMessage(messages.getMessage(result.isAssetTagAvailable()?"ASSET_TAG_AVAILABLE":"DUPLICATE_ASSET_TAG"));
+        result.setSerialNumberMessage(messages.getMessage(result.isSerialNumberAvailable()?"ASSET_SERIAL_AVAILABLE":"DUPLICATE_SERIAL_NUMBER"));
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 }

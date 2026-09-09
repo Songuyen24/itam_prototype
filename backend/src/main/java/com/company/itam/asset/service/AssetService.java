@@ -119,7 +119,19 @@ public class AssetService {
 
     @Transactional
     public AssetDetailResponse createHardwareAsset(CreateHardwareAssetRequest request) {
-        String assetTag = request.getAssetTag().trim();
+        return createHardware(request, false);
+    }
+
+    @Transactional
+    public AssetDetailResponse createHardwareDraft(CreateHardwareAssetRequest request) {
+        Authentication auth = requireAuthentication();
+        if (!hasAuthority(auth,"ADMIN") && !hasAuthority(auth,"PUR_STAFF")) throw new AccessDeniedException("Access denied");
+        return createHardware(request, true);
+    }
+
+    private AssetDetailResponse createHardware(CreateHardwareAssetRequest request, boolean draft) {
+        String assetTag = normalizeString(request.getAssetTag());
+        if (assetTag == null) assetTag = assetRepository.nextGeneratedAssetTag();
         if (assetRepository.existsByAssetTag(assetTag)) {
             throw new DuplicateResourceException("DUPLICATE_ASSET_TAG", "Mã tài sản đã tồn tại: " + assetTag);
         }
@@ -147,6 +159,12 @@ public class AssetService {
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy trạng thái mặc định IN_STOCK"));
         }
 
+        if ((status.getCode() == AssetStatus.PENDING_IMPORT) != draft) {
+            throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
+        }
+        if (type.getCategory()!=null && type.getCategory().getCode()!=com.company.itam.common.enums.AssetCategory.DEVICE) {
+            throw new AppException(HttpStatus.BAD_REQUEST,"VALIDATION_ERROR","This endpoint supports devices only");
+        }
         validateStatusAndAssignment(status.getCode(), request.getAssignedToUserId());
 
         AssetEntity asset = new AssetEntity();
@@ -190,7 +208,7 @@ public class AssetService {
 
         // Save Hardware Details
         AssetHardwareDetailsEntity hwDetails = new AssetHardwareDetailsEntity();
-        hwDetails.setAssetId(savedAsset.getAssetId());
+
         hwDetails.setAsset(savedAsset);
         hwDetails.setSerialNumber(serialNumber);
         hwDetails.setWarrantyExpiration(request.getWarrantyExpiration());
@@ -202,6 +220,8 @@ public class AssetService {
         if (request.getModelId() != null) {
             ModelEntity model = modelRepository.findById(request.getModelId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy model với ID: " + request.getModelId()));
+            if (model.getType()!=null && !Objects.equals(model.getType().getTypeId(),type.getTypeId()))
+                throw new AppException(HttpStatus.BAD_REQUEST,"MODEL_TYPE_MISMATCH","Model does not match asset type");
             hwDetails.setModel(model);
         }
 
@@ -222,7 +242,14 @@ public class AssetService {
         AssetEntity asset = assetRepository.findByIdWithHardwareDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id));
 
-        String assetTag = request.getAssetTag().trim();
+        if (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT || assetRepository.hasReceivingHistory(id)) {
+            throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
+        }
+        String assetTag = normalizeString(request.getAssetTag());
+        if (assetTag != null && !assetTag.equals(asset.getAssetTag())) {
+            throw new AppException(HttpStatus.CONFLICT, "ASSET_TAG_IMMUTABLE", "Asset tag cannot be changed after saving");
+        }
+        assetTag = asset.getAssetTag();
         Optional<AssetEntity> existingTag = assetRepository.findByAssetTag(assetTag);
         if (existingTag.isPresent() && !existingTag.get().getAssetId().equals(id)) {
             throw new DuplicateResourceException("DUPLICATE_ASSET_TAG", "Mã tài sản đã tồn tại: " + assetTag);
@@ -302,7 +329,7 @@ public class AssetService {
         AssetHardwareDetailsEntity hwDetails = asset.getHardwareDetails();
         if (hwDetails == null) {
             hwDetails = new AssetHardwareDetailsEntity();
-            hwDetails.setAssetId(asset.getAssetId());
+
             hwDetails.setAsset(asset);
         }
 
@@ -361,7 +388,7 @@ public class AssetService {
     }
 
     private void validateStatusAndAssignment(AssetStatus status, Long assignedToUserId) {
-        if ((status == AssetStatus.IN_STOCK || status == AssetStatus.RETIRED) && assignedToUserId != null) {
+        if ((status == AssetStatus.IN_STOCK || status == AssetStatus.RETIRED || status == AssetStatus.PENDING_IMPORT) && assignedToUserId != null) {
             throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_ASSIGNMENT",
                     "Tài sản ở trạng thái " + status.name() + " không được gán người sử dụng");
         }

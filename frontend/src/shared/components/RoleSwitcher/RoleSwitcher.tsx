@@ -1,3 +1,4 @@
+import { demoLoginEnabled } from '@/features/auth/demo';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -102,7 +103,7 @@ export const RoleSwitcher: React.FC = () => {
             <small>{t('auth:switchAccountHeader', 'Chuyển vai trò test nhanh')}</small>
           </div>
 
-          {QUICK_PRESETS.map((preset) => {
+          {demoLoginEnabled && QUICK_PRESETS.map((preset) => {
             const isCurrent = preset.email === user.email;
             return (
               <button
@@ -115,7 +116,7 @@ export const RoleSwitcher: React.FC = () => {
               >
                 <span className={`role-badge role-${preset.role}`}>{preset.role}</span>
                 <span className="role-switcher-item-info">
-                  <span>{preset.label}</span>
+                  <span>{t(`auth:roles.${preset.role}`)}</span>
                   <small>{preset.email}</small>
                 </span>
                 {isCurrent && (

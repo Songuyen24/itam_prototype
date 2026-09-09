@@ -29,6 +29,9 @@ export const documentApi = {
     return httpClient('/v1/documents', { method: 'POST', body });
   },
 
+  detach: (id: number, transactionId: number, expectedVersion: number): Promise<void> =>
+    httpClient(`/v1/documents/${id}?transactionId=${transactionId}&expectedVersion=${expectedVersion}`, { method: 'DELETE' }),
+
   download: (document: Pick<DocumentItem, 'documentId' | 'originalFileName'>): Promise<void> =>
     downloadFile(`/v1/documents/${document.documentId}/download`, document.originalFileName),
 };

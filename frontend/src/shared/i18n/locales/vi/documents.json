@@ -26,7 +26,8 @@
   "statuses": {
     "PENDING": "Chờ xử lý",
     "COMPLETED": "Hoàn tất",
-    "REJECTED": "Đã từ chối"
+    "REJECTED": "Đã từ chối",
+    "DRAFT": "Nháp"
   },
   "documentTypes": {
     "INVOICE": "Hóa đơn",
@@ -74,5 +75,25 @@
     "emptyFile": "File đã chọn không có nội dung.",
     "fileType": "Chỉ chấp nhận file PDF, PNG và JPEG có định dạng khớp với đuôi file.",
     "fileTooLarge": "Kích thước file không được vượt quá 10 MB."
+  },
+  "draft": {
+    "create": "Tạo nháp nhập kho",
+    "notes": "Ghi chú",
+    "saveNotes": "Lưu ghi chú",
+    "addAsset": "Thêm thiết bị chờ nhập",
+    "assetName": "Tên thiết bị",
+    "assetType": "Loại thiết bị",
+    "assetTag": "Mã tài sản (để trống để tự sinh)",
+    "serial": "Serial (không bắt buộc)",
+    "assets": "Thiết bị trên phiếu",
+    "noAssets": "Chưa có thiết bị. Thêm thiết bị trước khi gửi.",
+    "submit": "Gửi IT kiểm tra — khóa nội dung",
+    "withdraw": "Rút về nháp để chỉnh sửa",
+    "history": "Các phiên bản đã gửi (chỉ đọc)",
+    "noHistory": "Chưa gửi phiên bản nào.",
+    "revision": "Phiên bản {{number}}",
+    "detach": "Gỡ khỏi nháp",
+    "detachConfirm": "Gỡ liên kết khỏi bản nháp? Chứng từ trong phiên bản cũ vẫn được giữ.",
+    "copyRejected": "Lập nháp mới từ phiếu bị từ chối"
   }
 }

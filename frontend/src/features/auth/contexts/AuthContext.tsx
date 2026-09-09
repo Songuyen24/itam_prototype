@@ -1,3 +1,4 @@
+import { demoLoginEnabled } from '../demo';
 import React, {
   createContext,
   useContext,
@@ -92,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [clearSession]);
 
   const switchRole = useCallback(async (email: string) => {
+    if (!demoLoginEnabled) throw new Error('Demo login is disabled');
     await login({ email, password: 'Password@123' });
   }, [login]);
 

@@ -256,3 +256,23 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.document-draft-panel {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+  min-width: 0;
+}
+.document-draft-panel form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+.document-draft-panel h3 { margin: 0; }
+.document-draft-panel ul { margin: 8px 0; padding-left: 20px; overflow-wrap: anywhere; }
+.document-draft-panel details { border-top: 1px solid var(--border-color); padding: 10px 0; }
+.document-draft-panel summary { cursor: pointer; font-weight: 600; }
+.document-draft-panel button { justify-self: start; white-space: normal; }
+.document-draft-panel li button { margin-left: 8px; }
+.document-draft-panel textarea { min-height: 80px; resize: vertical; }

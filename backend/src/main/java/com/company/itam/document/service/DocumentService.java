@@ -25,11 +25,15 @@ public class DocumentService {
     private final TransactionRepository transactionRepository;
     private final DocumentAccessService accessService;
     private final LocalDocumentStorage storage;
+    private final com.company.itam.workflow.receiving.service.ImportDraftService drafts;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     public DocumentService(DocumentRepository documentRepository,
                            TransactionRepository transactionRepository,
                            DocumentAccessService accessService,
-                           LocalDocumentStorage storage) {
+                           LocalDocumentStorage storage, com.company.itam.workflow.receiving.service.ImportDraftService drafts,
+                           org.springframework.jdbc.core.JdbcTemplate jdbc) {
+        this.drafts = drafts; this.jdbc = jdbc;
         this.documentRepository = documentRepository;
         this.transactionRepository = transactionRepository;
         this.accessService = accessService;
@@ -41,8 +45,7 @@ public class DocumentService {
         TransactionEntity transaction = findTransaction(transactionId);
         accessService.requireRead(transaction);
         validatePage(page, size);
-        return PageResponse.of(documentRepository.findByTransactionTransactionId(transactionId,
-                        PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt", "documentId")))
+        return PageResponse.of(documentRepository.findLinked(transactionId, PageRequest.of(page, size))
                 .map(DocumentResponse::fromEntity));
     }
 
@@ -59,6 +62,7 @@ public class DocumentService {
         return new DocumentDownload(DocumentResponse.fromEntity(document), storage.read(document));
     }
 
+    @Transactional
     public DocumentResponse upload(MultipartFile file, Long transactionId, DocumentType documentType,
                                    Long assetId, Long expectedVersion) {
         TransactionEntity transaction = findTransaction(transactionId);
@@ -72,19 +76,40 @@ public class DocumentService {
         if (file == null || file.isEmpty() || documentType == null) {
             throw new AppException(HttpStatus.BAD_REQUEST, "DOCUMENT_FILE_INVALID", "Invalid document file");
         }
-        // T14 owns DRAFT and atomic revision checks; PENDING is never an editable substitute.
-        throw workflowNotReady();
+        transaction = drafts.lockDraft(transactionId, expectedVersion);
+        if (!java.util.Set.of(DocumentType.INVOICE,DocumentType.PURCHASE_ORDER,DocumentType.CONTRACT,DocumentType.OTHER).contains(documentType)) throw invalidRequest();
+        if (assetId != null && !Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT EXISTS(SELECT 1 FROM transaction_assets WHERE transaction_id=? AND asset_id=?)", Boolean.class,transactionId,assetId))) {
+            throw invalidRequest();
+        }
+        var stored = storage.store(transaction.getType(), file);
+        DocumentEntity document = new DocumentEntity();
+        document.setTransaction(transaction);
+        if (assetId != null) document.setAsset(transaction.getTransactionAssets().stream()
+                .filter(line -> line.getAsset()!=null && assetId.equals(line.getAsset().getAssetId())).findFirst().orElseThrow(this::invalidRequest).getAsset());
+        document.setDocumentType(documentType);
+        document.setOriginalFileName(stored.originalFileName());
+        document.setStoredFileName(stored.storedFileName());
+        document.setStoragePath(stored.storagePath());
+        document.setMimeType(stored.mimeType());
+        document.setFileSize(stored.fileSize());
+        document.setChecksum(stored.checksum());
+        document.setUploadedBy(drafts.actor());
+        documentRepository.saveAndFlush(document);
+        drafts.changed(transaction, "UPLOAD_DOCUMENT");
+        return DocumentResponse.fromEntity(document);
     }
 
-    public void delete(Long documentId) {
+    @Transactional
+    public void delete(Long documentId, Long transactionId, Long expectedVersion) {
         DocumentEntity document = findDocument(documentId);
         accessService.requireImportEditor(document.getTransaction());
-        if (Boolean.TRUE.equals(document.getLocked())
-                || document.getTransaction().getStatus() == TransactionStatus.COMPLETED
-                || document.getTransaction().getStatus() == TransactionStatus.REJECTED) {
-            throw new AppException(HttpStatus.CONFLICT, "DOCUMENT_LOCKED", "Issued or historical documents cannot be changed");
-        }
-        throw workflowNotReady();
+        Long workingId = transactionId == null ? document.getTransaction().getTransactionId() : transactionId;
+        TransactionEntity t = drafts.lockDraft(workingId, expectedVersion);
+        if (jdbc.update("DELETE FROM transaction_document_links WHERE transaction_id=? AND document_id=?", workingId,documentId)!=1)
+            throw invalidRequest();
+        // Detach only. Historical file bytes and metadata are never deleted or overwritten.
+        drafts.changed(t, "DETACH_DOCUMENT");
     }
 
     private DocumentEntity findDocument(Long id) {

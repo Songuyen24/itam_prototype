@@ -165,7 +165,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
         setIsDetailModalOpen(true);
       }
     } catch (err: any) {
-      setToastMessage({ type: 'error', text: err.message || 'Lỗi khi tải chi tiết tài sản' });
+      setToastMessage({ type: 'error', text: err.message || t('assets:toasts.loadDetailError') });
     }
   };
 
@@ -177,7 +177,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
         setIsFormModalOpen(true);
       }
     } catch (err: any) {
-      setToastMessage({ type: 'error', text: err.message || 'Lỗi khi tải thông tin chỉnh sửa' });
+      setToastMessage({ type: 'error', text: err.message || t('assets:toasts.loadDetailError') });
     }
   };
 
@@ -187,11 +187,11 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
       if (selectedAssetDetail) {
         // Edit mode
         await assetApi.updateAsset(selectedAssetDetail.assetId, payload);
-        setToastMessage({ type: 'success', text: 'Cập nhật tài sản thành công!' });
+        setToastMessage({ type: 'success', text: t('assets:toasts.updateSuccess') });
       } else {
         // Create mode
         await assetApi.createAsset(payload);
-        setToastMessage({ type: 'success', text: 'Tạo tài sản phần cứng mới thành công!' });
+        setToastMessage({ type: 'success', text: t('assets:toasts.createSuccess') });
       }
       setIsFormModalOpen(false);
       fetchAssets();
@@ -206,7 +206,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
     else if (code === 'IN_REPAIR') badgeClass = 'badge-warning';
     else if (code === 'DAMAGED' || code === 'RETIRED') badgeClass = 'badge-inactive';
 
-    return <span className={`badge ${badgeClass}`}>{name || code || 'N/A'}</span>;
+    return <span className={`badge ${badgeClass}`}>{code ? t(`common:status.${code}`, {defaultValue: name || code}) : '—'}</span>;
   };
 
   // Stats calculation
@@ -304,7 +304,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
         </div>
 
         <div className="card" style={{ padding: '16px', borderLeft: '4px solid #f59e0b' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>{t('common:status.UNDER_REPAIR', 'SỬA CHỮA / KHÁC')}</div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>{t('assets:list.otherStatuses')}</div>
           <div style={{ fontSize: '24px', fontWeight: 700, color: '#f59e0b', marginTop: '4px' }}>
             {otherCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>({t('common:pagination.page', 'trang này')})</span>
           </div>
@@ -376,7 +376,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                           cursor: 'pointer',
                           textDecoration: 'underline',
                         }}
-                        title="Bấm để xem chi tiết"
+                        title={t('assets:modal.detailTitle')}
                       >
                         {asset.assetTag}
                       </span>
@@ -387,7 +387,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                       <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{asset.name}</div>
                       {asset.conditionName && (
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Tình trạng: {asset.conditionName}
+                          {t('assets:fields.condition')}: {asset.conditionName}
                         </span>
                       )}
                     </td>
@@ -401,7 +401,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     <td>
                       <div style={{ fontSize: '13px', fontWeight: 500 }}>{asset.typeName || '—'}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {asset.modelBrand ? `${asset.modelBrand} ` : ''}{asset.modelName || 'Chưa gắn Model'}
+                        {asset.modelBrand ? `${asset.modelBrand} ` : ''}{asset.modelName || t('assets:list.noModel')}
                       </div>
                     </td>
 
@@ -409,7 +409,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     <td style={{ fontSize: '12px' }}>
                       <div>💻 {asset.effectiveCpu || '—'}</div>
                       <div style={{ color: 'var(--text-muted)' }}>
-                        RAM: {asset.effectiveRam || '—'} | Ổ cứng: {asset.effectiveStorage || '—'}
+                        RAM: {asset.effectiveRam || '—'} | {t('assets:fields.storage')}: {asset.effectiveStorage || '—'}
                       </div>
                     </td>
 
@@ -423,7 +423,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                           👤 {asset.assignedToFullName}
                         </div>
                       ) : (
-                        <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Chưa bàn giao</div>
+                        <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('assets:detail.unassigned')}</div>
                       )}
                       <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
                         📍 {asset.locationName || asset.departmentName || '—'}
@@ -438,17 +438,17 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                           className="btn btn-secondary"
                           style={{ padding: '4px 8px', fontSize: '12px' }}
                           onClick={() => handleOpenDetail(asset.assetId)}
-                          title="Xem chi tiết"
+                          title={t('assets:modal.detailTitle')}
                         >
                           👁️
                         </button>
-                        {canManageAssets && (
+                        {canManageAssets && asset.statusCode !== 'PENDING_IMPORT' && (
                           <button
                             type="button"
                             className="btn btn-secondary"
                             style={{ padding: '4px 8px', fontSize: '12px' }}
                             onClick={() => handleOpenEdit(asset)}
-                            title="Chỉnh sửa"
+                            title={t('assets:modal.editTitle')}
                           >
                             ✏️
                           </button>
@@ -466,7 +466,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
         {totalPages > 1 && (
           <div className="pagination-container" style={{ padding: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              Hiển thị {assets.length} trên tổng số {totalElements} tài sản
+              {t('assets:list.showing', { count: assets.length, total: totalElements })}
             </div>
 
             <div style={{ display: 'flex', gap: '6px' }}>
@@ -476,7 +476,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                 disabled={currentPage === 0 || isLoading}
                 onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
               >
-                ◀ Trước
+                ◀ {t('common:pagination.previous')}
               </button>
 
               {Array.from({ length: totalPages }, (_, i) => i).map((pageIdx) => {
@@ -513,7 +513,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                 disabled={currentPage >= totalPages - 1 || isLoading}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
               >
-                Sau ▶
+                {t('common:pagination.next')} ▶
               </button>
             </div>
           </div>
@@ -540,7 +540,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         asset={selectedAssetDetail}
-        onEdit={canManageAssets ? (asset) => {
+        onEdit={canManageAssets && selectedAssetDetail?.statusCode !== 'PENDING_IMPORT' ? (asset) => {
           setSelectedAssetDetail(asset);
           setIsFormModalOpen(true);
         } : undefined}
@@ -550,7 +550,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={(count) => {
-          setToastMessage({ type: 'success', text: `Import thành công ${count} tài sản từ Excel!` });
+          setToastMessage({ type: 'success', text: t('assets:list.imported', {count}) });
           fetchAssets();
         }}
       />}

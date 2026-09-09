@@ -105,7 +105,8 @@ class AssetImportServiceTest {
                 modelRepository,
                 departmentRepository,
                 locationRepository,
-                supplierRepository
+                supplierRepository, new com.company.itam.common.util.MessageHelper(
+                        new com.company.itam.config.i18n.I18nConfig().messageSource())
         );
 
         assetImportService = new AssetImportService(
@@ -142,6 +143,9 @@ class AssetImportServiceTest {
         sampleStatus.setName("In Stock");
     }
 
+    @org.junit.jupiter.api.AfterEach
+    void clearAuthentication() { org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
+
     private byte[] createTestExcel(List<String[]> dataRows) throws IOException {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Sheet1");
@@ -176,7 +180,7 @@ class AssetImportServiceTest {
             Row header = sheet.getRow(0);
             assertNotNull(header);
             assertEquals(ExcelHelperService.HEADERS.length, header.getLastCellNum());
-            assertEquals("Mã tài sản (*)", header.getCell(0).getStringCellValue());
+            assertTrue(List.of(ExcelHelperService.HEADERS[0], ExcelHelperService.EN_HEADERS[0]).contains(header.getCell(0).getStringCellValue()));
         }
     }
 
@@ -297,7 +301,9 @@ class AssetImportServiceTest {
 
         ImportConfirmRequest request = new ImportConfirmRequest("import_test.xlsx", List.of(row1));
 
-        when(userRepository.findAll()).thenReturn(List.of(sampleUser));
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(sampleUser.getEmail(), null, List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("IT_STAFF"))));
+        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
         when(assetTypeRepository.findAll()).thenReturn(List.of(sampleType));
         when(assetStatusRepository.findAll()).thenReturn(List.of(sampleStatus));
         when(assetStatusRepository.findByCode(AssetStatus.IN_STOCK)).thenReturn(Optional.of(sampleStatus));
@@ -348,7 +354,9 @@ class AssetImportServiceTest {
 
         ImportConfirmRequest request = new ImportConfirmRequest("empty.xlsx", List.of(rowInvalid));
 
-        when(userRepository.findAll()).thenReturn(List.of(sampleUser));
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(sampleUser.getEmail(), null, List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("IT_STAFF"))));
+        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
         when(assetTypeRepository.findAll()).thenReturn(List.of(sampleType));
         when(assetStatusRepository.findAll()).thenReturn(List.of(sampleStatus));
         when(assetConditionRepository.findAll()).thenReturn(Collections.emptyList());

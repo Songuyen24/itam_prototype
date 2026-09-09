@@ -374,7 +374,7 @@ class AssetServiceTest {
         existingAsset.setHardwareDetails(existingHw);
 
         when(assetRepository.findByIdWithHardwareDetails(10L)).thenReturn(Optional.of(existingAsset));
-        when(assetRepository.findByAssetTag("AST-10-NEW")).thenReturn(Optional.empty());
+        when(assetRepository.findByAssetTag("AST-10")).thenReturn(Optional.empty());
         when(assetTypeRepository.findById(1L)).thenReturn(Optional.of(sampleType));
         when(modelRepository.findById(10L)).thenReturn(Optional.of(sampleModel));
         when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
@@ -382,7 +382,7 @@ class AssetServiceTest {
         when(assetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         UpdateHardwareAssetRequest updateReq = new UpdateHardwareAssetRequest();
-        updateReq.setAssetTag("AST-10-NEW");
+        updateReq.setAssetTag("AST-10");
         updateReq.setName("Updated Laptop");
         updateReq.setTypeId(1L);
         updateReq.setModelId(10L);
@@ -391,7 +391,7 @@ class AssetServiceTest {
         AssetDetailResponse updated = assetService.updateHardwareAsset(10L, updateReq);
 
         assertNotNull(updated);
-        assertEquals("AST-10-NEW", updated.getAssetTag());
+        assertEquals("AST-10", updated.getAssetTag());
         assertEquals("Updated Laptop", updated.getName());
         assertEquals("SN-10-NEW", updated.getSerialNumber());
     }

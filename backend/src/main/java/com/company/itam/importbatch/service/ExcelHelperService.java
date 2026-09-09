@@ -24,7 +24,7 @@ public class ExcelHelperService {
     public static final int MAX_ROWS = 1000;
 
     public static final String[] HEADERS = {
-            "Mã tài sản (*)",
+            "Mã tài sản (tự sinh nếu trống)",
             "Tên tài sản (*)",
             "Loại tài sản (*)",
             "Model",
@@ -42,6 +42,12 @@ public class ExcelHelperService {
             "Actual RAM",
             "Actual Storage",
             "Actual GPU"
+    };
+
+    public static final String[] EN_HEADERS = {
+        "Asset tag (generated if blank)", "Asset name (*)", "Asset type (*)", "Model", "Serial number",
+        "Status", "Condition", "Department", "Location", "Supplier", "PO / Invoice", "Purchase date",
+        "Purchase cost", "Warranty expiration", "Actual CPU", "Actual RAM", "Actual Storage", "Actual GPU"
     };
 
     public static final String[] FIELD_KEYS = {
@@ -84,7 +90,7 @@ public class ExcelHelperService {
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < HEADERS.length; i++) {
                 Cell cell = headerRow.createCell(i);
-                cell.setCellValue(HEADERS[i]);
+                cell.setCellValue(org.springframework.context.i18n.LocaleContextHolder.getLocale().getLanguage().equals("en") ? EN_HEADERS[i] : HEADERS[i]);
                 cell.setCellStyle(headerStyle);
             }
 
@@ -177,6 +183,14 @@ public class ExcelHelperService {
                 throw new AppException(HttpStatus.BAD_REQUEST, "EMPTY_EXCEL_FILE", "File Excel không có trang tính nào");
             }
 
+            Row header = sheet.getRow(0);
+            if (header == null || header.getLastCellNum() < 3) throw new AppException(HttpStatus.BAD_REQUEST,"INVALID_EXCEL_HEADERS","Invalid columns");
+            for (int c=0;c<Math.min(header.getLastCellNum(),HEADERS.length);c++) {
+                String label = dataFormatter.formatCellValue(header.getCell(c)).trim();
+                if (!label.equalsIgnoreCase(HEADERS[c]) && !label.equalsIgnoreCase(EN_HEADERS[c])
+                        && !label.equalsIgnoreCase(FIELD_KEYS[c]) && !(c==0 && label.equals("Mã tài sản (*)")))
+                    throw new AppException(HttpStatus.BAD_REQUEST,"INVALID_EXCEL_HEADERS","Unexpected column at position " + (c+1));
+            }
             int lastRowNum = sheet.getLastRowNum();
             if (lastRowNum < 1) {
                 throw new AppException(HttpStatus.BAD_REQUEST, "EMPTY_DATA", "File Excel không chứa dữ liệu dòng nào");

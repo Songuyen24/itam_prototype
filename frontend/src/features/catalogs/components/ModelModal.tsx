@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { AssetTypeItem, ModelItem } from '../types/catalog.types';
 
@@ -32,6 +33,7 @@ export const ModelModal: React.FC<ModelModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const { t } = useTranslation('catalogs');
   const [formData, setFormData] = useState({
     name: '',
     brand: '',
@@ -77,15 +79,15 @@ export const ModelModal: React.FC<ModelModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.brand.trim()) {
-      setValidationError('Thương hiệu không được để trống');
+      setValidationError(t('forms.brandRequired'));
       return;
     }
     if (!formData.name.trim()) {
-      setValidationError('Tên model không được để trống');
+      setValidationError(t('forms.modelRequired'));
       return;
     }
     if (!formData.typeId) {
-      setValidationError('Vui lòng chọn loại tài sản');
+      setValidationError(t('forms.typeRequired'));
       return;
     }
 
@@ -101,7 +103,7 @@ export const ModelModal: React.FC<ModelModalProps> = ({
       <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
-            <h3 className="modal-title">{title}</h3>
+            <h3 className="modal-title">{title ?? t('forms.deleteTitle')}</h3>
             <button type="button" className="alert-close-btn" onClick={onClose}>
               &times;
             </button>
@@ -115,13 +117,13 @@ export const ModelModal: React.FC<ModelModalProps> = ({
             )}
 
             <div className="form-group">
-              <label className="form-label required">Loại tài sản</label>
+              <label className="form-label required">{t('forms.type')}</label>
               <select
                 className="form-select"
                 value={formData.typeId}
                 onChange={(e) => setFormData({ ...formData, typeId: Number(e.target.value) })}
               >
-                <option value="">-- Chọn loại tài sản --</option>
+                <option value="">{t('forms.chooseType')}</option>
                 {assetTypes.map((t) => (
                   <option key={t.typeId} value={t.typeId}>
                     {t.name} ({t.code})
@@ -132,7 +134,7 @@ export const ModelModal: React.FC<ModelModalProps> = ({
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label required">Thương hiệu (Brand)</label>
+                <label className="form-label required">{t('forms.brand')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -143,7 +145,7 @@ export const ModelModal: React.FC<ModelModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label required">Tên Model</label>
+                <label className="form-label required">{t('forms.modelName')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -155,12 +157,12 @@ export const ModelModal: React.FC<ModelModalProps> = ({
             </div>
 
             <div style={{ marginTop: '12px', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
-              CẤU HÌNH MẶC ĐỊNH (TÙY CHỌN)
+              {t('forms.defaultConfig')}
             </div>
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">CPU mặc định</label>
+                <label className="form-label">{t('forms.defaultCpu')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -171,7 +173,7 @@ export const ModelModal: React.FC<ModelModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">RAM mặc định</label>
+                <label className="form-label">{t('forms.defaultRam')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -184,7 +186,7 @@ export const ModelModal: React.FC<ModelModalProps> = ({
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">Ổ cứng mặc định</label>
+                <label className="form-label">{t('forms.defaultStorage')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -195,7 +197,7 @@ export const ModelModal: React.FC<ModelModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Card đồ họa</label>
+                <label className="form-label">{t('forms.gpu')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -213,17 +215,17 @@ export const ModelModal: React.FC<ModelModalProps> = ({
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                 />
-                <span>Kích hoạt model này</span>
+                <span>{t('forms.modelActive')}</span>
               </label>
             </div>
           </div>
 
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              Hủy
+              {t('forms.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSaving}>
-              {isSaving ? 'Đang lưu...' : 'Lưu lại'}
+              {isSaving ? t('forms.saving') : t('forms.save')}
             </button>
           </div>
         </form>

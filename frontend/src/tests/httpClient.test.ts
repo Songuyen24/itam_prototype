@@ -84,6 +84,11 @@ describe('httpClient Bearer token + 401 handler', () => {
     expect(onUnauthorized).toHaveBeenCalledOnce();
   });
 
+  it('accepts a successful document detach with no response body', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(httpClient<void>('/v1/documents/1?expectedVersion=2', { method: 'DELETE' })).resolves.toBeUndefined();
+  });
+
   it.each([200, 401])('discards a late %s response from a previous account', async (status) => {
     localStorage.setItem('itam_auth_token', 'old.token');
     const onUnauthorized = vi.fn();

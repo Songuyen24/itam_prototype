@@ -39,8 +39,9 @@ public class AssetHardwareDetailsEntity {
     @Column(name = "actual_graphics_card")
     private String actualGraphicsCard;
 
+    @MapsId
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "asset_id", referencedColumnName = "asset_id", insertable = false, updatable = false)
+    @JoinColumn(name = "asset_id", referencedColumnName = "asset_id")
     private AssetEntity asset;
 
     public AssetHardwareDetailsEntity() {}

@@ -5,27 +5,27 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class ModelRequest {
-    @NotBlank(message = "Tên model không được để trống")
-    @Size(max = 255, message = "Tên model tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
-    @NotBlank(message = "Thương hiệu không được để trống")
-    @Size(max = 255, message = "Thương hiệu tối đa 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String brand;
 
-    @NotNull(message = "Loại tài sản không được để trống")
+    @NotNull(message = "{validation.required}")
     private Long typeId;
 
-    @Size(max = 255, message = "CPU mặc định tối đa 255 ký tự")
+    @Size(max = 255, message = "{validation.size}")
     private String defaultCpu;
 
-    @Size(max = 100, message = "RAM mặc định tối đa 100 ký tự")
+    @Size(max = 100, message = "{validation.size}")
     private String defaultRam;
 
-    @Size(max = 100, message = "Ổ cứng mặc định tối đa 100 ký tự")
+    @Size(max = 100, message = "{validation.size}")
     private String defaultStorage;
 
-    @Size(max = 255, message = "Card đồ họa mặc định tối đa 255 ký tự")
+    @Size(max = 255, message = "{validation.size}")
     private String defaultGraphicsCard;
 
     private Boolean isActive = true;

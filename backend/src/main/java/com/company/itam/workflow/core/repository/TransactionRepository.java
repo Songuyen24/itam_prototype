@@ -24,4 +24,7 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
     Page<TransactionEntity> findByRequesterUserId(Long requesterId, Pageable pageable);
     @Query("SELECT t FROM TransactionEntity t LEFT JOIN FETCH t.transactionAssets WHERE t.transactionId = :id")
     Optional<TransactionEntity> findByIdWithAssets(@Param("id") Long id);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select t from TransactionEntity t where t.transactionId = :id")
+    java.util.Optional<TransactionEntity> findForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
 }

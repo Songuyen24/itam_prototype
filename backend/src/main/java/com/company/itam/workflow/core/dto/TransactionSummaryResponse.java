@@ -13,11 +13,13 @@ public record TransactionSummaryResponse(
         TransactionStatus status,
         Instant createdAt,
         boolean documentsEditable,
-        String editBlockedReason) {
+        String editBlockedReason, long expectedVersion, int submittedRevision) {
 
     public static TransactionSummaryResponse fromEntity(TransactionEntity transaction) {
         return new TransactionSummaryResponse(transaction.getTransactionId(), transaction.getTransactionCode(),
                 transaction.getType(), transaction.getStatus(), transaction.getCreatedAt(),
-                false, "DOCUMENT_WORKFLOW_NOT_READY");
+                transaction.getType() == TransactionType.IMPORT && transaction.getStatus() == TransactionStatus.DRAFT,
+                transaction.getStatus() == TransactionStatus.DRAFT ? null : "DOCUMENT_LOCKED",
+                transaction.getContentVersion(), transaction.getSubmittedRevision());
     }
 }

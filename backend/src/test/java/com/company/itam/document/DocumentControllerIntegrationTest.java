@@ -174,7 +174,7 @@ class DocumentControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.content[*].type", everyItem(is("IMPORT"))));
         mockMvc.perform(as("PUR2", get("/v1/transactions/{id}", importId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.editBlockedReason").value("DOCUMENT_WORKFLOW_NOT_READY"));
+                .andExpect(jsonPath("$.data.editBlockedReason").value("DOCUMENT_LOCKED"));
         mockMvc.perform(as("PUR2", get("/v1/documents").param("transactionId", Long.toString(importId))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(2));
@@ -321,19 +321,19 @@ class DocumentControllerIntegrationTest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(as("ADMIN", get("/v1/transactions").param("type", "UNKNOWN")))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(as("ADMIN", get("/v1/transactions").param("status", "DRAFT")))
+        mockMvc.perform(as("ADMIN", get("/v1/transactions").param("status", "APPROVED")))
                 .andExpect(status().isBadRequest());
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"ADMIN", "PUR1", "PUR2"})
-    void importMutationsStayBlockedUntilDraftWorkflowExists(String actor) throws Exception {
+    void pendingImportMutationsStayBlocked(String actor) throws Exception {
         mockMvc.perform(as(actor, upload(importId)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("DOCUMENT_WORKFLOW_NOT_READY"));
+                .andExpect(jsonPath("$.code").value("DOCUMENT_LOCKED"));
         mockMvc.perform(as(actor, delete("/v1/documents/{id}", invoiceId)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("DOCUMENT_WORKFLOW_NOT_READY"));
+                .andExpect(jsonPath("$.code").value("DOCUMENT_LOCKED"));
         assertThat(jdbc.queryForObject("select count(*) from documents where transaction_id = ?",
                 Integer.class, importId)).isEqualTo(2);
         assertThat(jdbc.queryForObject("select status from transactions where transaction_id = ?",
@@ -357,12 +357,12 @@ class DocumentControllerIntegrationTest {
             String response = mockMvc.perform(as("PUR2", upload(importId))
                             .header(HttpHeaders.ACCEPT_LANGUAGE, language))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.code").value("DOCUMENT_WORKFLOW_NOT_READY"))
+                    .andExpect(jsonPath("$.code").value("DOCUMENT_LOCKED"))
                     .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
             messages.put(language, objectMapper.readTree(response).get("message").asText());
         }
-        assertThat(messages.get("en")).containsIgnoringCase("read-only")
-                .isNotEqualTo("DOCUMENT_WORKFLOW_NOT_READY");
+        assertThat(messages.get("en")).containsIgnoringCase("document")
+                .isNotEqualTo("DOCUMENT_LOCKED");
         assertThat(messages.get("vi")).contains("ch\u1ee9ng t\u1eeb")
                 .isNotEqualTo(messages.get("en"));
     }

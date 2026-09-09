@@ -10,15 +10,14 @@ import java.time.LocalDate;
 
 public class CreateHardwareAssetRequest {
 
-    @NotBlank(message = "Mã tài sản (Asset Tag) không được để trống")
-    @Size(max = 100, message = "Mã tài sản không được vượt quá 100 ký tự")
+    @Size(max = 100, message = "{validation.size}")
     private String assetTag;
 
-    @NotBlank(message = "Tên tài sản không được để trống")
-    @Size(max = 255, message = "Tên tài sản không được vượt quá 255 ký tự")
+    @NotBlank(message = "{validation.required}")
+    @Size(max = 255, message = "{validation.size}")
     private String name;
 
-    @NotNull(message = "Loại tài sản (Type) là bắt buộc")
+    @NotNull(message = "{validation.required}")
     private Long typeId;
 
     private Long statusId;
@@ -29,18 +28,18 @@ public class CreateHardwareAssetRequest {
 
     private Long supplierId;
 
-    @Size(max = 100, message = "Số PO không được vượt quá 100 ký tự")
+    @Size(max = 100, message = "{validation.size}")
     private String poNumber;
 
     private LocalDate purchaseDate;
 
-    @DecimalMin(value = "0.0", message = "Giá mua không được âm")
+    @DecimalMin(value = "0.0", message = "{validation.minimum}")
     private BigDecimal purchaseCost = BigDecimal.ZERO;
 
     private Long assignedToUserId;
 
     // Hardware specific details
-    @Size(max = 255, message = "Serial number không được vượt quá 255 ký tự")
+    @Size(max = 255, message = "{validation.size}")
     private String serialNumber;
 
     private Long modelId;
@@ -49,16 +48,16 @@ public class CreateHardwareAssetRequest {
 
     private LocalDate warrantyExpiration;
 
-    @Size(max = 255, message = "Actual CPU không được vượt quá 255 ký tự")
+    @Size(max = 255, message = "{validation.size}")
     private String actualCpu;
 
-    @Size(max = 100, message = "Actual RAM không được vượt quá 100 ký tự")
+    @Size(max = 100, message = "{validation.size}")
     private String actualRam;
 
-    @Size(max = 100, message = "Actual Storage không được vượt quá 100 ký tự")
+    @Size(max = 100, message = "{validation.size}")
     private String actualStorage;
 
-    @Size(max = 255, message = "Actual Graphics Card không được vượt quá 255 ký tự")
+    @Size(max = 255, message = "{validation.size}")
     private String actualGraphicsCard;
 
     public CreateHardwareAssetRequest() {}

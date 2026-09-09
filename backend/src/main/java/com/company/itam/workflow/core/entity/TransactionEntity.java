@@ -57,6 +57,15 @@ public class TransactionEntity {
     @OneToMany(mappedBy = "transaction")
     private List<TransactionAssetEntity> transactionAssets = new ArrayList<>();
 
+    @Column(name = "content_version", nullable = false)
+    private long contentVersion;
+    @Column(name = "submitted_revision", nullable = false)
+    private int submittedRevision;
+    public long getContentVersion() { return contentVersion; }
+    public void setContentVersion(long value) { contentVersion = value; }
+    public int getSubmittedRevision() { return submittedRevision; }
+    public void setSubmittedRevision(int value) { submittedRevision = value; }
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
