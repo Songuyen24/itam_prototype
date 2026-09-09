@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 public interface AuditLogRepository extends JpaRepository<AuditLogEntity, Long> {
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths={"actor"})
+    org.springframework.data.domain.Page<AuditLogEntity> findByEntityTypeAndEntityId(String type,Long id,org.springframework.data.domain.Pageable page);
 
     /**
      * Lấy lịch sử audit của một entity, kèm actor + transaction được nạp sẵn.

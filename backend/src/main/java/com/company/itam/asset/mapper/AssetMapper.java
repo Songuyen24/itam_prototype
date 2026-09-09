@@ -55,6 +55,8 @@ public class AssetMapper {
         response.setAssetTag(entity.getAssetTag());
         response.setName(entity.getName());
 
+        if (entity.getLicenseDetails()!=null) response.setLicenseAssignmentTypeCode(entity.getLicenseDetails().getAssignmentType().getCode());
+
         // Type & Category
         if (entity.getType() != null) {
             response.setTypeId(entity.getType().getTypeId());

@@ -17,8 +17,12 @@ import java.util.Optional;
 @Repository
 public interface AssetRepository extends JpaRepository<AssetEntity, Long>, JpaSpecificationExecutor<AssetEntity> {
     @Override
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"type.category","status","assignedTo","department","location","supplier","hardwareDetails.model","hardwareDetails.condition"})
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"type.category","status","assignedTo","department","location","supplier","hardwareDetails.model","hardwareDetails.condition","licenseDetails.assignmentType"})
     Page<AssetEntity> findAll(org.springframework.data.jpa.domain.Specification<AssetEntity> specification, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT a FROM AssetEntity a WHERE a.assetId = :id")
+    Optional<AssetEntity> lockById(@Param("id") Long id);
 
     @Query(value = "SELECT next_asset_tag()", nativeQuery = true)
     String nextGeneratedAssetTag();

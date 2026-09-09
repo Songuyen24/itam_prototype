@@ -16,6 +16,7 @@ export interface HardwareConfig {
 }
 
 export interface Asset {
+  licenseAssignmentTypeCode?: string;
   assetId: number;
   assetTag: string;
   name: string;
@@ -70,7 +71,15 @@ export interface Asset {
   updatedAt?: string;
 }
 
+export interface LicenseInput {
+  softwareCatalogId: number; assignmentTypeId: number; termTypeId: number; seatCount: number; licenseKey?: string; expiryDate?: string;
+}
+export interface LicenseDetail extends LicenseInput {
+  softwareName: string; assignmentTypeCode: string; termTypeCode: string; allocatedSeats: number; availableSeats: number;
+}
+
 export interface AssetDetail extends Asset {
+  license?: LicenseDetail;
   warrantyExpiration?: string;
   hardwareConfig: HardwareConfig;
   createdByUserId?: number;
@@ -92,6 +101,7 @@ export interface CreateHardwareAssetPayload {
   purchaseCost?: number;
   assignedToUserId?: number;
 
+  license?: LicenseInput;
   // Hardware details
   serialNumber?: string;
   modelId?: number;
@@ -116,6 +126,7 @@ export interface UpdateHardwareAssetPayload {
   purchaseCost?: number;
   assignedToUserId?: number;
 
+  license?: LicenseInput;
   // Hardware details
   serialNumber?: string;
   modelId?: number;

@@ -49,6 +49,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AssetServiceTest {
+    @org.mockito.Mock private LicenseDetailsService licenses;
+    @org.mockito.Mock private AssetAuditService audit;
 
     @Mock
     private AssetRepository assetRepository;
@@ -373,7 +375,7 @@ class AssetServiceTest {
         existingHw.setModel(sampleModel);
         existingAsset.setHardwareDetails(existingHw);
 
-        when(assetRepository.findByIdWithHardwareDetails(10L)).thenReturn(Optional.of(existingAsset));
+        when(assetRepository.lockById(10L)).thenReturn(Optional.of(existingAsset));
         when(assetRepository.findByAssetTag("AST-10")).thenReturn(Optional.empty());
         when(assetTypeRepository.findById(1L)).thenReturn(Optional.of(sampleType));
         when(modelRepository.findById(10L)).thenReturn(Optional.of(sampleModel));

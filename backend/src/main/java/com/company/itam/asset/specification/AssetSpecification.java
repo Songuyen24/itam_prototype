@@ -104,7 +104,11 @@ public class AssetSpecification implements Specification<AssetEntity> {
 
             // Assigned To user filter
             if (criteria.getAssignedTo() != null) {
-                predicates.add(cb.equal(root.get("assignedTo").get("userId"), criteria.getAssignedTo()));
+                var allocation = query.subquery(Long.class);
+                var ar = allocation.from(com.company.itam.asset.entity.LicenseAllocationEntity.class);
+                allocation.select(ar.get("allocationId")).where(cb.equal(ar.get("license").get("assetId"),root.get("assetId")),
+                        cb.equal(ar.get("user").get("userId"),criteria.getAssignedTo()),cb.equal(ar.get("status"),com.company.itam.asset.entity.LicenseAllocationStatus.ACTIVE));
+                predicates.add(cb.or(cb.equal(root.join("assignedTo",JoinType.LEFT).get("userId"), criteria.getAssignedTo()),cb.exists(allocation)));
             }
         }
 

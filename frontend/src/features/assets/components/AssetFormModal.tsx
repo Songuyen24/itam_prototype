@@ -14,13 +14,17 @@ import {
   CreateHardwareAssetPayload,
   UpdateHardwareAssetPayload,
 } from '../types/asset.types';
+import { LicenseFields } from './LicenseFields';
+import { LicenseInput } from '../types/asset.types';
+import { categoryApi } from '@/features/catalogs/api/catalogApi';
+import { AssetCategoryItem } from '@/features/catalogs/types/catalog.types';
 import { assetApi } from '../api/assetApi';
 
 interface AssetFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialData: AssetDetail | null;
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: CreateHardwareAssetPayload | UpdateHardwareAssetPayload) => Promise<void>;
   isSaving: boolean;
 
   types: AssetTypeItem[];
@@ -49,6 +53,13 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
   const { t } = useTranslation('assets');
   const isEdit = !!initialData;
 
+  const [categories, setCategories] = useState<AssetCategoryItem[]>([]);
+  const [license, setLicense] = useState<LicenseInput>({softwareCatalogId:0,assignmentTypeId:0,termTypeId:0,seatCount:1});
+  const [catalogError, setCatalogError] = useState(false);
+  useEffect(() => { if (!isOpen) return; let active=true; setCatalogError(false);
+    categoryApi.getAll(0,100).then(r=>{if(active)setCategories(r.data.content);}).catch(()=>{if(active)setCatalogError(true);});
+    return ()=>{active=false;};
+  },[isOpen]);
   // Form states
   const [assetTag, setAssetTag] = useState('');
   const [name, setName] = useState('');
@@ -71,6 +82,9 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
   const [actualStorage, setActualStorage] = useState('');
   const [actualGraphicsCard, setActualGraphicsCard] = useState('');
 
+  const category = categories.find(c=>c.categoryId===types.find(x=>x.typeId===typeId)?.categoryId)?.code;
+  const isLicense = category==='LICENSE';
+
   // Validation warnings / errors
   const [formError, setFormError] = useState<string | null>(null);
   const [tagError, setTagError] = useState<string | null>(null);
@@ -82,6 +96,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    setLicense(initialData?.license || {softwareCatalogId:0,assignmentTypeId:0,termTypeId:0,seatCount:1});
     if (initialData) {
       setAssetTag(initialData.assetTag || '');
       setName(initialData.name || '');
@@ -208,6 +223,14 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
       actualGraphicsCard: actualGraphicsCard.trim() ? actualGraphicsCard.trim() : undefined,
     };
 
+    if (isLicense) {
+      payload.license = license;
+      payload.statusId = statuses.find(s => s.code === 'IN_STOCK')?.statusId;
+      for (const key of ['serialNumber', 'modelId', 'conditionId', 'warrantyExpiration',
+        'actualCpu', 'actualRam', 'actualStorage', 'actualGraphicsCard'] as const) {
+        delete payload[key];
+      }
+    }
     try {
       await onSubmit(payload);
     } catch (err: any) {
@@ -218,7 +241,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop">
+    <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal-content" style={{ maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div className="modal-header">
@@ -245,7 +268,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
               {t('form.basic')}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+            <div className="asset-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
               {/* Asset Tag */}
               <div className="form-group">
                 <label className="form-label">
@@ -253,7 +276,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-input"
                   value={assetTag}
                   onChange={(e) => setAssetTag(e.target.value)}
                   onBlur={checkTagUniqueness}
@@ -270,7 +293,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-input"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="VD: Laptop Lenovo ThinkPad T14 Gen 4"
@@ -284,8 +307,9 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                   {t('fields.type')} <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <select
-                  className="form-control"
+                  className="form-input"
                   value={typeId}
+                  disabled={isEdit}
                   onChange={(e) => setTypeId(e.target.value ? Number(e.target.value) : '')}
                   required
                 >
@@ -302,9 +326,9 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
               <div className="form-group">
                 <label className="form-label">{t('fields.status')}</label>
                 <select
-                  className="form-control"
+                  className="form-input"
                   value={statusId}
-                  disabled={!!initialData?.assignedToUserId}
+                  disabled={isEdit || isLicense}
                   onChange={(e) => setStatusId(e.target.value ? Number(e.target.value) : '')}
                 >
                   {statuses.filter(s => s.code !== 'PENDING_IMPORT' && (s.code !== 'IN_USE' || initialData?.statusCode === 'IN_USE')).map((s) => (
@@ -322,7 +346,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
               <div className="form-group">
                 <label className="form-label">{t('fields.department')}</label>
                 <select
-                  className="form-control"
+                  className="form-input"
                   value={departmentId}
                   onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : '')}
                 >
@@ -339,7 +363,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
               <div className="form-group">
                 <label className="form-label">{t('fields.location')}</label>
                 <select
-                  className="form-control"
+                  className="form-input"
                   value={locationId}
                   onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : '')}
                 >
@@ -356,7 +380,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
               <div className="form-group">
                 <label className="form-label">{t('fields.supplier')}</label>
                 <select
-                  className="form-control"
+                  className="form-input"
                   value={supplierId}
                   onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')}
                 >
@@ -374,7 +398,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 <label className="form-label">{t('fields.poNumber')}</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-input"
                   value={poNumber}
                   onChange={(e) => setPoNumber(e.target.value)}
                   placeholder="PO-2026-001"
@@ -386,7 +410,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 <label className="form-label">{t('fields.purchaseDate')}</label>
                 <input
                   type="date"
-                  className="form-control"
+                  className="form-input"
                   value={purchaseDate}
                   onChange={(e) => setPurchaseDate(e.target.value)}
                 />
@@ -399,7 +423,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                   type="number"
                   min="0"
                   step="1000"
-                  className="form-control"
+                  className="form-input"
                   value={purchaseCost}
                   onChange={(e) => setPurchaseCost(e.target.value ? Number(e.target.value) : '')}
                   placeholder="0"
@@ -408,18 +432,20 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
             </div>
           </div>
 
+          {catalogError && <p role="alert">{t('relationships.loadError')}</p>}
+          {isLicense ? <LicenseFields value={license} onChange={setLicense} /> : <>
           {/* Section 2: Hardware Details & Specs */}
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary)', marginBottom: '12px', borderBottom: '2px solid var(--primary-light)', paddingBottom: '6px' }}>
               {t('form.hardware')}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+            <div className="asset-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
               {/* Model */}
               <div className="form-group">
                 <label className="form-label">{t('fields.model')}</label>
                 <select
-                  className="form-control"
+                  className="form-input"
                   value={modelId}
                   onChange={(e) => setModelId(e.target.value ? Number(e.target.value) : '')}
                 >
@@ -437,7 +463,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 <label className="form-label">{t('fields.serialNumber')}</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-input"
                   value={serialNumber}
                   onChange={(e) => setSerialNumber(e.target.value)}
                   onBlur={checkSerialUniqueness}
@@ -450,7 +476,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
               <div className="form-group">
                 <label className="form-label">{t('fields.condition')}</label>
                 <select
-                  className="form-control"
+                  className="form-input"
                   value={conditionId}
                   onChange={(e) => setConditionId(e.target.value ? Number(e.target.value) : '')}
                 >
@@ -468,7 +494,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 <label className="form-label">{t('fields.warrantyExpiration')}</label>
                 <input
                   type="date"
-                  className="form-control"
+                  className="form-input"
                   value={warrantyExpiration}
                   onChange={(e) => setWarrantyExpiration(e.target.value)}
                 />
@@ -489,7 +515,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary-hover)', marginBottom: '8px' }}>
                   {t('form.defaultTitle')} {selectedModel.brand} {selectedModel.name}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '12px', color: '#1e3a8a' }}>
+                <div className="asset-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '12px', color: '#1e3a8a' }}>
                   <div>• <strong>CPU:</strong> {selectedModel.defaultCpu || t('form.none')}</div>
                   <div>• <strong>RAM:</strong> {selectedModel.defaultRam || t('form.none')}</div>
                   <div>• <strong>{t('fields.storage')}</strong> {selectedModel.defaultStorage || t('form.none')}</div>
@@ -502,12 +528,12 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
             )}
 
             {/* Actual Specs Fields */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginTop: '12px' }}>
+            <div className="asset-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginTop: '12px' }}>
               <div className="form-group">
                 <label className="form-label">{t('fields.cpu')}</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-input"
                   value={actualCpu}
                   onChange={(e) => setActualCpu(e.target.value)}
                   placeholder={selectedModel?.defaultCpu ? t('form.defaultValue', { value: selectedModel.defaultCpu }) : t('form.cpu')}
@@ -518,7 +544,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 <label className="form-label">{t('fields.ram')}</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-input"
                   value={actualRam}
                   onChange={(e) => setActualRam(e.target.value)}
                   placeholder={selectedModel?.defaultRam ? t('form.defaultValue', { value: selectedModel.defaultRam }) : t('form.ram')}
@@ -529,7 +555,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 <label className="form-label">{t('fields.storage')}</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-input"
                   value={actualStorage}
                   onChange={(e) => setActualStorage(e.target.value)}
                   placeholder={selectedModel?.defaultStorage ? t('form.defaultValue', { value: selectedModel.defaultStorage }) : t('form.storage')}
@@ -540,7 +566,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 <label className="form-label">{t('fields.gpu')}</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-input"
                   value={actualGraphicsCard}
                   onChange={(e) => setActualGraphicsCard(e.target.value)}
                   placeholder={selectedModel?.defaultGraphicsCard ? t('form.defaultValue', { value: selectedModel.defaultGraphicsCard }) : t('form.gpu')}
@@ -549,12 +575,13 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
             </div>
           </div>
 
+          </>}
           {/* Footer */}
           <div className="modal-footer" style={{ padding: '16px 0 0 0', marginTop: '10px' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
               {t('form.cancel')}
             </button>
-            <button type="submit" className="btn btn-primary" disabled={isSaving}>
+            <button type="submit" className="btn btn-primary" disabled={isSaving || catalogError || !category}>
               {isSaving ? t('form.saving') : isEdit ? t('form.save') : t('form.create')}
             </button>
           </div>

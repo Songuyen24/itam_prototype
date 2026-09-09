@@ -15,6 +15,12 @@ public class AssetRelationshipEntity {
     @Column(name = "relationship_id")
     private Long relationshipId;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "allocation_id")
+    private com.company.itam.asset.entity.LicenseAllocationEntity allocation;
+    public com.company.itam.asset.entity.LicenseAllocationEntity getAllocation() { return allocation; }
+    public void setAllocation(com.company.itam.asset.entity.LicenseAllocationEntity value) { allocation = value; }
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_asset_id", nullable = false)
     private AssetEntity parentAsset;
