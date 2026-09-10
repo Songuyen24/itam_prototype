@@ -1,3 +1,4 @@
+import { HandoversPage } from '@/features/handover/pages/HandoversPage';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
 import { CatalogsPage } from '@/features/catalogs/pages/CatalogsPage';
@@ -59,6 +60,7 @@ function AppRoutes() {
           }
         />
         <Route path="receivings" element={<ProtectedRoute allowedRoles={DOCUMENT_ROLES}><DocumentsPage receiving /></ProtectedRoute>} />
+        <Route path="handovers" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><HandoversPage /></ProtectedRoute>} />
         <Route path="account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to={homePath} replace />} />
       </Route>

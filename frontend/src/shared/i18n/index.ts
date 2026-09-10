@@ -1,3 +1,5 @@
+import viHandover from './locales/vi/handover.json';
+import enHandover from './locales/en/handover.json';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
@@ -24,6 +26,7 @@ export const resources = {
     assets: viAssets,
     imports: viImports,
     documents: viDocuments,
+    handover: viHandover,
   },
   en: {
     common: enCommon,
@@ -32,6 +35,7 @@ export const resources = {
     assets: enAssets,
     imports: enImports,
     documents: enDocuments,
+    handover: enHandover,
   },
 } as const;
 
@@ -49,7 +53,7 @@ i18n
     resources,
     fallbackLng: DEFAULT_LANGUAGE,
     defaultNS: 'common',
-    ns: ['common', 'auth', 'catalogs', 'assets', 'imports', 'documents'],
+    ns: ['common', 'auth', 'catalogs', 'assets', 'imports', 'documents', 'handover'],
     detection: {
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: 'itam_language',
