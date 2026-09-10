@@ -11,6 +11,8 @@ public interface LicenseAllocationRepository extends JpaRepository<LicenseAlloca
     boolean existsByLicenseAssetIdAndUserUserIdAndStatus(Long licenseId,Long userId,com.company.itam.asset.entity.LicenseAllocationStatus status);
     @Query("SELECT COALESCE(SUM(a.seatCount),0) FROM LicenseAllocationEntity a WHERE a.license.assetId=:id AND a.status <> 'RELEASED'")
     long usedSeats(@Param("id") Long id);
+    @Query("SELECT a.license.assetId, SUM(a.seatCount) FROM LicenseAllocationEntity a WHERE a.license.assetId IN :ids AND a.status <> 'RELEASED' GROUP BY a.license.assetId")
+    java.util.List<Object[]> usedSeatsByLicenseIds(@Param("ids") java.util.Collection<Long> ids);
     @EntityGraph(attributePaths={"device","user"})
     Page<LicenseAllocationEntity> findByLicenseAssetId(Long id, Pageable pageable);
     boolean existsByLicenseAssetId(Long id);

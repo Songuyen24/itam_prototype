@@ -1,0 +1,19 @@
+.handover-page { max-width: 1400px; margin: 0 auto; }
+.handover-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 20px 0; }
+.handover-picker { padding: 16px; border: 1px solid var(--border-color, #ddd); border-radius: 8px; margin-bottom: 12px; }
+.handover-options { display: grid; gap: 6px; margin: 12px 0; }
+.handover-options button { padding: 10px; border: 1px solid #ddd; background: white; text-align: left; border-radius: 4px; overflow-wrap: anywhere; cursor: pointer; }
+.handover-options button[aria-pressed=true] { border-color: #2563eb; background: #eff6ff; }
+.handover-options button:disabled { opacity: .55; cursor: default; }
+.handover-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+.handover-selected { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #ddd; }
+.handover-selected > span { flex: 1; min-width: 180px; overflow-wrap: anywhere; }
+.handover-selected input { max-width: 110px; }
+.handover-history { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr); gap: 24px; margin-top: 24px; }
+.handover-history > section { min-width: 0; }
+.handover-confirm { width: min(1100px, 94vw); max-width: 94vw; max-height: 90vh; overflow: auto; padding: 24px; background: white; border: 0; border-radius: 10px; margin: auto; }
+.handover-confirm::backdrop { background: rgba(15, 23, 42, .6); backdrop-filter: blur(4px); }
+.handover-details { min-width: 0; overflow-wrap: anywhere; }
+.handover-details .table-container { overflow-x: auto; }
+.handover-details table { width: 100%; min-width: 550px; }
+@media (max-width: 800px) { .handover-grid, .handover-history { grid-template-columns: 1fr; } .handover-confirm { padding: 16px; } }
