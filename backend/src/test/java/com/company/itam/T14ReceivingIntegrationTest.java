@@ -119,6 +119,7 @@ class T14ReceivingIntegrationTest {
         assertThatThrownBy(()->drafts.submit(noDocument.transactionId(),noDocument.expectedVersion())).isInstanceOf(AppException.class).hasMessage("IMPORT_DOCUMENT_REQUIRED");
         t=document(t);var noCondition=t;
         assertThatThrownBy(()->drafts.submit(noCondition.transactionId(),noCondition.expectedVersion())).isInstanceOf(AppException.class).hasMessage("IMPORT_CONDITION_REQUIRED");
+        login("PUR_STAFF");
         assertThat(drafts.events(t.transactionId())).isEmpty();
     }
 
@@ -188,7 +189,7 @@ class T14ReceivingIntegrationTest {
         mvc.perform(get("/v1/import-drafts/reference-data").with(user("pur01@itam.example").authorities(new SimpleGrantedAuthority("PUR_STAFF"))))
             .andExpect(status().isOk()).andExpect(jsonPath("data.types").isArray()).andExpect(jsonPath("data.software").isArray()).andExpect(jsonPath("data.users").doesNotExist());
         for(String path:List.of("/v1/assets","/v1/users","/v1/assets/1/history"))mvc.perform(get(path).with(user("pur01@itam.example").authorities(new SimpleGrantedAuthority("PUR_STAFF")))).andExpect(status().isForbidden());
-        login("PUR_STAFF"); // MockMvc clears the request security context before this direct service assertion.
+        login("PUR_STAFF");
         assertThat(drafts.events(t.transactionId())).isEmpty();
     }
 
