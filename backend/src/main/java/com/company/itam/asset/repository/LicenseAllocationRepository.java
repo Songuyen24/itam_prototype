@@ -13,7 +13,15 @@ public interface LicenseAllocationRepository extends JpaRepository<LicenseAlloca
     long usedSeats(@Param("id") Long id);
     @Query("SELECT a.license.assetId, SUM(a.seatCount) FROM LicenseAllocationEntity a WHERE a.license.assetId IN :ids AND a.status <> 'RELEASED' GROUP BY a.license.assetId")
     java.util.List<Object[]> usedSeatsByLicenseIds(@Param("ids") java.util.Collection<Long> ids);
-    @EntityGraph(attributePaths={"device","user"})
+    @EntityGraph(attributePaths={"license","device","user"})
     Page<LicenseAllocationEntity> findByLicenseAssetId(Long id, Pageable pageable);
+    @EntityGraph(attributePaths={"license","device","user"})
+    java.util.List<LicenseAllocationEntity> findAllByLicenseAssetId(Long licenseAssetId);
     boolean existsByLicenseAssetId(Long id);
+
+    @EntityGraph(attributePaths={"license","device","user"})
+    java.util.List<LicenseAllocationEntity> findByDeviceAssetId(Long deviceAssetId);
+
+    @EntityGraph(attributePaths={"license","device","user"})
+    java.util.Optional<LicenseAllocationEntity> findByLicenseAssetIdAndDeviceAssetId(Long licenseAssetId, Long deviceAssetId);
 }

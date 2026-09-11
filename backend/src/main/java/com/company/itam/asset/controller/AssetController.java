@@ -66,6 +66,17 @@ public class AssetController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
+    @GetMapping("/recovery-candidates")
+    public ResponseEntity<ApiResponse<PageResponse<AssetResponse>>> getRecoveryCandidates(
+            @RequestParam Long userId,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        PageResponse<AssetResponse> result = assetService.getRecoveryCandidates(userId, keyword, pageable);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'USER')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AssetDetailResponse>> getAssetById(@PathVariable Long id) {
