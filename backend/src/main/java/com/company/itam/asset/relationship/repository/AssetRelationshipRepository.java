@@ -20,6 +20,12 @@ public interface AssetRelationshipRepository extends JpaRepository<AssetRelation
     List<AssetRelationshipEntity> findByParentAssetAssetId(Long parentAssetId);
     List<AssetRelationshipEntity> findByChildAssetAssetId(Long childAssetId);
 
+    @Query("SELECT r FROM AssetRelationshipEntity r WHERE r.parentAsset.assetId IN :ids")
+    List<AssetRelationshipEntity> findByParentAssetAssetIdIn(@Param("ids") List<Long> ids);
+
+    @Query("SELECT r FROM AssetRelationshipEntity r WHERE r.childAsset.assetId IN :ids")
+    List<AssetRelationshipEntity> findByChildAssetAssetIdIn(@Param("ids") List<Long> ids);
+
     @Query("SELECT r FROM AssetRelationshipEntity r WHERE r.parentAsset.assetId = :parentId AND r.relationshipType = :type")
     List<AssetRelationshipEntity> findByParentAndType(@Param("parentId") Long parentId, @Param("type") RelationshipType type);
 

@@ -7,6 +7,7 @@ import LoginPage from '@/features/auth/pages/LoginPage';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { AccountPage } from '@/features/auth/pages/AccountPage';
+import { RecoveriesPage } from '@/features/recovery/pages/RecoveriesPage';
 import { getHomePath, INVENTORY_ROLES } from '@/features/auth/permissions';
 import { DocumentsPage } from '@/features/documents/pages/DocumentsPage';
 import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
@@ -61,6 +62,7 @@ function AppRoutes() {
         />
         <Route path="receivings" element={<ProtectedRoute allowedRoles={DOCUMENT_ROLES}><DocumentsPage receiving /></ProtectedRoute>} />
         <Route path="handovers" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><HandoversPage /></ProtectedRoute>} />
+        <Route path="recoveries" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><RecoveriesPage /></ProtectedRoute>} />
         <Route path="account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to={homePath} replace />} />
       </Route>

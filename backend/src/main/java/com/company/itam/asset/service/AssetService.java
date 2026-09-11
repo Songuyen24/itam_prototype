@@ -94,6 +94,24 @@ public class AssetService {
         return PageResponse.of(page.map(assetMapper::toResponse));
     }
 
+    /**
+     * Get recovery candidates owned by/attached to a user:
+     *  - DEVICE in IN_USE
+     *  - COMPONENT linked to a device owned by the user (any non-RETIRED status)
+     *  - LICENSE PER_USER in ACTIVE/RELEASED state attached to a device of the user
+     * License OEM is excluded (always auto-bundled with its device).
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<AssetResponse> getRecoveryCandidates(Long userId, String keyword, Pageable pageable) {
+        Authentication authentication = requireAuthentication();
+        if (!canReadInventory(authentication)) {
+            throw new AccessDeniedException("Access denied");
+        }
+        // Use raw repository to compose the page directly: simpler than reshaping the spec for IN_USE-only.
+        Page<AssetEntity> page = assetRepository.findRecoveryCandidates(userId, keyword, pageable);
+        return PageResponse.of(page.map(assetMapper::toResponse));
+    }
+
     public PageResponse<AssetResponse> getMyAssets(String keyword, Pageable pageable) {
         Authentication authentication = requireAuthentication();
         requireAssetReader(authentication);

@@ -10,6 +10,7 @@ import viCatalogs from './locales/vi/catalogs.json';
 import viAssets from './locales/vi/assets.json';
 import viImports from './locales/vi/imports.json';
 import viDocuments from './locales/vi/documents.json';
+import viRecovery from './locales/vi/recovery.json';
 
 import enCommon from './locales/en/common.json';
 import enAuth from './locales/en/auth.json';
@@ -17,6 +18,7 @@ import enCatalogs from './locales/en/catalogs.json';
 import enAssets from './locales/en/assets.json';
 import enImports from './locales/en/imports.json';
 import enDocuments from './locales/en/documents.json';
+import enRecovery from './locales/en/recovery.json';
 
 export const resources = {
   vi: {
@@ -27,6 +29,7 @@ export const resources = {
     imports: viImports,
     documents: viDocuments,
     handover: viHandover,
+    recovery: viRecovery,
   },
   en: {
     common: enCommon,
@@ -36,6 +39,7 @@ export const resources = {
     imports: enImports,
     documents: enDocuments,
     handover: enHandover,
+    recovery: enRecovery,
   },
 } as const;
 
@@ -53,7 +57,7 @@ i18n
     resources,
     fallbackLng: DEFAULT_LANGUAGE,
     defaultNS: 'common',
-    ns: ['common', 'auth', 'catalogs', 'assets', 'imports', 'documents', 'handover'],
+    ns: ['common', 'auth', 'catalogs', 'assets', 'imports', 'documents', 'handover', 'recovery'],
     detection: {
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: 'itam_language',
