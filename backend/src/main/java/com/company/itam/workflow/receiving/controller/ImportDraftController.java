@@ -15,7 +15,11 @@ import org.springframework.web.bind.annotation.*;
 public class ImportDraftController {
     private final ImportDraftService service;
     private final com.company.itam.common.util.MessageHelper messages;
-    public ImportDraftController(ImportDraftService service, com.company.itam.common.util.MessageHelper messages) { this.service=service; this.messages=messages; }
+    private final com.company.itam.publication.service.TransactionPublicationService publications;
+    public ImportDraftController(ImportDraftService service, com.company.itam.common.util.MessageHelper messages,
+            com.company.itam.publication.service.TransactionPublicationService publications) {
+        this.service=service; this.messages=messages; this.publications=publications;
+    }
     public record Create(@Size(max=4000) String notes, Long sourceId) {}
     public record Change(@NotNull(message="{validation.required}") Long expectedVersion, @Size(max=4000, message="{validation.size}") String notes) {}
     public record Process(@NotNull(message="{validation.required}") Long expectedVersion, @NotNull(message="{validation.required}") Integer expectedSubmissionRevision, @Size(max=4000, message="{validation.size}") String reason) {}
@@ -32,18 +36,24 @@ public class ImportDraftController {
         return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),service.addHardware(id,expectedVersion,request));
     }
     @PostMapping("/{id}/submit") public Object submit(@PathVariable Long id,@Valid @RequestBody Change request) {
-        return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),service.submit(id,request.expectedVersion()));
+        var result=service.submit(id,request.expectedVersion());
+        publications.afterCommit(id,()->publications.onImportSubmitted(id));
+        return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),result);
     }
     @PostMapping("/{id}/withdraw") public Object withdraw(@PathVariable Long id,@Valid @RequestBody Process request) {
         return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),service.withdraw(id,request.expectedVersion(),request.expectedSubmissionRevision()));
     }
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")
     @PostMapping("/{id}/approve") public Object approve(@PathVariable Long id,@Valid @RequestBody Process request) {
-        return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),service.process(id,request.expectedVersion(),request.expectedSubmissionRevision(),true,null));
+        var result=service.process(id,request.expectedVersion(),request.expectedSubmissionRevision(),true,null);
+        publications.afterCommit(id,()->publications.onImportProcessed(id,true));
+        return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),result);
     }
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")
     @PostMapping("/{id}/reject") public Object reject(@PathVariable Long id,@Valid @RequestBody Process request) {
-        return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),service.process(id,request.expectedVersion(),request.expectedSubmissionRevision(),false,request.reason()));
+        var result=service.process(id,request.expectedVersion(),request.expectedSubmissionRevision(),false,request.reason());
+        publications.afterCommit(id,()->publications.onImportProcessed(id,false));
+        return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),result);
     }
     @PutMapping("/{id}/assets/{assetId}") public Object editAsset(@PathVariable Long id,@PathVariable Long assetId,@RequestParam Long expectedVersion,@Valid @RequestBody CreateHardwareAssetRequest request) {
         return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),service.editLine(id,expectedVersion,assetId,request));

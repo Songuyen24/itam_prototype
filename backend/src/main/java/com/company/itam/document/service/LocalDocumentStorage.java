@@ -114,6 +114,21 @@ public class LocalDocumentStorage {
         }
     }
 
+    public StoredFile storeGeneratedPdf(TransactionType type, String fileName, byte[] content) {
+        return store(type, new GeneratedPdf(fileName, content));
+    }
+
+    private record GeneratedPdf(String fileName, byte[] bytes) implements MultipartFile {
+        @Override public String getName() { return "file"; }
+        @Override public String getOriginalFilename() { return fileName; }
+        @Override public String getContentType() { return "application/pdf"; }
+        @Override public boolean isEmpty() { return bytes.length == 0; }
+        @Override public long getSize() { return bytes.length; }
+        @Override public byte[] getBytes() { return bytes.clone(); }
+        @Override public InputStream getInputStream() { return new java.io.ByteArrayInputStream(bytes); }
+        @Override public void transferTo(java.io.File dest) throws IOException { Files.write(dest.toPath(), bytes); }
+    }
+
     public byte[] read(DocumentEntity document) {
         if (document == null || document.getTransaction() == null || document.getTransaction().getType() == null) {
             throw error(HttpStatus.CONFLICT, "DOCUMENT_PATH_INVALID");

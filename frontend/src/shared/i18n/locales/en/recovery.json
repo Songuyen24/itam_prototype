@@ -45,5 +45,7 @@
   "scenarioC": "Scenario C: Component alone",
   "scenarioD": "Scenario D: OEM alone",
   "scenarioOther": "Invalid",
-  "cannotProceedBlocked": "Some assets are blocked. Remove the blocked items and try again."
+  "cannotProceedBlocked": "Some assets are blocked. Remove the blocked items and try again.",
+  "colActions": "Actions",
+  "publication": "PDF and email"
 }

@@ -45,5 +45,7 @@
   "scenarioC": "Kịch bản C: Linh kiện riêng",
   "scenarioD": "Kịch bản D: OEM riêng",
   "scenarioOther": "Không hợp lệ",
-  "cannotProceedBlocked": "Có tài sản bị chặn, không thể hoàn tất. Hãy bỏ chọn các mục bị chặn và thử lại."
+  "cannotProceedBlocked": "Có tài sản bị chặn, không thể hoàn tất. Hãy bỏ chọn các mục bị chặn và thử lại.",
+  "colActions": "Thao tác",
+  "publication": "PDF và email"
 }

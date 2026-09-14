@@ -2,14 +2,17 @@ import { useTranslation } from 'react-i18next';
 import { RecoveryForm } from '../components/RecoveryForm';
 import { Recovery } from '../api/recoveryApi';
 import { useState } from 'react';
+import { PublicationPanel } from '@/features/documents/components/PublicationPanel';
 
 export function RecoveriesPage() {
   const { t } = useTranslation('recovery');
   const [history, setHistory] = useState<Recovery[]>([]);
   const [tab, setTab] = useState<'form' | 'history'>('form');
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   function handleCompleted(result: Recovery) {
     setHistory(prev => [result, ...prev]);
+    setSelectedId(result.transactionId);
     setTab('history');
   }
 
@@ -41,6 +44,7 @@ export function RecoveriesPage() {
                   <th>{t('colDate')}</th>
                   <th>{t('colLocation')}</th>
                   <th>{t('colAssets')}</th>
+                  <th>{t('colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -51,11 +55,13 @@ export function RecoveriesPage() {
                     <td>{r.recoveryDate}</td>
                     <td>{r.receivingLocationName}</td>
                     <td>{r.lines?.length || 0}</td>
+                    <td><button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectedId(r.transactionId)}>{t('publication')}</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
+          {selectedId != null && <PublicationPanel transactionId={selectedId} canManage />}
         </div>
       )}
     </div>

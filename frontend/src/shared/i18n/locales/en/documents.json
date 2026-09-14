@@ -185,5 +185,29 @@
       "created_at": "Created at",
       "updated_at": "Updated at"
     }
+  },
+  "publication": {
+    "title": "PDF report and simulated email",
+    "pdf": "PDF",
+    "email": "Latest email",
+    "version": "Publication version",
+    "issuedAt": "Issued at",
+    "refresh": "Refresh",
+    "download": "Download PDF",
+    "regenerate": "Generate new PDF version",
+    "resend": "Resend email",
+    "noEmail": "Not sent",
+    "loadError": "Unable to load publication status.",
+    "actionError": "Unable to complete the publication action.",
+    "independentHint": "A PDF or email failure does not change the completed business transaction.",
+    "pdfStatus": { "READY": "Ready", "NOT_GENERATED": "Not generated", "FAILED": "PDF generation failed" },
+    "emailStatus": { "PENDING": "Processing", "SENT": "Simulated sent", "FAILED": "Failed" },
+    "events": {
+      "IMPORT_SUBMITTED": "Receiving pending IT review",
+      "IMPORT_REJECTED": "Receiving rejected",
+      "IMPORT_COMPLETED": "Receiving completed",
+      "HANDOVER_COMPLETED": "Handover completed",
+      "RECOVERY_COMPLETED": "Recovery completed"
+    }
   }
 }

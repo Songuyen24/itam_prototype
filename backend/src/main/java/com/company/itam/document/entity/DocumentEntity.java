@@ -49,6 +49,15 @@ public class DocumentEntity {
     @Column(name = "is_locked", nullable = false)
     private Boolean locked = false;
 
+    @Column(name = "publication_version")
+    private Integer publicationVersion;
+
+    @Column(name = "template_version", length = 30)
+    private String templateVersion;
+
+    @Column(name = "issued_at")
+    private Instant issuedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by", nullable = false)
     private UserEntity uploadedBy;
@@ -147,6 +156,12 @@ public class DocumentEntity {
 
     public Boolean getLocked() { return locked; }
     public void setLocked(Boolean locked) { this.locked = locked; }
+    public Integer getPublicationVersion() { return publicationVersion; }
+    public void setPublicationVersion(Integer publicationVersion) { this.publicationVersion = publicationVersion; }
+    public String getTemplateVersion() { return templateVersion; }
+    public void setTemplateVersion(String templateVersion) { this.templateVersion = templateVersion; }
+    public Instant getIssuedAt() { return issuedAt; }
+    public void setIssuedAt(Instant issuedAt) { this.issuedAt = issuedAt; }
 
     public UserEntity getUploadedBy() {
         return uploadedBy;

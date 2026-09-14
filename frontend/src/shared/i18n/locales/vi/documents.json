@@ -185,5 +185,29 @@
       "created_at": "Ngày tạo",
       "updated_at": "Ngày cập nhật"
     }
+  },
+  "publication": {
+    "title": "Biên bản PDF và email giả lập",
+    "pdf": "PDF",
+    "email": "Email gần nhất",
+    "version": "Phiên bản phát hành",
+    "issuedAt": "Phát hành lúc",
+    "refresh": "Làm mới",
+    "download": "Tải PDF",
+    "regenerate": "Tạo phiên bản PDF mới",
+    "resend": "Gửi lại email",
+    "noEmail": "Chưa gửi",
+    "loadError": "Không thể tải trạng thái phát hành.",
+    "actionError": "Không thể thực hiện thao tác phát hành.",
+    "independentHint": "Lỗi PDF hoặc email không thay đổi trạng thái nghiệp vụ đã hoàn tất.",
+    "pdfStatus": { "READY": "Sẵn sàng", "NOT_GENERATED": "Chưa tạo", "FAILED": "Tạo PDF thất bại" },
+    "emailStatus": { "PENDING": "Đang xử lý", "SENT": "Đã gửi giả lập", "FAILED": "Gửi thất bại" },
+    "events": {
+      "IMPORT_SUBMITTED": "Nhập kho chờ IT kiểm tra",
+      "IMPORT_REJECTED": "Nhập kho bị từ chối",
+      "IMPORT_COMPLETED": "Nhập kho hoàn tất",
+      "HANDOVER_COMPLETED": "Bàn giao hoàn tất",
+      "RECOVERY_COMPLETED": "Thu hồi hoàn tất"
+    }
   }
 }
