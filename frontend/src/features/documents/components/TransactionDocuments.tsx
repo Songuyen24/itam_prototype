@@ -6,6 +6,7 @@ import { DocumentPagination } from './DocumentPagination';
 import { ImportDraftPanel } from './ImportDraftPanel';
 import { DocumentUpload } from './DocumentUpload';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
+import { PublicationPanel } from './PublicationPanel';
 
 export function TransactionDocuments({ transactionId, onUpdated, onCreated }: { transactionId: number | null; onUpdated?: () => void; onCreated?: (id:number)=>void }) {
   const { t, i18n } = useTranslation('documents');
@@ -94,6 +95,8 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated }: { 
         <div><dt>{t('fields.createdAt')}</dt><dd>{new Date(transaction.createdAt).toLocaleString(i18n.language)}</dd></div>
       </dl>
       {transaction.type === 'IMPORT' && <ImportDraftPanel transaction={transaction} onChanged={refresh} onCreated={onCreated} />}
+      {transaction.status !== 'DRAFT' && <PublicationPanel transactionId={transaction.transactionId}
+        canManage={transaction.status === 'COMPLETED' && (user?.role === 'ADMIN' || user?.role === 'IT_STAFF')} />}
       <DocumentUpload transactionId={transaction.transactionId} documentsEditable={canUpload} expectedVersion={transaction.expectedVersion}
         onUploaded={() => { setPage(0); refresh(); }} />
       {downloadError && <div className="alert-banner alert-danger" role="alert">{downloadError}</div>}

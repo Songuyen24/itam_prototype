@@ -15,10 +15,13 @@ import org.springframework.web.bind.annotation.*;
 public class RecoveryController {
     private final RecoveryService service;
     private final MessageHelper messages;
+    private final com.company.itam.publication.service.TransactionPublicationService publications;
 
-    public RecoveryController(RecoveryService service, MessageHelper messages) {
+    public RecoveryController(RecoveryService service, MessageHelper messages,
+                              com.company.itam.publication.service.TransactionPublicationService publications) {
         this.service = service;
         this.messages = messages;
+        this.publications = publications;
     }
 
     @PostMapping("/smart-check")
@@ -29,6 +32,8 @@ public class RecoveryController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RecoveryResponse> complete(@Valid @RequestBody RecoveryRequest request) {
-        return ApiResponse.success(messages.getMessage("RECOVERY_COMPLETED"), service.complete(request));
+        var result = service.complete(request);
+        publications.afterCommit(result.transactionId(), () -> publications.onCompleted(result.transactionId(), result));
+        return ApiResponse.success(messages.getMessage("RECOVERY_COMPLETED"), result);
     }
 }

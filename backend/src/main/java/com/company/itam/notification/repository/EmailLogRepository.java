@@ -14,4 +14,5 @@ public interface EmailLogRepository extends JpaRepository<EmailLogEntity, Long> 
     Page<EmailLogEntity> findByTransactionTransactionId(Long transactionId, Pageable pageable);
     Page<EmailLogEntity> findByRecipient(String recipient, Pageable pageable);
     List<EmailLogEntity> findByStatus(EmailStatus status);
+    List<EmailLogEntity> findByTransactionTransactionIdOrderByCreatedAtDesc(Long transactionId);
 }

@@ -16,7 +16,11 @@ import org.springframework.web.bind.annotation.*;
 public class HandoverController {
     private final HandoverService service;
     private final MessageHelper messages;
-    public HandoverController(HandoverService service,MessageHelper messages) { this.service=service; this.messages=messages; }
+    private final com.company.itam.publication.service.TransactionPublicationService publications;
+    public HandoverController(HandoverService service,MessageHelper messages,
+            com.company.itam.publication.service.TransactionPublicationService publications) {
+        this.service=service; this.messages=messages; this.publications=publications;
+    }
     @GetMapping("/candidates")
     public ApiResponse<PageResponse<HandoverService.Candidate>> candidates(@RequestParam(defaultValue="") String keyword,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) {
         return ApiResponse.success(messages.getMessage("HANDOVER_READ"),service.candidates(keyword,page,size));
@@ -27,7 +31,9 @@ public class HandoverController {
     }
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<HandoverResponse> complete(@Valid @RequestBody HandoverRequest request) {
-        return ApiResponse.success(messages.getMessage("HANDOVER_COMPLETED"),service.complete(request));
+        var result=service.complete(request);
+        publications.afterCommit(result.transactionId(),()->publications.onCompleted(result.transactionId(),result));
+        return ApiResponse.success(messages.getMessage("HANDOVER_COMPLETED"),result);
     }
     @GetMapping("/{id}")
     public ApiResponse<HandoverResponse> detail(@PathVariable Long id) {

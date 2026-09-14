@@ -2,6 +2,7 @@ package com.company.itam.notification.entity;
 
 import com.company.itam.common.enums.EmailStatus;
 import com.company.itam.workflow.core.entity.TransactionEntity;
+import com.company.itam.document.entity.DocumentEntity;
 import jakarta.persistence.*;
 import java.time.Instant;
 
@@ -33,6 +34,13 @@ public class EmailLogEntity {
 
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
+
+    @Column(name = "event_type", length = 50)
+    private String eventType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "document_id")
+    private DocumentEntity document;
 
     @Column(name = "sent_at")
     private Instant sentAt;
@@ -104,6 +112,10 @@ public class EmailLogEntity {
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }
+    public String getEventType() { return eventType; }
+    public void setEventType(String eventType) { this.eventType = eventType; }
+    public DocumentEntity getDocument() { return document; }
+    public void setDocument(DocumentEntity document) { this.document = document; }
 
     public Instant getSentAt() {
         return sentAt;

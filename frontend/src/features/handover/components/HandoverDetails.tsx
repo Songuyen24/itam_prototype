@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Handover } from '../api/handoverApi';
+import { PublicationPanel } from '@/features/documents/components/PublicationPanel';
 
 export function HandoverDetails({ value }: { value: Handover }) {
   const { t } = useTranslation('handover');
@@ -26,5 +27,6 @@ export function HandoverDetails({ value }: { value: Handover }) {
         </td>
       </tr>)}</tbody>
     </table></div>
+    {value.transactionId != null && <PublicationPanel transactionId={value.transactionId} canManage />}
   </section>;
 }
