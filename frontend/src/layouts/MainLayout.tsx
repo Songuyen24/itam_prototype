@@ -57,6 +57,8 @@ function MainLayout() {
           {user?.role && DOCUMENT_ROLES.includes(user.role) && <NavLink to="/receivings" className={({isActive})=>`nav-link ${isActive?'active':''}`}><span>{t('documents:receiving.title')}</span></NavLink>}
           {canViewInventory && <NavLink to="/handovers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}><span>{t('nav.handover')}</span></NavLink>}
           {canViewInventory && <NavLink to="/recoveries" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}><span>{t('nav.recovery')}</span></NavLink>}
+          {canViewInventory && <NavLink to="/disposals" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}><span>{t('nav.disposal')}</span></NavLink>}
+          {canViewInventory && <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}><span>{t('nav.overview')}</span></NavLink>}
           <NavLink to="/account" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <span>{t('nav.account')}</span>
           </NavLink>

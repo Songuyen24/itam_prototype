@@ -48,7 +48,7 @@ describe('Role-specific routes and navigation', () => {
   });
 
   it('redirects unauthenticated direct navigation to login', () => {
-    for (const path of ['/assets', '/catalogs', '/my-assets', '/account', '/handovers']) {
+    for (const path of ['/assets', '/catalogs', '/my-assets', '/account', '/handovers', '/disposals', '/dashboard']) {
       const html = renderRoute(path);
       expect(html).toContain('data-redirect="/login"');
       expect(html).not.toContain('data-page=');
@@ -64,6 +64,8 @@ describe('Role-specific routes and navigation', () => {
     expect(menu).toContain('href="/assets"');
     expect(menu).toContain('href="/catalogs"');
     expect(menu).toContain('href="/handovers"');
+    expect(menu).toContain('href="/disposals"');
+    expect(menu).toContain('href="/dashboard"');
     expect(renderRoute('/handovers')).toContain('handover-form');
     expect(menu).not.toContain('href="/users"');
   });
@@ -71,7 +73,7 @@ describe('Role-specific routes and navigation', () => {
   it.each(['PUR_STAFF', 'USER'])('%s cannot open shared inventory or catalogs directly', (role) => {
     signIn(role);
     const destination = role === 'USER' ? '/my-assets' : '/account';
-    for (const path of ['/assets?assignedTo=1', '/catalogs', '/handovers']) {
+    for (const path of ['/assets?assignedTo=1', '/catalogs', '/handovers', '/disposals', '/dashboard']) {
       const html = renderRoute(path);
       expect(html).toContain(`data-redirect="${destination}"`);
       expect(html).not.toContain('data-page=');
