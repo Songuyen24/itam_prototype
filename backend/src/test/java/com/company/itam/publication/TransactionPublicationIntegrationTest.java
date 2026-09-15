@@ -38,6 +38,7 @@ class TransactionPublicationIntegrationTest {
 
     @BeforeEach
     void authenticate() {
+        jdbc.update("INSERT INTO locations(code,name,is_active) VALUES ('T17_TEST','T17 test location',true) ON CONFLICT(code) DO NOTHING");
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                     "admin@itam.example", "n/a", List.of(new SimpleGrantedAuthority("ADMIN"))));
@@ -48,7 +49,7 @@ class TransactionPublicationIntegrationTest {
     void publishesVersionsAndEmailAttemptsWithoutChangingTransaction() throws Exception {
         Long admin = jdbc.queryForObject("SELECT user_id FROM users WHERE email='admin@itam.example'", Long.class);
         Long recipient = jdbc.queryForObject("SELECT user_id FROM users WHERE email='user01@itam.example'", Long.class);
-        Long location = jdbc.queryForObject("SELECT location_id FROM locations ORDER BY location_id LIMIT 1", Long.class);
+        Long location = jdbc.queryForObject("SELECT location_id FROM locations WHERE code='T17_TEST'", Long.class);
         String code = "HO-T17-" + UUID.randomUUID();
         Long id = jdbc.queryForObject("""
                 INSERT INTO transactions(transaction_code,type,status,requester_id,processed_by,processed_at,completed_at)

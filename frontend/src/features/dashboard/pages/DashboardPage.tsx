@@ -1,0 +1,25 @@
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/features/auth/contexts/AuthContext';
+import { dashboardApi, DashboardSummary } from '../api/dashboardApi';
+import './dashboard.css';
+
+export function DashboardPage() {
+  const { t } = useTranslation('dashboard');
+  const { user } = useAuth();
+  const [data, setData] = useState<DashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState('');
+  const load = async () => { setLoading(true); setError(''); try { setData((await dashboardApi.summary()).data); } catch (e) { setError(e instanceof Error ? e.message : t('error')); } finally { setLoading(false); } };
+  useEffect(() => { void load(); }, []);
+  const exportReport = async () => { setExporting(true); setError(''); try { await dashboardApi.exportAssets(); } catch (e) { setError(e instanceof Error ? e.message : t('exportError')); } finally { setExporting(false); } };
+  const groups: [string, Record<string, number> | undefined][] = [[t('byStatus'), data?.byStatus], [t('byType'), data?.byType], [t('byLocation'), data?.byLocation], [t('byDepartment'), data?.byDepartment]];
+
+  return <div className="t18-page"><header className="page-header dashboard-header"><div><h1 className="page-title">{t('title')}</h1><p className="page-description">{t('description')}</p></div>{user?.role === 'ADMIN' && <button className="btn btn-primary" onClick={exportReport} disabled={exporting}>{exporting ? t('exporting') : t('export')}</button>}</header>
+    <p role="status" className="sr-status">{loading ? t('loading') : t('ready')}</p>
+    {error && <div className="alert-banner alert-danger" role="alert">{error}<button className="btn btn-secondary btn-sm" onClick={load}>{t('retry')}</button></div>}
+    {!loading && data && <><div className="metric-strip"><div><span>{t('pendingReceivings')}</span><strong>{data.pendingReceivings}</strong></div><div><span>{t('pendingDisposals')}</span><strong>{data.pendingDisposals}</strong></div></div>
+      <div className="dashboard-grid">{groups.map(([title, values]) => <section className="content-card metric-group" key={title}><h2>{title}</h2>{Object.entries(values ?? {}).length === 0 ? <p className="empty-state">{t('empty')}</p> : Object.entries(values ?? {}).map(([label, count]) => <div className="metric-row" key={label}><span>{label}</span><strong>{count}</strong></div>)}</section>)}</div></>}
+  </div>;
+}

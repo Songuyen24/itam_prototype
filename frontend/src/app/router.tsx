@@ -11,6 +11,8 @@ import { RecoveriesPage } from '@/features/recovery/pages/RecoveriesPage';
 import { getHomePath, INVENTORY_ROLES } from '@/features/auth/permissions';
 import { DocumentsPage } from '@/features/documents/pages/DocumentsPage';
 import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
+import { DisposalsPage } from '@/features/disposal/pages/DisposalsPage';
+import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
 
 function AppRoutes() {
   const { user, token } = useAuth();
@@ -63,6 +65,8 @@ function AppRoutes() {
         <Route path="receivings" element={<ProtectedRoute allowedRoles={DOCUMENT_ROLES}><DocumentsPage receiving /></ProtectedRoute>} />
         <Route path="handovers" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><HandoversPage /></ProtectedRoute>} />
         <Route path="recoveries" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><RecoveriesPage /></ProtectedRoute>} />
+        <Route path="disposals" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><DisposalsPage /></ProtectedRoute>} />
+        <Route path="dashboard" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><DashboardPage /></ProtectedRoute>} />
         <Route path="account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to={homePath} replace />} />
       </Route>

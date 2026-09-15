@@ -58,6 +58,11 @@ jwt:
   access-token-ttl: 86400000   # 24 hours in milliseconds
 
 itam:
+  disposal:
+    minimum-age-years: ${DISPOSAL_MINIMUM_AGE_YEARS:5}
+  publication:
+    disposal-purchasing-recipient: ${DISPOSAL_PURCHASING_RECIPIENT:pur@itam.example}
+    disposal-accounting-recipient: ${DISPOSAL_ACCOUNTING_RECIPIENT:accounting@itam.example}
   documents:
     storage-root: ${DOCUMENT_STORAGE_ROOT:../storage}
     max-file-size: 10485760

@@ -1,0 +1,18 @@
+{
+  "title": "Tổng quan tài sản",
+  "description": "Thống kê tài sản và phiếu đang chờ xử lý.",
+  "byStatus": "Theo trạng thái",
+  "byType": "Theo loại",
+  "byLocation": "Theo vị trí",
+  "byDepartment": "Theo phòng ban",
+  "pendingReceivings": "Phiếu nhập chờ xử lý",
+  "pendingDisposals": "Phiếu thanh lý chờ duyệt",
+  "export": "Xuất Excel",
+  "exporting": "Đang xuất...",
+  "loading": "Đang tải dashboard",
+  "ready": "Dashboard đã sẵn sàng",
+  "retry": "Thử lại",
+  "empty": "Chưa có dữ liệu.",
+  "error": "Không thể tải dashboard.",
+  "exportError": "Không thể xuất báo cáo Excel."
+}

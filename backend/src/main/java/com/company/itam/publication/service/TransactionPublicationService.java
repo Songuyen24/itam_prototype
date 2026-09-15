@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -49,13 +50,19 @@ public class TransactionPublicationService {
     private final EmailGateway gateway;
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper;
+    private final String disposalPurchasingRecipient;
+    private final String disposalAccountingRecipient;
 
     public TransactionPublicationService(TransactionRepository transactions, DocumentRepository documents,
             EmailLogRepository emails, UserRepository users, DocumentAccessService access,
             LocalDocumentStorage storage, BilingualPdfGenerator pdf, EmailGateway gateway,
-            JdbcTemplate jdbc, ObjectMapper mapper) {
+            JdbcTemplate jdbc, ObjectMapper mapper,
+            @Value("${itam.publication.disposal-purchasing-recipient:pur@itam.example}") String disposalPurchasingRecipient,
+            @Value("${itam.publication.disposal-accounting-recipient:accounting@itam.example}") String disposalAccountingRecipient) {
         this.transactions = transactions; this.documents = documents; this.emails = emails; this.users = users;
         this.access = access; this.storage = storage; this.pdf = pdf; this.gateway = gateway; this.jdbc = jdbc; this.mapper = mapper;
+        this.disposalPurchasingRecipient = disposalPurchasingRecipient;
+        this.disposalAccountingRecipient = disposalAccountingRecipient;
     }
 
     public PublicationStatusResponse status(Long id) {
@@ -132,6 +139,15 @@ public class TransactionPublicationService {
         sendCompletion(tx, document);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onDisposalPending(Long id) {
+        var tx = transaction(id);
+        String subject = "Phiếu thanh lý chờ duyệt / Disposal pending: " + tx.getTransactionCode();
+        String body = "Vui lòng duyệt trong ITAM / Please review in ITAM.";
+        jdbc.queryForList("SELECT u.email FROM users u JOIN roles r USING(role_id) WHERE r.code='ADMIN' AND u.account_status='ACTIVE'", String.class)
+                .forEach(recipient -> send(tx, recipient, "DISPOSAL_SUBMITTED", subject, body, null));
+    }
+
     public void afterCommit(Long transactionId, Runnable operation) {
         if (TransactionSynchronizationManager.isActualTransactionActive()
                 && TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -194,9 +210,13 @@ public class TransactionPublicationService {
             case IMPORT -> importSubmitter(tx.getTransactionId(), tx.getSubmittedRevision());
             case HANDOVER -> jdbc.queryForObject("SELECT u.email FROM transaction_handover_details d JOIN users u ON u.user_id=d.recipient_user_id WHERE d.transaction_id=?", String.class, tx.getTransactionId());
             case RECOVERY -> jdbc.queryForObject("SELECT u.email FROM transaction_recovery_details d JOIN users u ON u.user_id=d.returner_user_id WHERE d.transaction_id=?", String.class, tx.getTransactionId());
+            case DISPOSAL -> disposalPurchasingRecipient;
             default -> throw unsupported();
         };
         sendCompletion(tx, document, recipient);
+        if (tx.getType() == TransactionType.DISPOSAL && !disposalAccountingRecipient.equalsIgnoreCase(recipient)) {
+            sendCompletion(tx, document, disposalAccountingRecipient);
+        }
     }
 
     private void sendCompletion(TransactionEntity tx, DocumentEntity document, String recipient) {
@@ -233,13 +253,14 @@ public class TransactionPublicationService {
         return transactions.findById(id).orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "TRANSACTION_NOT_FOUND", "Transaction not found"));
     }
     private void requireCompleted(TransactionEntity tx) {
-        if (tx.getStatus() != TransactionStatus.COMPLETED || tx.getType() == TransactionType.DISPOSAL) throw unsupported();
+        if (tx.getStatus() != TransactionStatus.COMPLETED) throw unsupported();
     }
     private DocumentType reportType(TransactionType type) {
         return switch (type) {
             case IMPORT -> DocumentType.IMPORT_RECEIPT;
             case HANDOVER -> DocumentType.HANDOVER_REPORT;
             case RECOVERY -> DocumentType.RECOVERY_REPORT;
+            case DISPOSAL -> DocumentType.DISPOSAL_REPORT;
             default -> throw unsupported();
         };
     }

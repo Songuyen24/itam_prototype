@@ -129,6 +129,7 @@ public class BilingualPdfGenerator {
             case "IMPORT" -> "BIÊN BẢN NHẬP KHO / RECEIVING REPORT";
             case "HANDOVER" -> "BIÊN BẢN BÀN GIAO / HANDOVER REPORT";
             case "RECOVERY" -> "BIÊN BẢN THU HỒI / RECOVERY REPORT";
+            case "DISPOSAL" -> "BIÊN BẢN THANH LÝ / DISPOSAL REPORT";
             default -> "BIÊN BẢN / REPORT";
         };
     }
