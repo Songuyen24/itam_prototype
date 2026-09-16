@@ -124,7 +124,7 @@ public class AssetImportValidator {
                             "Mã tài sản trùng lặp với dòng khác trong cùng file"));
                 }
                 // Check database duplicate
-                if (assetRepository.existsByAssetTag(assetTag)) {
+                if (assetRepository.existsByAssetTagIgnoreCase(assetTag)) {
                     errors.add(rowError(rowNumber, "assetTag", "DUPLICATE",
                             "Mã tài sản đã tồn tại trong hệ thống: " + assetTag));
                 }
@@ -150,7 +150,7 @@ public class AssetImportValidator {
                             "Số Serial trùng lặp với dòng khác trong cùng file"));
                 }
                 // Check database duplicate
-                if (assetHardwareDetailsRepository.existsBySerialNumber(serial)) {
+                if (assetHardwareDetailsRepository.existsBySerialNumberIgnoreCase(serial)) {
                     errors.add(rowError(rowNumber, "serialNumber", "DUPLICATE",
                             "Số Serial Number đã tồn tại trong hệ thống: " + serial));
                 }
@@ -219,6 +219,12 @@ public class AssetImportValidator {
                         "Nhà cung cấp không tồn tại: " + suppVal));
             }
 
+            validateMaxLength(errors, rowNumber, "poNumber", row.get("poNumber"), 100);
+            validateMaxLength(errors, rowNumber, "actualRam", row.get("actualRam"), 100);
+            validateMaxLength(errors, rowNumber, "actualStorage", row.get("actualStorage"), 100);
+            validateMaxLength(errors, rowNumber, "actualCpu", row.get("actualCpu"), 255);
+            validateMaxLength(errors, rowNumber, "actualGraphicsCard", row.get("actualGraphicsCard"), 255);
+
             // 11. Validate Purchase Cost
             Object costObj = row.get("purchaseCost");
             if (costObj != null) {
@@ -226,6 +232,8 @@ public class AssetImportValidator {
                     BigDecimal cost = parseBigDecimal(costObj);
                     if (cost.compareTo(BigDecimal.ZERO) < 0) {
                         errors.add(rowError(rowNumber, "purchaseCost", "INVALID_VALUE", "Giá mua không được âm"));
+                    } else if (cost.precision() > 18 || cost.scale() > 2) {
+                        errors.add(rowError(rowNumber, "purchaseCost", "INVALID_FORMAT", "Giá mua tối đa 16 chữ số phần nguyên và 2 chữ số thập phân"));
                     }
                 } catch (Exception e) {
                     errors.add(rowError(rowNumber, "purchaseCost", "INVALID_FORMAT", "Giá mua không đúng định dạng số"));
@@ -269,6 +277,13 @@ public class AssetImportValidator {
     private ImportRowErrorResponse rowError(Integer row, String field, String code, String fallback) {
         return new ImportRowErrorResponse(row, field, code,
                 messages.getMessageWithDefault("import.row." + field + "." + code, fallback));
+    }
+
+    private void validateMaxLength(List<ImportRowErrorResponse> errors, Integer rowNumber, String field, Object value, int max) {
+        String normalized = normalize(value);
+        if (normalized != null && normalized.length() > max) {
+            errors.add(rowError(rowNumber, field, "MAX_LENGTH", field + " không được vượt quá " + max + " ký tự"));
+        }
     }
 
     public static String normalize(Object val) {

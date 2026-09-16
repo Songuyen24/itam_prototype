@@ -91,9 +91,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   const handleConfirmImport = async () => {
     if (!previewData) return;
 
-    const validRows = previewData.rows
-      .filter((r) => r.validationStatus === 'VALID')
-      .map((r) => r.rawData);
+    const validRows = previewData.rows.map((r) => r.rawData);
 
     if (validRows.length === 0) {
       setErrorMessage(t('imports:errors.noValidRows', 'Không có dòng hợp lệ nào để import'));
@@ -382,12 +380,12 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
 
               {/* Guide notes */}
               <div style={{ fontSize: '12px', color: '#64748b', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px' }}>
-                <div style={{ fontWeight: 600, marginBottom: '4px', color: '#475569' }}>Quy tắc nhập liệu / Import Rules:</div>
+                <div style={{ fontWeight: 600, marginBottom: '4px', color: '#475569' }}>{t('imports:guide.title', 'Quy tắc nhập liệu / Import Rules:')}</div>
                 <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <li>Cột có dấu <strong>(*)</strong> là bắt buộc: Mã tài sản, Tên tài sản, Loại tài sản.</li>
-                  <li>Mã tài sản (Asset Tag) và Số Serial phải là duy nhất, không trùng trong file hoặc cơ sở dữ liệu.</li>
-                  <li>Nếu để trống Trạng thái, hệ thống sẽ tự động gán là <strong>IN_STOCK (Đang lưu kho)</strong>.</li>
-                  <li>Hệ thống sẽ kiểm tra trước dữ liệu (Preview) và không ghi vào database cho đến khi bạn xác nhận.</li>
+                  <li>{t('imports:guide.required', 'Cột Tên tài sản và Loại tài sản là bắt buộc; Mã tài sản có thể để trống và sẽ được tự sinh khi xác nhận.')}</li>
+                  <li>{t('imports:guide.unique', 'Mã tài sản và Số Serial phải duy nhất, không trùng trong file hoặc cơ sở dữ liệu.')}</li>
+                  <li>{t('imports:guide.status', 'Nếu để trống Trạng thái, hệ thống sẽ tự động gán IN_STOCK (Đang lưu kho).')}</li>
+                  <li>{t('imports:guide.preview', 'Preview không ghi vào database cho đến khi bạn xác nhận.')}</li>
                 </ul>
               </div>
             </div>

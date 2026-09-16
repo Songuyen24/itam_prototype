@@ -273,6 +273,7 @@ public class AssetImportService {
                 rowEntity.setRawData(nonValidRow.getRawData());
                 rowEntity.setValidationStatus(nonValidRow.getValidationStatus());
                 rowEntity.setErrorMessage(nonValidRow.getErrorMessage() != null ? nonValidRow.getErrorMessage() : "Dòng dữ liệu không hợp lệ");
+                rowEntity.setValidationErrors(nonValidRow.getErrors());
                 rowEntity.setCreatedAt(Instant.now());
                 importRowEntities.add(rowEntity);
             }
@@ -357,6 +358,7 @@ public class AssetImportService {
         r.setRowNumber(entity.getRowNumber());
         r.setValidationStatus(entity.getValidationStatus());
         r.setErrorMessage(entity.getErrorMessage());
+        r.setErrors(entity.getValidationErrors());
         r.setRawData(entity.getRawData());
         if (entity.getAsset() != null) {
             r.setAssetId(entity.getAsset().getAssetId());

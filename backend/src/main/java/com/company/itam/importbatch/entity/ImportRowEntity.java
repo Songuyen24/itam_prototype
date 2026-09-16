@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.Type;
 import java.time.Instant;
 import java.util.Map;
+import java.util.List;
+import com.company.itam.importbatch.dto.response.ImportRowErrorResponse;
 
 @Entity
 @Table(name = "import_rows")
@@ -34,6 +36,10 @@ public class ImportRowEntity {
 
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
+
+    @Type(JsonType.class)
+    @Column(name = "validation_errors", columnDefinition = "jsonb")
+    private List<ImportRowErrorResponse> validationErrors = new java.util.ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "asset_id")
@@ -98,6 +104,9 @@ public class ImportRowEntity {
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }
+
+    public List<ImportRowErrorResponse> getValidationErrors() { return validationErrors; }
+    public void setValidationErrors(List<ImportRowErrorResponse> validationErrors) { this.validationErrors = validationErrors; }
 
     public AssetEntity getAsset() {
         return asset;

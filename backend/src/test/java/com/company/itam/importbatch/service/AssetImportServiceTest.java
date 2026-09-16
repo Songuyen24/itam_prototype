@@ -17,6 +17,7 @@ import com.company.itam.importbatch.dto.request.ImportConfirmRequest;
 import com.company.itam.importbatch.dto.response.ImportBatchResponse;
 import com.company.itam.importbatch.dto.response.ImportPreviewResponse;
 import com.company.itam.importbatch.entity.ImportBatchEntity;
+import com.company.itam.importbatch.entity.ImportRowEntity;
 import com.company.itam.importbatch.repository.ImportBatchRepository;
 import com.company.itam.importbatch.repository.ImportRowRepository;
 import com.company.itam.location.repository.LocationRepository;
@@ -29,9 +30,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -203,10 +208,10 @@ class AssetImportServiceTest {
         when(locationRepository.findAll()).thenReturn(Collections.emptyList());
         when(supplierRepository.findAll()).thenReturn(Collections.emptyList());
 
-        when(assetRepository.existsByAssetTag("AST-NB-101")).thenReturn(false);
-        when(assetRepository.existsByAssetTag("AST-NB-102")).thenReturn(false);
-        when(assetHardwareDetailsRepository.existsBySerialNumber("SN-001")).thenReturn(false);
-        when(assetHardwareDetailsRepository.existsBySerialNumber("SN-002")).thenReturn(false);
+        when(assetRepository.existsByAssetTagIgnoreCase("AST-NB-101")).thenReturn(false);
+        when(assetRepository.existsByAssetTagIgnoreCase("AST-NB-102")).thenReturn(false);
+        when(assetHardwareDetailsRepository.existsBySerialNumberIgnoreCase("SN-001")).thenReturn(false);
+        when(assetHardwareDetailsRepository.existsBySerialNumberIgnoreCase("SN-002")).thenReturn(false);
 
         ImportPreviewResponse preview = assetImportService.preview(file);
 
@@ -274,10 +279,10 @@ class AssetImportServiceTest {
         when(supplierRepository.findAll()).thenReturn(Collections.emptyList());
 
         // AST-DUP-01 does not exist in DB
-        lenient().when(assetRepository.existsByAssetTag("AST-DUP-01")).thenReturn(false);
+        lenient().when(assetRepository.existsByAssetTagIgnoreCase("AST-DUP-01")).thenReturn(false);
         // AST-EXISTING exists in DB
-        lenient().when(assetRepository.existsByAssetTag("AST-EXISTING")).thenReturn(true);
-        lenient().when(assetHardwareDetailsRepository.existsBySerialNumber(any())).thenReturn(false);
+        lenient().when(assetRepository.existsByAssetTagIgnoreCase("AST-EXISTING")).thenReturn(true);
+        lenient().when(assetHardwareDetailsRepository.existsBySerialNumberIgnoreCase(any())).thenReturn(false);
 
         ImportPreviewResponse preview = assetImportService.preview(file);
 
@@ -313,8 +318,8 @@ class AssetImportServiceTest {
         when(locationRepository.findAll()).thenReturn(Collections.emptyList());
         when(supplierRepository.findAll()).thenReturn(Collections.emptyList());
 
-        when(assetRepository.existsByAssetTag("AST-NB-201")).thenReturn(false);
-        when(assetHardwareDetailsRepository.existsBySerialNumber("SN-TP-201")).thenReturn(false);
+        when(assetRepository.existsByAssetTagIgnoreCase("AST-NB-201")).thenReturn(false);
+        when(assetHardwareDetailsRepository.existsBySerialNumberIgnoreCase("SN-TP-201")).thenReturn(false);
 
         ImportBatchEntity savedBatch = new ImportBatchEntity();
         savedBatch.setImportBatchId(10L);
@@ -323,6 +328,8 @@ class AssetImportServiceTest {
         savedBatch.setTotalRows(1);
         savedBatch.setValidRows(1);
         savedBatch.setImportedRows(1);
+        savedBatch.setInvalidRows(1);
+        savedBatch.setDuplicateRows(0);
         savedBatch.setUploadedBy(sampleUser);
 
         when(importBatchRepository.save(any(ImportBatchEntity.class))).thenReturn(savedBatch);
@@ -367,5 +374,99 @@ class AssetImportServiceTest {
 
         assertThrows(AppException.class, () -> assetImportService.confirmImport(request));
         verify(assetRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Confirm import lưu cả dòng lỗi/trùng trong lịch sử nhưng chỉ tạo asset hợp lệ")
+    void testConfirmImport_PersistsNonValidRowsInHistory() {
+        Map<String, Object> valid = new HashMap<>();
+        valid.put("rowNumber", 2);
+        valid.put("assetTag", "AST-OK");
+        valid.put("name", "Valid laptop");
+        valid.put("type", "LAPTOP");
+        valid.put("serialNumber", "SN-OK");
+
+        Map<String, Object> invalid = new HashMap<>();
+        invalid.put("rowNumber", 3);
+        invalid.put("assetTag", "AST-BAD");
+        invalid.put("name", "");
+        invalid.put("type", "LAPTOP");
+
+        ImportConfirmRequest request = new ImportConfirmRequest("mixed.xlsx", List.of(valid, invalid));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(sampleUser.getEmail(), null,
+                        List.of(new SimpleGrantedAuthority("IT_STAFF"))));
+        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
+        when(assetTypeRepository.findAll()).thenReturn(List.of(sampleType));
+        when(assetStatusRepository.findAll()).thenReturn(List.of(sampleStatus));
+        when(assetStatusRepository.findByCode(AssetStatus.IN_STOCK)).thenReturn(Optional.of(sampleStatus));
+        when(assetConditionRepository.findAll()).thenReturn(Collections.emptyList());
+        when(modelRepository.findAll()).thenReturn(Collections.emptyList());
+        when(departmentRepository.findAll()).thenReturn(Collections.emptyList());
+        when(locationRepository.findAll()).thenReturn(Collections.emptyList());
+        when(supplierRepository.findAll()).thenReturn(Collections.emptyList());
+        ImportBatchEntity savedBatch = new ImportBatchEntity();
+        savedBatch.setImportBatchId(11L);
+        savedBatch.setUploadedBy(sampleUser);
+        savedBatch.setTotalRows(2);
+        savedBatch.setValidRows(1);
+        savedBatch.setInvalidRows(1);
+        savedBatch.setDuplicateRows(0);
+        savedBatch.setImportedRows(1);
+        when(importBatchRepository.save(any(ImportBatchEntity.class))).thenReturn(savedBatch);
+        AssetEntity savedAsset = new AssetEntity();
+        savedAsset.setAssetId(101L);
+        when(assetRepository.save(any(AssetEntity.class))).thenReturn(savedAsset);
+
+        ImportBatchResponse response = assetImportService.confirmImport(request);
+
+        assertEquals(2, response.getTotalRows());
+        assertEquals(1, response.getImportedRows());
+        ArgumentCaptor<List<ImportRowEntity>> captor = ArgumentCaptor.forClass(List.class);
+        verify(importRowRepository).saveAll(captor.capture());
+        assertEquals(2, captor.getValue().size());
+        assertTrue(captor.getValue().stream().anyMatch(r -> r.getValidationStatus() == ValidationStatus.INVALID));
+    }
+
+    @Test
+    @DisplayName("Validation chặn trùng Asset Tag không phân biệt hoa thường")
+    void testValidation_RejectsCaseInsensitiveDatabaseDuplicates() {
+        Map<String, Object> row = new HashMap<>();
+        row.put("rowNumber", 2);
+        row.put("assetTag", "ast-existing");
+        row.put("name", "Laptop");
+        row.put("type", "LAPTOP");
+        when(assetTypeRepository.findAll()).thenReturn(List.of(sampleType));
+        when(assetStatusRepository.findAll()).thenReturn(List.of(sampleStatus));
+        when(assetConditionRepository.findAll()).thenReturn(Collections.emptyList());
+        when(modelRepository.findAll()).thenReturn(Collections.emptyList());
+        when(departmentRepository.findAll()).thenReturn(Collections.emptyList());
+        when(locationRepository.findAll()).thenReturn(Collections.emptyList());
+        when(supplierRepository.findAll()).thenReturn(Collections.emptyList());
+        when(assetRepository.existsByAssetTagIgnoreCase("ast-existing")).thenReturn(true);
+        assertEquals(ValidationStatus.DUPLICATE,
+                assetImportValidator.validateRows(List.of(row)).get(0).getValidationStatus());
+    }
+
+    @Test
+    @DisplayName("Validation chặn các trường vượt giới hạn lưu trữ")
+    void testValidation_RejectsDatabaseOverflowFields() {
+        Map<String, Object> row = new HashMap<>();
+        row.put("rowNumber", 2);
+        row.put("assetTag", "AST-LONG");
+        row.put("name", "Laptop");
+        row.put("type", "LAPTOP");
+        row.put("poNumber", "P".repeat(101));
+        row.put("actualRam", "R".repeat(101));
+        row.put("actualCpu", "C".repeat(256));
+        when(assetTypeRepository.findAll()).thenReturn(List.of(sampleType));
+        when(assetStatusRepository.findAll()).thenReturn(List.of(sampleStatus));
+        when(assetConditionRepository.findAll()).thenReturn(Collections.emptyList());
+        when(modelRepository.findAll()).thenReturn(Collections.emptyList());
+        when(departmentRepository.findAll()).thenReturn(Collections.emptyList());
+        when(locationRepository.findAll()).thenReturn(Collections.emptyList());
+        when(supplierRepository.findAll()).thenReturn(Collections.emptyList());
+        assertEquals(ValidationStatus.INVALID,
+                assetImportValidator.validateRows(List.of(row)).get(0).getValidationStatus());
     }
 }

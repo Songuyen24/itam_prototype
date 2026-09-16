@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface AssetHardwareDetailsRepository extends JpaRepository<AssetHardwareDetailsEntity, Long> {
     Optional<AssetHardwareDetailsEntity> findBySerialNumber(String serialNumber);
     boolean existsBySerialNumber(String serialNumber);
+    boolean existsBySerialNumberIgnoreCase(String serialNumber);
     boolean existsByModelModelId(Long modelId);
     boolean existsByConditionCode(AssetCondition condition);
 }

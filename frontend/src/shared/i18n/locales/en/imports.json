@@ -57,5 +57,6 @@
     "previewFailed": "Could not read and validate the Excel file.",
     "importFailed": "Could not import assets."
   },
-  "openingInventory": "Import sample opening inventory. Blank tags are generated on confirmation; new purchases require a receiving transaction."
+  "openingInventory": "Import sample opening inventory. Blank tags are generated on confirmation; new purchases require a receiving transaction.",
+  "guide": { "title": "Import rules", "required": "Asset name and type are required; Asset Tag may be blank and is generated on confirmation.", "unique": "Asset Tag and Serial Number must be unique in the file and database.", "status": "A blank status defaults to IN_STOCK.", "preview": "Preview does not write to the database until confirmation." }
 }
