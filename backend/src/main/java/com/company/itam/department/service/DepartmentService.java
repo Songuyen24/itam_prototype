@@ -33,7 +33,9 @@ public class DepartmentService {
     @Transactional(readOnly = true)
     public PageResponse<DepartmentResponse> getDepartments(String search, Boolean isActive, Pageable pageable) {
         Page<DepartmentEntity> page;
-        if (search != null && !search.isBlank()) {
+        if (search != null && !search.isBlank() && isActive != null) {
+            page = departmentRepository.findByNameContainingIgnoreCaseAndIsActive(search.trim(), isActive, pageable);
+        } else if (search != null && !search.isBlank()) {
             page = departmentRepository.findByNameContainingIgnoreCase(search.trim(), pageable);
         } else if (isActive != null) {
             page = departmentRepository.findByIsActive(isActive, pageable);

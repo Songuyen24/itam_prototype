@@ -13,5 +13,6 @@ public interface LocationRepository extends JpaRepository<LocationEntity, Long> 
     Optional<LocationEntity> findByCode(String code);
     boolean existsByCode(String code);
     Page<LocationEntity> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    Page<LocationEntity> findByNameContainingIgnoreCaseAndIsActive(String name, Boolean isActive, Pageable pageable);
     Page<LocationEntity> findByIsActive(Boolean isActive, Pageable pageable);
 }

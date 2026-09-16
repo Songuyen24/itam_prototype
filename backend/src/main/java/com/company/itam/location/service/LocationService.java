@@ -28,7 +28,9 @@ public class LocationService {
     @Transactional(readOnly = true)
     public PageResponse<LocationResponse> getLocations(String search, Boolean isActive, Pageable pageable) {
         Page<LocationEntity> page;
-        if (search != null && !search.isBlank()) {
+        if (search != null && !search.isBlank() && isActive != null) {
+            page = locationRepository.findByNameContainingIgnoreCaseAndIsActive(search.trim(), isActive, pageable);
+        } else if (search != null && !search.isBlank()) {
             page = locationRepository.findByNameContainingIgnoreCase(search.trim(), pageable);
         } else if (isActive != null) {
             page = locationRepository.findByIsActive(isActive, pageable);
