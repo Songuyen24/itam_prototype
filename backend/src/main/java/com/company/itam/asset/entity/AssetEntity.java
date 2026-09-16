@@ -72,6 +72,10 @@ public class AssetEntity {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
     @OneToOne(mappedBy = "asset", fetch = FetchType.LAZY)
     private AssetHardwareDetailsEntity hardwareDetails;
 
@@ -217,6 +221,14 @@ public class AssetEntity {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public AssetHardwareDetailsEntity getHardwareDetails() {

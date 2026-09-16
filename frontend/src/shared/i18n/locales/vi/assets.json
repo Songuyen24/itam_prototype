@@ -4,6 +4,7 @@
   "subtitle": "Quản lý thiết bị, linh kiện, gói license và quan hệ cha-con",
   "actions": {
     "addAsset": "Thêm tài sản",
+    "addBaselineAsset": "Thêm tài sản tồn đầu kỳ",
     "importExcel": "Import Excel",
     "exportExcel": "Xuất Excel"
   },
@@ -41,7 +42,7 @@
     "resetFilter": "Đặt lại bộ lọc"
   },
   "modal": {
-    "createTitle": "Thêm mới tài sản phần cứng",
+    "createTitle": "Thêm tài sản tồn đầu kỳ",
     "editTitle": "Chỉnh sửa tài sản",
     "detailTitle": "Chi tiết tài sản",
     "basicSection": "1. Thông tin cơ bản",
@@ -178,6 +179,7 @@
     "ASSET_WORKFLOW_REQUIRED": "Thay đổi trạng thái, người nhận hoặc quan hệ đang sử dụng phải qua phiếu nghiệp vụ.",
     "actions": {
       "CREATE": "Tạo tài sản",
+      "CREATE_BASELINE": "Tạo tài sản tồn đầu kỳ",
       "UPDATE": "Sửa tài sản",
       "LINK": "Gắn quan hệ",
       "UNLINK": "Gỡ quan hệ",

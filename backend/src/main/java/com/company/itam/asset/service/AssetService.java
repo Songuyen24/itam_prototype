@@ -143,17 +143,22 @@ public class AssetService {
 
     @Transactional
     public AssetDetailResponse createHardwareAsset(CreateHardwareAssetRequest request) {
-        return createHardware(request, false);
+        Authentication auth = requireAuthentication();
+        if (!hasAuthority(auth, "ADMIN")) throw new AccessDeniedException("Access denied");
+        if (request.getCreationPurpose() != com.company.itam.asset.dto.request.AssetCreationPurpose.BASELINE) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "ASSET_BASELINE_REQUIRED", "ASSET_BASELINE_REQUIRED");
+        }
+        return createHardware(request, false, "CREATE_BASELINE");
     }
 
     @Transactional
     public AssetDetailResponse createHardwareDraft(CreateHardwareAssetRequest request) {
         Authentication auth = requireAuthentication();
         if (!hasAuthority(auth,"ADMIN") && !hasAuthority(auth,"PUR_STAFF")) throw new AccessDeniedException("Access denied");
-        return createHardware(request, true);
+        return createHardware(request, true, "CREATE");
     }
 
-    private AssetDetailResponse createHardware(CreateHardwareAssetRequest request, boolean draft) {
+    private AssetDetailResponse createHardware(CreateHardwareAssetRequest request, boolean draft, String auditAction) {
         String assetTag = normalizeString(request.getAssetTag());
         if (assetTag == null) assetTag = assetRepository.nextGeneratedAssetTag();
         if (assetRepository.existsByAssetTag(assetTag)) {
@@ -236,7 +241,7 @@ public class AssetService {
             if (serialNumber!=null || request.getModelId()!=null || request.getConditionId()!=null || request.getWarrantyExpiration()!=null || request.getActualCpu()!=null || request.getActualRam()!=null || request.getActualStorage()!=null || request.getActualGraphicsCard()!=null)
                 throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_HARDWARE_FIELDS","LICENSE_HARDWARE_FIELDS");
             licenses.save(savedAsset,request.getLicense());
-            audit.record(savedAsset.getAssetId(),"CREATE",currentUser,null,audit.snapshot(savedAsset));
+            audit.record(savedAsset.getAssetId(),auditAction,currentUser,null,audit.snapshot(savedAsset));
             var response=assetMapper.toDetailResponse(savedAsset); response.setLicense(licenses.response(savedAsset,true)); return response;
         }
         // Save Hardware Details
@@ -267,7 +272,7 @@ public class AssetService {
         AssetHardwareDetailsEntity savedHwDetails = assetHardwareDetailsRepository.save(hwDetails);
         savedAsset.setHardwareDetails(savedHwDetails);
 
-        audit.record(savedAsset.getAssetId(),"CREATE",currentUser,null,audit.snapshot(savedAsset));
+        audit.record(savedAsset.getAssetId(),auditAction,currentUser,null,audit.snapshot(savedAsset));
         return assetMapper.toDetailResponse(savedAsset);
     }
 
@@ -291,6 +296,10 @@ public class AssetService {
         if (receiving ? asset.getStatus().getCode() != AssetStatus.PENDING_IMPORT
                 : (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT || assetRepository.hasReceivingHistory(id))) {
             throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
+        }
+        if (!receiving && (request.getExpectedVersion() == null
+                || !request.getExpectedVersion().equals(asset.getVersion()))) {
+            throw new AppException(HttpStatus.CONFLICT, "ASSET_VERSION_CONFLICT", "ASSET_VERSION_CONFLICT");
         }
         var before = audit.snapshot(asset);
         String assetTag = normalizeString(request.getAssetTag());
@@ -387,6 +396,7 @@ public class AssetService {
             }
             licenses.save(asset,request.getLicense());
             audit.record(id,"UPDATE",currentUser,before,audit.snapshot(asset));
+            assetRepository.flush();
             var response=assetMapper.toDetailResponse(asset); response.setLicense(licenses.response(asset,true)); return response;
         }
         // Update hardware details
@@ -425,7 +435,8 @@ public class AssetService {
         AssetHardwareDetailsEntity savedHw = assetHardwareDetailsRepository.save(hwDetails);
         asset.setHardwareDetails(savedHw);
 
-        AssetEntity savedAsset = assetRepository.save(asset);
+        assetRepository.flush();
+        AssetEntity savedAsset = asset;
         audit.record(id,"UPDATE",currentUser,before,audit.snapshot(savedAsset));
         return assetMapper.toDetailResponse(savedAsset);
     }

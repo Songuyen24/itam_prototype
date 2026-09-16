@@ -50,11 +50,11 @@ class T15HandoverIntegrationTest {
     Long recipient() { return jdbc.queryForObject("SELECT user_id FROM users WHERE email='user01@itam.example'",Long.class); }
     Long create(String category) {
         login();
-        var r=new CreateHardwareAssetRequest();r.setName("T15 "+UUID.randomUUID()); r.setTypeId(id("asset_types","type_id","T15_"+category));
+        var r=new CreateHardwareAssetRequest();r.setCreationPurpose(AssetCreationPurpose.BASELINE);r.setName("T15 "+UUID.randomUUID()); r.setTypeId(id("asset_types","type_id","T15_"+category));
         return assets.createHardwareAsset(r).getAssetId();
     }
     Long license(String type,int seats) {
-        var r=new CreateHardwareAssetRequest(); r.setName("T15 license "+UUID.randomUUID());r.setTypeId(id("asset_types","type_id","T15_LICENSE"));
+        var r=new CreateHardwareAssetRequest(); r.setCreationPurpose(AssetCreationPurpose.BASELINE);r.setName("T15 license "+UUID.randomUUID());r.setTypeId(id("asset_types","type_id","T15_LICENSE"));
         Long software=jdbc.queryForObject("INSERT INTO software_catalog(name,manufacturer,is_active) VALUES (?,'Demo',true) RETURNING software_catalog_id",Long.class,"T15 "+UUID.randomUUID());
         r.setLicense(new LicenseDetailsRequest(software,id("license_assignment_types","license_assignment_type_id",type),id("license_term_types","license_term_type_id","PERPETUAL"),seats,"T15-SECRET-KEY",null));
         return assets.createHardwareAsset(r).getAssetId();

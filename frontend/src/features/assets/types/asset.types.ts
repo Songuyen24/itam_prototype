@@ -69,6 +69,7 @@ export interface Asset {
 
   createdAt?: string;
   updatedAt?: string;
+  version: number;
 }
 
 export interface LicenseInput {
@@ -89,6 +90,7 @@ export interface AssetDetail extends Asset {
 }
 
 export interface CreateHardwareAssetPayload {
+  creationPurpose: 'BASELINE';
   assetTag: string;
   name: string;
   typeId: number;
@@ -114,6 +116,7 @@ export interface CreateHardwareAssetPayload {
 }
 
 export interface UpdateHardwareAssetPayload {
+  expectedVersion: number;
   assetTag: string;
   name: string;
   typeId: number;

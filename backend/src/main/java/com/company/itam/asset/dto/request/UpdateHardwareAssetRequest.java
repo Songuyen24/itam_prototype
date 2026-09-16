@@ -10,6 +10,16 @@ import java.time.LocalDate;
 
 public class UpdateHardwareAssetRequest {
 
+    private Long expectedVersion;
+
+    public Long getExpectedVersion() {
+        return expectedVersion;
+    }
+
+    public void setExpectedVersion(Long expectedVersion) {
+        this.expectedVersion = expectedVersion;
+    }
+
     @Size(max = 100, message = "{validation.size}")
     private String assetTag;
 

@@ -42,7 +42,7 @@ class T11BAssetsIntegrationTest {
     Long type(String category) { return jdbc.queryForObject("SELECT type_id FROM asset_types t JOIN asset_categories c USING(category_id) WHERE c.code=? ORDER BY type_id LIMIT 1",Long.class,category); }
     Long lookup(String table,String column,String code) { return jdbc.queryForObject("SELECT "+column+" FROM "+table+" WHERE code=?",Long.class,code); }
     CreateHardwareAssetRequest request(String category) {
-        var r=new CreateHardwareAssetRequest();r.setName("T11B test "+UUID.randomUUID());r.setTypeId(type(category));return r;
+        var r=new CreateHardwareAssetRequest();r.setCreationPurpose(AssetCreationPurpose.BASELINE);r.setName("T11B test "+UUID.randomUUID());r.setTypeId(type(category));return r;
     }
     LicenseDetailsRequest license(String assignment,int seats) {
         Long software=jdbc.queryForObject("INSERT INTO software_catalog(name,manufacturer,is_active) VALUES (?, 'Demo',true) RETURNING software_catalog_id",Long.class,"T11B "+UUID.randomUUID());
@@ -64,7 +64,7 @@ class T11BAssetsIntegrationTest {
             String body=mvc.perform(post("/v1/assets").contentType("application/json").content(json.writeValueAsString(r)))
                     .andExpect(status().isCreated()).andExpect(jsonPath("$.data.categoryCode").value(category)).andReturn().getResponse().getContentAsString();
             Long id=json.readTree(body).path("data").path("assetId").asLong();
-            var update=json.convertValue(r,UpdateHardwareAssetRequest.class);update.setName("Updated "+category);
+            var update=json.convertValue(r,UpdateHardwareAssetRequest.class);update.setExpectedVersion(0L);update.setName("Updated "+category);
             mvc.perform(put("/v1/assets/"+id).contentType("application/json").content(json.writeValueAsString(update))).andExpect(status().isOk());
             update.setTypeId(type(category.equals("DEVICE")?"COMPONENT":"DEVICE"));
             mvc.perform(put("/v1/assets/"+id).contentType("application/json").content(json.writeValueAsString(update))).andExpect(status().isConflict());
@@ -165,7 +165,7 @@ class T11BAssetsIntegrationTest {
         relationships.create(assets.createHardwareAsset(request("DEVICE")).getAssetId(),pkg,RelationshipType.INSTALLED_ON);
         relationships.create(assets.createHardwareAsset(request("DEVICE")).getAssetId(),pkg,RelationshipType.INSTALLED_ON);
         var detail=assets.getAssetById(pkg);var l=detail.getLicense();
-        var update=new UpdateHardwareAssetRequest(); update.setName(detail.getName());update.setTypeId(detail.getTypeId());
+        var update=new UpdateHardwareAssetRequest(); update.setExpectedVersion(detail.getVersion());update.setName(detail.getName());update.setTypeId(detail.getTypeId());
         update.setLicense(new LicenseDetailsRequest(l.softwareCatalogId(),l.assignmentTypeId(),l.termTypeId(),1,l.licenseKey(),l.expiryDate()));
         mvc.perform(put("/v1/assets/"+pkg).contentType("application/json").content(json.writeValueAsString(update)))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("LICENSE_CAPACITY_EXCEEDED"));

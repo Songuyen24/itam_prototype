@@ -10,6 +10,16 @@ import java.time.LocalDate;
 
 public class CreateHardwareAssetRequest {
 
+    private AssetCreationPurpose creationPurpose;
+
+    public AssetCreationPurpose getCreationPurpose() {
+        return creationPurpose;
+    }
+
+    public void setCreationPurpose(AssetCreationPurpose creationPurpose) {
+        this.creationPurpose = creationPurpose;
+    }
+
     @Size(max = 100, message = "{validation.size}")
     private String assetTag;
 

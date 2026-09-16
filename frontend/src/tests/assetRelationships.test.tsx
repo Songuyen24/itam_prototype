@@ -9,7 +9,7 @@ import viLocale from '@/shared/i18n/locales/vi/assets.json';
 const client=vi.hoisted(()=>vi.fn());
 vi.mock('@/shared/api/httpClient',()=>({httpClient:client}));
 vi.mock('react-i18next',()=>({useTranslation:()=>({t:(key:string)=>key,i18n:{language:'en'}})}));
-const asset:AssetDetail={assetId:42,assetTag:'OEM-42',name:'Demo Windows',categoryCode:'LICENSE',statusCode:'IN_STOCK',hardwareConfig:{},
+const asset:AssetDetail={assetId:42,assetTag:'OEM-42',name:'Demo Windows',categoryCode:'LICENSE',statusCode:'IN_STOCK',version:0,hardwareConfig:{},
   license:{softwareCatalogId:1,softwareName:'Windows demo',assignmentTypeId:1,assignmentTypeCode:'OEM',termTypeId:1,termTypeCode:'PERPETUAL',seatCount:10,allocatedSeats:3,availableSeats:7,licenseKey:'PRIVATE-DEMO-KEY'}};
 
 describe('T11B asset management',()=>{
