@@ -14,7 +14,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -112,5 +115,21 @@ class DepartmentServiceTest {
                 .hasMessageContaining("Phòng ban đang được gán cho tài sản");
 
         verify(departmentRepository, never()).delete(any());
+    }
+
+    @Test
+    void getDepartments_appliesSearchAndActiveFilterTogether() {
+        DepartmentEntity inactiveMatch = new DepartmentEntity();
+        inactiveMatch.setDepartmentId(2L);
+        inactiveMatch.setCode("IT_OLD");
+        inactiveMatch.setName("IT Legacy");
+        inactiveMatch.setIsActive(false);
+        PageRequest page = PageRequest.of(0, 20);
+        when(departmentRepository.findByNameContainingIgnoreCaseAndIsActive("IT", false, page))
+                .thenReturn(new PageImpl<>(List.of(inactiveMatch), page, 1));
+
+        assertThat(departmentService.getDepartments("IT", false, page).getContent())
+                .extracting(DepartmentResponse::getCode)
+                .containsExactly("IT_OLD");
     }
 }

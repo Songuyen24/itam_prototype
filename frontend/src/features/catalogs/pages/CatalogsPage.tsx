@@ -43,6 +43,42 @@ const TABS: { key: CatalogTabKey; label: string }[] = [
   { key: 'license-terms', label: 'Thời hạn License' },
 ];
 
+const FILTERABLE_TABS = new Set<CatalogTabKey>([
+  'departments',
+  'locations',
+  'suppliers',
+  'types',
+  'models',
+  'software',
+]);
+
+export const supportsCatalogFilters = (tab: CatalogTabKey) => FILTERABLE_TABS.has(tab);
+
+type ContactApi = Pick<typeof supplierApi, 'addContact' | 'updateContact' | 'deleteContact'>;
+
+export async function syncSupplierContacts(
+  supplierId: number,
+  original: SupplierContact[],
+  next: SupplierContact[],
+  api: ContactApi = supplierApi,
+) {
+  const nextIds = new Set(next.flatMap((contact) => contact.contactId ? [contact.contactId] : []));
+  const originalById = new Map(original.flatMap((contact) => contact.contactId ? [[contact.contactId, contact]] : []));
+
+  for (const contact of original) {
+    if (contact.contactId && !nextIds.has(contact.contactId)) {
+      await api.deleteContact(contact.contactId);
+    }
+  }
+  for (const contact of next) {
+    if (!contact.contactId) {
+      await api.addContact(supplierId, contact);
+    } else if (JSON.stringify(originalById.get(contact.contactId)) !== JSON.stringify(contact)) {
+      await api.updateContact(contact.contactId, contact);
+    }
+  }
+}
+
 export const CatalogsPage: React.FC = () => {
   const { t } = useTranslation(['catalogs', 'common']);
   const { user } = useAuth();
@@ -299,9 +335,10 @@ export const CatalogsPage: React.FC = () => {
     try {
       let savedSupplier: Supplier;
       if (selectedItem) {
+        const currentContacts = await supplierApi.getContacts(selectedItem.supplierId);
         const res = await supplierApi.update(selectedItem.supplierId, data);
         savedSupplier = res.data;
-        // Sync contacts if needed
+        await syncSupplierContacts(selectedItem.supplierId, currentContacts.data || [], contacts);
         setToastMessage({ type: 'success', text: t('catalogs:feedback.supplierUpdated') });
       } else {
         const res = await supplierApi.create(data);
@@ -645,27 +682,33 @@ export const CatalogsPage: React.FC = () => {
       {/* Card with Filters and Table */}
       <div className="content-card">
         <div className="card-toolbar">
-          <div className="filter-group">
+          {supportsCatalogFilters(activeTab) && <div className="filter-group">
             <div className="search-input-wrapper">
               <input
                 type="text"
                 className="search-input"
                 placeholder={`${t('common:labels.search', 'Tìm kiếm')} ${getActiveTabLabel().toLowerCase()}...`}
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(0);
+                }}
               />
             </div>
 
             <select
               className="select-filter"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as any);
+                setCurrentPage(0);
+              }}
             >
               <option value="ALL">{t('common:labels.all', 'Tất cả trạng thái')}</option>
               <option value="ACTIVE">{t('common:labels.active', 'Đang hoạt động')}</option>
               <option value="INACTIVE">{t('common:labels.inactive', 'Ngừng hoạt động')}</option>
             </select>
-          </div>
+          </div>}
 
           <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
             {t('common:pagination.showing', 'Tổng số')}: <strong>{totalElements}</strong> {t('common:pagination.items', 'mục')}

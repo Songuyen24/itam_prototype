@@ -15,6 +15,7 @@ public interface SupplierRepository extends JpaRepository<SupplierEntity, Long> 
     Optional<SupplierEntity> findByCode(String code);
     boolean existsByCode(String code);
     Page<SupplierEntity> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    Page<SupplierEntity> findByNameContainingIgnoreCaseAndIsActive(String name, Boolean isActive, Pageable pageable);
     Page<SupplierEntity> findByIsActive(Boolean isActive, Pageable pageable);
 
     @Query("SELECT s FROM SupplierEntity s LEFT JOIN FETCH s.contacts WHERE s.supplierId = :id")

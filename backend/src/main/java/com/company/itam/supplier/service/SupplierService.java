@@ -39,7 +39,9 @@ public class SupplierService {
     @Transactional(readOnly = true)
     public PageResponse<SupplierResponse> getSuppliers(String search, Boolean isActive, Pageable pageable) {
         Page<SupplierEntity> page;
-        if (search != null && !search.isBlank()) {
+        if (search != null && !search.isBlank() && isActive != null) {
+            page = supplierRepository.findByNameContainingIgnoreCaseAndIsActive(search.trim(), isActive, pageable);
+        } else if (search != null && !search.isBlank()) {
             page = supplierRepository.findByNameContainingIgnoreCase(search.trim(), pageable);
         } else if (isActive != null) {
             page = supplierRepository.findByIsActive(isActive, pageable);
