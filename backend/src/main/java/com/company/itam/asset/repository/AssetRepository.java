@@ -31,6 +31,7 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long>, JpaSp
     @Query(value="SELECT EXISTS(SELECT 1 FROM transaction_assets a JOIN transactions t USING(transaction_id) WHERE a.asset_id=:id AND t.type='IMPORT')",nativeQuery=true)
     boolean hasReceivingHistory(@Param("id") Long id);
     boolean existsByAssetTag(String assetTag);
+    boolean existsByAssetTagIgnoreCase(String assetTag);
 
     Page<AssetEntity> findByStatusCode(AssetStatus status, Pageable pageable);
     Page<AssetEntity> findByTypeCategoryCode(AssetCategory category, Pageable pageable);

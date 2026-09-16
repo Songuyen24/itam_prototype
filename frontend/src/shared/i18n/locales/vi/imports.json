@@ -57,5 +57,6 @@
     "previewFailed": "Không thể đọc và kiểm tra file Excel.",
     "importFailed": "Không thể import tài sản."
   },
-  "openingInventory": "Import dữ liệu nền / tồn đầu kỳ mẫu. Mã trống được tự sinh khi xác nhận; mua mới phải qua phiếu nhập kho."
+  "openingInventory": "Import dữ liệu nền / tồn đầu kỳ mẫu. Mã trống được tự sinh khi xác nhận; mua mới phải qua phiếu nhập kho.",
+  "guide": { "title": "Quy tắc nhập liệu", "required": "Tên tài sản và Loại tài sản là bắt buộc; Mã tài sản có thể để trống và sẽ được tự sinh khi xác nhận.", "unique": "Mã tài sản và Số Serial phải duy nhất, không trùng trong file hoặc cơ sở dữ liệu.", "status": "Nếu để trống Trạng thái, hệ thống sẽ tự động gán IN_STOCK (Đang lưu kho).", "preview": "Preview không ghi vào database cho đến khi bạn xác nhận." }
 }
