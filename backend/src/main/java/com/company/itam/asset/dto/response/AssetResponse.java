@@ -64,6 +64,7 @@ public class AssetResponse {
 
     private Instant createdAt;
     private Instant updatedAt;
+    private Long version;
 
     public AssetResponse() {}
 
@@ -385,5 +386,13 @@ public class AssetResponse {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

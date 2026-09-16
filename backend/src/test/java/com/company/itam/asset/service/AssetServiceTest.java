@@ -175,7 +175,7 @@ class AssetServiceTest {
     @Test
     @DisplayName("Tạo tài sản phần cứng thành công - cấu hình actual rỗng thì dùng default của model")
     void createHardwareAsset_success_withDefaultFallback() {
-        CreateHardwareAssetRequest request = new CreateHardwareAssetRequest();
+        CreateHardwareAssetRequest request = baselineRequest();
         request.setAssetTag("AST-001");
         request.setName("Laptop Developer 01");
         request.setTypeId(1L);
@@ -227,7 +227,7 @@ class AssetServiceTest {
     @Test
     @DisplayName("Tạo tài sản phần cứng thành công - cấu hình actual ghi đè default của model")
     void createHardwareAsset_success_withActualOverride() {
-        CreateHardwareAssetRequest request = new CreateHardwareAssetRequest();
+        CreateHardwareAssetRequest request = baselineRequest();
         request.setAssetTag("AST-002");
         request.setName("Laptop Developer 02 Upgrade");
         request.setTypeId(1L);
@@ -264,7 +264,7 @@ class AssetServiceTest {
     @Test
     @DisplayName("Chặn tạo tài sản khi Asset Tag đã tồn tại")
     void createHardwareAsset_duplicateAssetTag_throwsDuplicateResourceException() {
-        CreateHardwareAssetRequest request = new CreateHardwareAssetRequest();
+        CreateHardwareAssetRequest request = baselineRequest();
         request.setAssetTag("AST-EXISTS");
         request.setName("Laptop Duplicated");
         request.setTypeId(1L);
@@ -282,7 +282,7 @@ class AssetServiceTest {
     @Test
     @DisplayName("Chặn tạo tài sản khi Serial Number đã tồn tại")
     void createHardwareAsset_duplicateSerialNumber_throwsDuplicateResourceException() {
-        CreateHardwareAssetRequest request = new CreateHardwareAssetRequest();
+        CreateHardwareAssetRequest request = baselineRequest();
         request.setAssetTag("AST-NEW");
         request.setName("Laptop Test");
         request.setTypeId(1L);
@@ -302,7 +302,7 @@ class AssetServiceTest {
     @Test
     @DisplayName("Chặn tạo tài sản khi giá mua âm")
     void createHardwareAsset_negativeCost_throwsException() {
-        CreateHardwareAssetRequest request = new CreateHardwareAssetRequest();
+        CreateHardwareAssetRequest request = baselineRequest();
         request.setAssetTag("AST-NEG");
         request.setName("Laptop Neg Cost");
         request.setTypeId(1L);
@@ -321,7 +321,7 @@ class AssetServiceTest {
     @Test
     @DisplayName("Chặn gán người dùng khi tài sản ở trạng thái IN_STOCK")
     void createHardwareAsset_inStockWithAssignedUser_throwsException() {
-        CreateHardwareAssetRequest request = new CreateHardwareAssetRequest();
+        CreateHardwareAssetRequest request = baselineRequest();
         request.setAssetTag("AST-VALID");
         request.setName("Laptop In Stock");
         request.setTypeId(1L);
@@ -341,7 +341,7 @@ class AssetServiceTest {
     @Test
     @DisplayName("Chặn tạo tài sản IN_USE mà không có người dùng")
     void createHardwareAsset_inUseWithoutUser_throwsException() {
-        CreateHardwareAssetRequest request = new CreateHardwareAssetRequest();
+        CreateHardwareAssetRequest request = baselineRequest();
         request.setAssetTag("AST-INUSE");
         request.setName("Laptop In Use");
         request.setTypeId(1L);
@@ -357,6 +357,12 @@ class AssetServiceTest {
         );
 
         assertEquals("ASSIGNMENT_REQUIRED", exception.getCode());
+    }
+
+    private CreateHardwareAssetRequest baselineRequest() {
+        CreateHardwareAssetRequest request = new CreateHardwareAssetRequest();
+        request.setCreationPurpose(com.company.itam.asset.dto.request.AssetCreationPurpose.BASELINE);
+        return request;
     }
 
     @Test
@@ -381,7 +387,6 @@ class AssetServiceTest {
         when(modelRepository.findById(10L)).thenReturn(Optional.of(sampleModel));
         when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
         when(assetHardwareDetailsRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(assetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         UpdateHardwareAssetRequest updateReq = new UpdateHardwareAssetRequest();
         updateReq.setAssetTag("AST-10");
@@ -389,6 +394,7 @@ class AssetServiceTest {
         updateReq.setTypeId(1L);
         updateReq.setModelId(10L);
         updateReq.setSerialNumber("SN-10-NEW");
+        updateReq.setExpectedVersion(0L);
 
         AssetDetailResponse updated = assetService.updateHardwareAsset(10L, updateReq);
 

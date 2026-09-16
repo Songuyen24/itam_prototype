@@ -136,6 +136,7 @@ public class AssetMapper {
         response.setPurchaseCost(entity.getPurchaseCost());
         response.setCreatedAt(entity.getCreatedAt());
         response.setUpdatedAt(entity.getUpdatedAt());
+        response.setVersion(entity.getVersion());
     }
 
     public HardwareConfigDto toHardwareConfig(AssetHardwareDetailsEntity hw) {

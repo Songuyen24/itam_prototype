@@ -31,6 +31,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
   const { t } = useTranslation(['assets', 'common']);
   const { user } = useAuth();
   const canManageAssets = !myAssets && canManageInventory(user?.role);
+  const canCreateBaseline = canManageAssets && user?.role === 'ADMIN';
   // Filters & Pagination
   const [keyword, setKeyword] = useState('');
   const [statusId, setStatusId] = useState<number | undefined>();
@@ -266,10 +267,10 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
             <span>{t('assets:actions.importExcel', 'Import Excel')}</span>
           </button>
 
-          <button type="button" className="btn btn-primary" onClick={handleOpenCreate} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {canCreateBaseline && <button type="button" className="btn btn-primary" onClick={handleOpenCreate} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>➕</span>
-            <span>{t('assets:actions.addAsset', 'Thêm tài sản')}</span>
-          </button>
+            <span>{t('assets:actions.addBaselineAsset', 'Thêm tài sản tồn đầu kỳ')}</span>
+          </button>}
         </div>}
       </div>
 

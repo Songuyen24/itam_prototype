@@ -51,6 +51,7 @@ class ChecklistCompletionIntegrationTest {
     @AfterEach void clear() { SecurityContextHolder.clearContext(); }
     CreateHardwareAssetRequest hardware() {
         var request=new CreateHardwareAssetRequest(); request.setName("Checklist sample device");
+        request.setCreationPurpose(com.company.itam.asset.dto.request.AssetCreationPurpose.BASELINE);
         request.setTypeId(jdbc.queryForObject("SELECT type_id FROM asset_types WHERE code='LAPTOP'",Long.class));
         request.setConditionId(jdbc.queryForObject("SELECT min(condition_id) FROM asset_conditions WHERE is_active",Long.class));
         request.setSerialNumber("CHECK-"+UUID.randomUUID()); return request;
@@ -105,7 +106,7 @@ class ChecklistCompletionIntegrationTest {
     }
 
     @Test void generatedTagIsReturnedAndBlankPreviewDoesNotAllocate() {
-        login("it01@itam.example","IT_STAFF");
+        login("admin@itam.example","ADMIN");
         var request=hardware();
         var saved=assets.createHardwareAsset(request);
         assertThat(saved.getAssetTag()).startsWith("AST-").isNotBlank();
@@ -130,15 +131,40 @@ class ChecklistCompletionIntegrationTest {
     }
 
     @Test void omittedTagOnUpdateIsPreservedButExplicitChangesAreRejected() throws Exception {
-        login("it01@itam.example","IT_STAFF");
+        login("admin@itam.example","ADMIN");
         var saved=assets.createHardwareAsset(hardware());
-        String body="{\"name\":\"Updated sample\",\"typeId\":"+hardware().getTypeId()+"}";
+        String body="{\"name\":\"Updated sample\",\"typeId\":"+hardware().getTypeId()+",\"expectedVersion\":0}";
         mvc.perform(put("/v1/assets/"+saved.getAssetId()).with(user("it01@itam.example").authorities(new SimpleGrantedAuthority("IT_STAFF")))
                 .contentType("application/json").content(body))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.assetTag").value(saved.getAssetTag()));
         mvc.perform(put("/v1/assets/"+saved.getAssetId()).with(user("it01@itam.example").authorities(new SimpleGrantedAuthority("IT_STAFF")))
-                .contentType("application/json").content(body.replace("{", "{\"assetTag\":\"CHANGED\",")))
+                .contentType("application/json").content(body.replace("{", "{\"assetTag\":\"CHANGED\",").replace("\"expectedVersion\":0", "\"expectedVersion\":1")))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ASSET_TAG_IMMUTABLE"));
+    }
+
+    @Test void staleAssetUpdateIsRejectedInsteadOfOverwritingNewerData() throws Exception {
+        login("admin@itam.example", "ADMIN");
+        var request=hardware();
+        var saved=assets.createHardwareAsset(request);
+        long version=0;
+        long typeId=request.getTypeId();
+
+        String first="{\"name\":\"First edit\",\"typeId\":"+typeId+",\"expectedVersion\":"+version+"}";
+        mvc.perform(put("/v1/assets/"+saved.getAssetId())
+                        .with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN")))
+                        .contentType("application/json").content(first))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.version").value(version+1));
+
+        String stale="{\"name\":\"Stale edit\",\"typeId\":"+typeId+",\"expectedVersion\":"+version+"}";
+        mvc.perform(put("/v1/assets/"+saved.getAssetId())
+                        .with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN")))
+                        .contentType("application/json").content(stale))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ASSET_VERSION_CONFLICT"));
+
+        assertThat(jdbc.queryForObject("select name from assets where asset_id=?",String.class,saved.getAssetId()))
+                .isEqualTo("First edit");
     }
 
     @Test void blankTagsAreGeneratedAtConfirmAndValidationUsesEnglish() throws Exception {
@@ -149,7 +175,7 @@ class ChecklistCompletionIntegrationTest {
         assertThat(batch.getImportedRows()).isEqualTo(2);
         assertThat(jdbc.queryForList("SELECT a.asset_tag FROM import_rows r JOIN assets a USING(asset_id) WHERE import_batch_id=?",String.class,batch.getImportBatchId()))
                 .hasSize(2).doesNotHaveDuplicates().allMatch(tag->tag.startsWith("AST-"));
-        mvc.perform(post("/v1/assets").with(user("it01@itam.example").authorities(new SimpleGrantedAuthority("IT_STAFF")))
+        mvc.perform(post("/v1/assets").with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN")))
                 .header("Accept-Language","en").contentType("application/json").content("{}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[0]").value(org.hamcrest.Matchers.containsString("Must not be blank")));
     }

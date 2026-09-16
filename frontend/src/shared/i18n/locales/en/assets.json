@@ -4,6 +4,7 @@
   "subtitle": "Manage devices, components, license packages and relationships",
   "actions": {
     "addAsset": "Add Asset",
+    "addBaselineAsset": "Add opening inventory asset",
     "importExcel": "Import Excel",
     "exportExcel": "Export Excel"
   },
@@ -41,7 +42,7 @@
     "resetFilter": "Reset Filter"
   },
   "modal": {
-    "createTitle": "Add Hardware Asset",
+    "createTitle": "Add opening inventory asset",
     "editTitle": "Edit Asset",
     "detailTitle": "Asset Details",
     "basicSection": "1. Basic Information",
@@ -178,6 +179,7 @@
     "ASSET_WORKFLOW_REQUIRED": "Status, recipient and relationships in use must be changed through a transaction.",
     "actions": {
       "CREATE": "Created asset",
+      "CREATE_BASELINE": "Created opening inventory asset",
       "UPDATE": "Updated asset",
       "LINK": "Linked assets",
       "UNLINK": "Unlinked assets",

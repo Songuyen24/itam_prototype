@@ -56,6 +56,7 @@ describe('Asset API & Hardware Asset Management', () => {
 
   it('assetApi.createAsset sends POST request with payload', async () => {
     const payload = {
+      creationPurpose: 'BASELINE' as const,
       assetTag: 'AST-NEW-01',
       name: 'Dell Latitude 5440',
       typeId: 1,

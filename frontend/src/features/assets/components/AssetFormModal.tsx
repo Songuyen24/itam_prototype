@@ -92,6 +92,14 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
   // Selected model for previewing defaults
   const selectedModel = models.find((m) => m.modelId === Number(modelId));
+  const selectedTypeId = Number(typeId || types[0]?.typeId || 0);
+  const compatibleModels = models.filter((model) => model.typeId === selectedTypeId);
+
+  useEffect(() => {
+    if (models.length > 0 && modelId !== '' && !models.some((model) => model.modelId === modelId && model.typeId === selectedTypeId)) {
+      setModelId('');
+    }
+  }, [modelId, models, selectedTypeId]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -221,7 +229,13 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
       actualRam: actualRam.trim() ? actualRam.trim() : undefined,
       actualStorage: actualStorage.trim() ? actualStorage.trim() : undefined,
       actualGraphicsCard: actualGraphicsCard.trim() ? actualGraphicsCard.trim() : undefined,
-    };
+    } as CreateHardwareAssetPayload | UpdateHardwareAssetPayload;
+
+    if (isEdit) {
+      (payload as UpdateHardwareAssetPayload).expectedVersion = initialData.version;
+    } else {
+      (payload as CreateHardwareAssetPayload).creationPurpose = 'BASELINE';
+    }
 
     if (isLicense) {
       payload.license = license;
@@ -450,7 +464,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                   onChange={(e) => setModelId(e.target.value ? Number(e.target.value) : '')}
                 >
                   <option value="">{t('form.chooseModel')}</option>
-                  {models.map((m) => (
+                  {compatibleModels.map((m) => (
                     <option key={m.modelId} value={m.modelId}>
                       {m.brand} - {m.name}
                     </option>
