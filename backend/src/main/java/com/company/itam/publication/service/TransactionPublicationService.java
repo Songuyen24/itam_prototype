@@ -102,33 +102,39 @@ public class TransactionPublicationService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public PublicationStatusResponse resend(Long id) {
-        var tx = transaction(id); access.requireRead(tx); requireCompleted(tx);
+        var tx = transaction(id); access.requireRead(tx);
+        if (tx.getType() == TransactionType.IMPORT && tx.getStatus() == TransactionStatus.REJECTED) {
+            sendImportRejection(tx);
+            return status(id);
+        }
+        requireCompleted(tx);
+        String importRecipient = tx.getType() == TransactionType.IMPORT
+                ? importRecipient(tx, "IMPORT_COMPLETED") : null;
         var document = documents.findFirstByTransactionTransactionIdAndDocumentTypeOrderByPublicationVersionDesc(id, reportType(tx.getType()))
                 .orElseGet(() -> generate(tx, null));
-        sendCompletion(tx, document);
+        if (importRecipient == null) sendCompletion(tx, document);
+        else sendCompletion(tx, document, importRecipient);
         return status(id);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void onImportSubmitted(Long id) {
+    public void onImportSubmitted(Long id, int revision) {
         var tx = transaction(id);
         String subject = "Phiếu nhập chờ kiểm tra / Receiving pending: " + tx.getTransactionCode();
-        String body = "Phiên bản / Revision: " + tx.getSubmittedRevision() + "\nVui lòng kiểm tra trong ITAM / Please review in ITAM.";
-        jdbc.queryForList("SELECT u.email FROM users u JOIN roles r USING(role_id) WHERE r.name='IT_STAFF' AND u.account_status='ACTIVE'", String.class)
+        String body = "Phiên bản / Revision: " + revision + "\nVui lòng kiểm tra trong ITAM / Please review in ITAM.";
+        jdbc.queryForList("SELECT u.email FROM users u JOIN roles r USING(role_id) WHERE r.code='IT_STAFF' AND u.account_status='ACTIVE'", String.class)
                 .forEach(recipient -> send(tx, recipient, "IMPORT_SUBMITTED", subject, body, null));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onImportProcessed(Long id, boolean approved) {
         var tx = transaction(id);
-        var recipient = importSubmitter(id, tx.getSubmittedRevision());
         if (approved) {
+            var recipient = importRecipient(tx, "IMPORT_COMPLETED");
             var document = generate(tx, null);
             sendCompletion(tx, document, recipient);
         } else {
-            send(tx, recipient, "IMPORT_REJECTED",
-                    "Phiếu nhập bị từ chối / Receiving rejected: " + tx.getTransactionCode(),
-                    "Lý do / Reason: " + (tx.getRejectionReason() == null ? "-" : tx.getRejectionReason()), null);
+            sendImportRejection(tx);
         }
     }
 
@@ -199,14 +205,15 @@ public class TransactionPublicationService {
             // The business transaction commits this snapshot before PDF/email publication starts.
             String json = jdbc.queryForList("SELECT snapshot::text FROM handover_snapshots WHERE transaction_id=?",
                     String.class, tx.getTransactionId()).stream().findFirst()
-                    .orElseThrow(() -> new AppException(HttpStatus.CONFLICT, "PUBLICATION_SNAPSHOT_MISSING", "Publication snapshot is missing"));
+                    .orElseThrow(this::snapshotMissing);
             value = parse(json);
         }
         else if (tx.getType() == TransactionType.IMPORT) {
-            String json = jdbc.queryForObject("SELECT snapshot::text FROM transaction_revisions WHERE transaction_id=? AND revision=?", String.class,
-                    tx.getTransactionId(), tx.getSubmittedRevision());
+            String json = jdbc.queryForList("SELECT snapshot::text FROM transaction_revisions WHERE transaction_id=? AND revision=?", String.class,
+                    tx.getTransactionId(), tx.getSubmittedRevision()).stream().findFirst()
+                    .orElseThrow(this::snapshotMissing);
             value = parse(json);
-        } else throw new AppException(HttpStatus.CONFLICT, "PUBLICATION_SNAPSHOT_MISSING", "Publication snapshot is missing");
+        } else throw snapshotMissing();
         jdbc.update("INSERT INTO transaction_publication_snapshots(transaction_id,snapshot) VALUES (?,CAST(? AS jsonb))",
                 tx.getTransactionId(), value.toString());
         return value;
@@ -214,7 +221,7 @@ public class TransactionPublicationService {
 
     private void sendCompletion(TransactionEntity tx, DocumentEntity document) {
         String recipient = switch (tx.getType()) {
-            case IMPORT -> importSubmitter(tx.getTransactionId(), tx.getSubmittedRevision());
+            case IMPORT -> importRecipient(tx, "IMPORT_COMPLETED");
             case HANDOVER -> publicationSnapshot(tx, null).path("recipientEmail").asText(null);
             case RECOVERY -> publicationSnapshot(tx, null).path("returnerEmail").asText(null);
             case DISPOSAL -> disposalPurchasingRecipient;
@@ -234,6 +241,24 @@ public class TransactionPublicationService {
         send(tx, recipient, event, subject, body, document);
     }
 
+    private void sendImportRejection(TransactionEntity tx) {
+        String reason = firstNonBlank(jdbc.queryForList("""
+                SELECT snapshot->>'rejectionReason' FROM transaction_publication_snapshots
+                WHERE transaction_id=?
+                """, String.class, tx.getTransactionId()));
+        if (reason.isBlank()) {
+            reason = firstNonBlank(jdbc.queryForList("""
+                    SELECT reason FROM receiving_events
+                    WHERE transaction_id=? AND revision=? AND event_type='REJECTED' AND reason IS NOT NULL
+                    ORDER BY event_id LIMIT 1
+                    """, String.class, tx.getTransactionId(), tx.getSubmittedRevision()));
+        }
+        if (reason.isBlank()) throw snapshotMissing();
+        send(tx, importRecipient(tx, "IMPORT_REJECTED"), "IMPORT_REJECTED",
+                "Phiếu nhập bị từ chối / Receiving rejected: " + tx.getTransactionCode(),
+                "Lý do / Reason: " + reason, null);
+    }
+
     private void send(TransactionEntity tx, String recipient, String event, String subject, String body, DocumentEntity document) {
         var entry = new EmailLogEntity(); entry.setTransaction(tx); entry.setRecipient(recipient == null ? "" : recipient);
         entry.setEventType(event); entry.setSubject(subject); entry.setContent(body); entry.setDocument(document); entry.setStatus(EmailStatus.PENDING);
@@ -246,19 +271,38 @@ public class TransactionPublicationService {
         emails.save(entry);
     }
 
-    private String importSubmitter(Long id, int revision) {
-        return jdbc.queryForObject("SELECT u.email FROM transaction_revisions r JOIN users u ON u.user_id=r.submitted_by WHERE r.transaction_id=? AND r.revision=?",
-                String.class, id, revision);
+    private String importRecipient(TransactionEntity tx, String event) {
+        String recipient = firstNonBlank(jdbc.queryForList("""
+                SELECT snapshot->>'submitterEmail' FROM transaction_publication_snapshots
+                WHERE transaction_id=?
+                """, String.class, tx.getTransactionId()));
+        if (recipient.isBlank()) recipient = firstNonBlank(jdbc.queryForList("""
+                SELECT snapshot->>'submitterEmail' FROM transaction_revisions
+                WHERE transaction_id=? AND revision=?
+                """, String.class, tx.getTransactionId(), tx.getSubmittedRevision()));
+        if (recipient.isBlank()) recipient = firstNonBlank(jdbc.queryForList("""
+                SELECT recipient FROM email_logs
+                WHERE transaction_id=? AND event_type=? AND recipient<>''
+                ORDER BY email_log_id LIMIT 1
+                """, String.class, tx.getTransactionId(), event));
+        if (recipient.isBlank()) throw snapshotMissing();
+        return recipient;
+    }
+
+    private String firstNonBlank(List<String> values) {
+        return values.stream().filter(value -> value != null && !value.isBlank()).findFirst().orElse("");
     }
 
     private String snapshotActor(TransactionEntity tx, JsonNode snapshot) {
-        if (tx.getType() == TransactionType.RECOVERY) {
+        if (tx.getType() == TransactionType.IMPORT || tx.getType() == TransactionType.HANDOVER
+                || tx.getType() == TransactionType.RECOVERY) {
             String frozen = snapshot.path("actorName").asText();
             if (!frozen.isBlank()) return frozen;
             for (JsonNode line : snapshot.path("lines")) {
                 frozen = line.path("details").path("actorName").asText();
                 if (!frozen.isBlank()) return frozen;
             }
+            throw snapshotMissing();
         }
         return tx.getProcessedBy() == null ? tx.getRequester().getFullName() : tx.getProcessedBy().getFullName();
     }
@@ -284,6 +328,7 @@ public class TransactionPublicationService {
         };
     }
     private AppException unsupported() { return new AppException(HttpStatus.CONFLICT, "PUBLICATION_NOT_AVAILABLE", "Publication is not available"); }
+    private AppException snapshotMissing() { return new AppException(HttpStatus.CONFLICT, "PUBLICATION_SNAPSHOT_MISSING", "Publication snapshot is missing"); }
     private JsonNode parse(String json) {
         try { return mapper.readTree(json); } catch (JsonProcessingException ex) { throw new IllegalStateException("Invalid publication snapshot", ex); }
     }

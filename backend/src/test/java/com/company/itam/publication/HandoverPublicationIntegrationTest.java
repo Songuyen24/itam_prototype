@@ -92,6 +92,7 @@ class HandoverPublicationIntegrationTest {
     @ParameterizedTest @ValueSource(strings = {"regenerate", "resend"})
     void retriesFailedFirstPublicationFromCommittedHandover(String action) throws Exception {
         var request = request();
+        String originalActor = jdbc.queryForObject("SELECT full_name FROM users WHERE email='admin@itam.example'", String.class);
         doThrow(new IllegalStateException("Simulated PDF failure")).when(pdf).generate(anyString(), anyString(), any(), anyString(), any());
         Long transactionId;
         try { transactionId = complete(request); }
@@ -102,19 +103,29 @@ class HandoverPublicationIntegrationTest {
         String originalEmail = json.readTree(frozen).path("recipientEmail").asText();
         Long auditCount = jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE new_data->>'transactionId'=? OR (entity_type='TRANSACTION' AND entity_id=?)", Long.class, transactionId.toString(), transactionId);
 
-        var retried = action.equals("regenerate") ? publications.regenerate(transactionId) : publications.resend(transactionId);
-        assertThat(retried.pdf().status()).isEqualTo("READY");
-        assertThat(retried.pdf().version()).isEqualTo(1);
-        publications.resend(transactionId);
-        assertThat(publications.status(transactionId).emails()).isNotEmpty().allSatisfy(email -> {
-            assertThat(email.recipient()).isEqualTo(originalEmail);
-            assertThat(email.status()).isEqualTo("SENT");
-        });
-        assertThat(jdbc.queryForObject("SELECT snapshot::text FROM handover_snapshots WHERE transaction_id=?", String.class, transactionId)).isEqualTo(frozen);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM license_allocations WHERE handover_transaction_id=?", Long.class, transactionId)).isEqualTo(2);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_assets WHERE transaction_id=?", Long.class, transactionId)).isEqualTo(2);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE new_data->>'transactionId'=? OR (entity_type='TRANSACTION' AND entity_id=?)", Long.class, transactionId.toString(), transactionId)).isEqualTo(auditCount);
-        assertThat(jdbc.queryForObject("SELECT status FROM transactions WHERE transaction_id=?", String.class, transactionId)).isEqualTo("COMPLETED");
+        jdbc.update("UPDATE users SET full_name='Changed after handover' WHERE email='admin@itam.example'");
+        try {
+            var retried = action.equals("regenerate") ? publications.regenerate(transactionId) : publications.resend(transactionId);
+            var actor = org.mockito.ArgumentCaptor.forClass(String.class);
+            verify(pdf).generate(anyString(), eq("HANDOVER"), any(), actor.capture(), any());
+            assertThat(actor.getValue()).isEqualTo(originalActor);
+            assertThat(retried.pdf().status()).isEqualTo("READY");
+            assertThat(retried.pdf().version()).isEqualTo(1);
+            publications.resend(transactionId);
+            assertThat(publications.status(transactionId).emails()).isNotEmpty().allSatisfy(email -> {
+                assertThat(email.recipient()).isEqualTo(originalEmail);
+                assertThat(email.status()).isEqualTo("SENT");
+            });
+            assertThat(jdbc.queryForObject("SELECT snapshot::text FROM handover_snapshots WHERE transaction_id=?", String.class, transactionId)).isEqualTo(frozen);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM license_allocations WHERE handover_transaction_id=?", Long.class, transactionId)).isEqualTo(2);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_assets WHERE transaction_id=?", Long.class, transactionId)).isEqualTo(2);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE new_data->>'transactionId'=? OR (entity_type='TRANSACTION' AND entity_id=?)", Long.class, transactionId.toString(), transactionId)).isEqualTo(auditCount);
+            assertThat(jdbc.queryForObject("SELECT status FROM transactions WHERE transaction_id=?", String.class, transactionId)).isEqualTo("COMPLETED");
+        } finally {
+            jdbc.update("UPDATE users SET full_name=? WHERE email='admin@itam.example'", originalActor);
+            reset(pdf);
+            authenticate();
+        }
     }
 
     @Test void resendUsesFrozenRecipientAfterProfileChanges() throws Exception {

@@ -6,7 +6,7 @@ import { DocumentPagination } from './DocumentPagination';
 import { ImportDraftPanel } from './ImportDraftPanel';
 import { DocumentUpload } from './DocumentUpload';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
-import { PublicationPanel } from './PublicationPanel';
+import { PublicationPanel, publicationPermissions } from './PublicationPanel';
 
 export function TransactionDocuments({ transactionId, onUpdated, onCreated }: { transactionId: number | null; onUpdated?: () => void; onCreated?: (id:number)=>void }) {
   const { t, i18n } = useTranslation('documents');
@@ -82,6 +82,7 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated }: { 
 
   const canUpload = transaction.documentsEditable && transaction.type === 'IMPORT' &&
     (user?.role === 'ADMIN' || user?.role === 'PUR_STAFF');
+  const publicationActions = publicationPermissions(transaction.type, transaction.status, user?.role);
 
   return (
     <section className="document-detail" aria-labelledby="document-detail-title">
@@ -96,7 +97,7 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated }: { 
       </dl>
       {transaction.type === 'IMPORT' && <ImportDraftPanel transaction={transaction} onChanged={refresh} onCreated={onCreated} />}
       {transaction.status !== 'DRAFT' && <PublicationPanel transactionId={transaction.transactionId}
-        canManage={transaction.status === 'COMPLETED' && (user?.role === 'ADMIN' || user?.role === 'IT_STAFF')} />}
+        {...publicationActions} />}
       <DocumentUpload transactionId={transaction.transactionId} documentsEditable={canUpload} expectedVersion={transaction.expectedVersion}
         onUploaded={() => { setPage(0); refresh(); }} />
       {downloadError && <div className="alert-banner alert-danger" role="alert">{downloadError}</div>}
