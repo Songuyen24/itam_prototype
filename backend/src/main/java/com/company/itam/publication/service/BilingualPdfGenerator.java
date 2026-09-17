@@ -9,35 +9,55 @@ import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.springframework.stereotype.Component;
 
 import java.awt.*;
+import java.awt.font.LineBreakMeasurer;
+import java.awt.font.TextAttribute;
+import java.awt.font.TextLayout;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.text.AttributedString;
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
 public class BilingualPdfGenerator {
-    static final String TEMPLATE_VERSION = "T17-1";
+    static final String TEMPLATE_VERSION = "T17-2";
     private static final int WIDTH = 1240;
     private static final int HEIGHT = 1754;
     private static final int MARGIN = 90;
+    private static final int HANDOVER_LINES_PER_PAGE = 34;
 
     public byte[] generate(String code, String type, Instant issuedAt, String actor, JsonNode snapshot) {
         try (var document = new PDDocument()) {
             var lines = assetLines(snapshot);
+            boolean handover = "HANDOVER".equals(type);
+            List<TextLayout> handoverLines = List.of();
             int offset = 0;
+            int total = lines.size();
             do {
                 var image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
                 var g = image.createGraphics();
                 configure(g);
                 g.setColor(Color.WHITE); g.fillRect(0, 0, WIDTH, HEIGHT);
-                int y = header(g, code, type, issuedAt, actor, offset / 14 + 1);
-                int end = Math.min(offset + 14, lines.size());
-                for (int i = offset; i < end; i++) y = drawAsset(g, y, i + 1, lines.get(i));
-                if (lines.isEmpty()) drawText(g, "Không có tài sản / No assets", MARGIN, y + 20, 28, false);
+                int y = header(g, code, type, issuedAt, actor, document.getNumberOfPages() + 1);
+                int end;
+                if (handover) {
+                    if (offset == 0) handoverLines = handoverLines(g, snapshot, lines);
+                    total = handoverLines.size();
+                    end = Math.min(offset + HANDOVER_LINES_PER_PAGE, total);
+                    g.setColor(new Color(25, 30, 35));
+                    for (int i = offset; i < end; i++) {
+                        handoverLines.get(i).draw(g, MARGIN, y);
+                        y += 31;
+                    }
+                } else {
+                    end = Math.min(offset + 14, total);
+                    for (int i = offset; i < end; i++) y = drawAsset(g, y, i + 1, lines.get(i));
+                    if (lines.isEmpty()) drawText(g, "Không có tài sản / No assets", MARGIN, y + 20, 28, false);
+                }
                 footer(g);
                 g.dispose();
 
@@ -48,7 +68,7 @@ public class BilingualPdfGenerator {
                     stream.drawImage(pdImage, 0, 0, PDRectangle.A4.getWidth(), PDRectangle.A4.getHeight());
                 }
                 offset = end;
-            } while (offset < lines.size());
+            } while (offset < total);
             var output = new ByteArrayOutputStream();
             document.save(output);
             return output.toByteArray();
@@ -72,8 +92,63 @@ public class BilingualPdfGenerator {
                 .withZone(ZoneId.systemDefault()).format(issuedAt), MARGIN, 301, 24, false);
         drawText(g, "Người xử lý / Actor: " + value(actor), MARGIN, 339, 24, false);
         drawText(g, "Trang / Page " + page, WIDTH - 250, 339, 21, false);
-        drawText(g, "DANH SÁCH TÀI SẢN / ASSET LIST", MARGIN, 405, 27, true);
+        drawText(g, "HANDOVER".equals(type) ? "CHI TIẾT BÀN GIAO / HANDOVER DETAILS" : "DANH SÁCH TÀI SẢN / ASSET LIST", MARGIN, 405, 27, true);
         return 445;
+    }
+
+    private List<TextLayout> handoverLines(Graphics2D g, JsonNode snapshot, List<AssetLine> assets) {
+        var result = new ArrayList<TextLayout>();
+        appendWrapped(g, result, "Người nhận / Recipient: " + value(first(snapshot, "recipientName")), true);
+        appendWrapped(g, result, "Email: " + value(first(snapshot, "recipientEmail")), false);
+        appendWrapped(g, result, "Ngày bàn giao / Handover date: " + value(first(snapshot, "handoverDate")), false);
+        appendWrapped(g, result, "Vị trí nhận / Destination: " + value(first(snapshot, "destinationLocationName")), false);
+        if (!first(snapshot, "notes").isBlank()) appendWrapped(g, result, "Ghi chú / Notes: " + first(snapshot, "notes"), false);
+        appendWrapped(g, result, " ", false);
+        appendWrapped(g, result, "DANH SÁCH TÀI SẢN / ASSET LIST", true);
+        for (int i = 0; i < assets.size(); i++) {
+            var asset = assets.get(i);
+            appendWrapped(g, result, (i + 1) + ". " + value(asset.tag) + " - " + value(asset.name), true);
+            String category = switch (asset.category) {
+                case "DEVICE" -> "Thiết bị / Device";
+                case "COMPONENT" -> "Linh kiện / Component";
+                case "LICENSE" -> "Gói license / License package";
+                default -> value(asset.category);
+            };
+            appendWrapped(g, result, category + " | Serial: " + value(asset.serial)
+                    + (asset.seats != null && asset.seats > 0 ? " | Tổng suất / Total seats: " + asset.seats : ""), false);
+            for (var allocation : snapshot.path("lines").path(i).path("allocations")) {
+                var allocationLines = new ArrayList<TextLayout>();
+                String assignment = first(allocation, "assignmentType");
+                if ("PER_USER".equals(assignment)) assignment = "Theo người dùng / Per-user";
+                appendWrapped(g, allocationLines, "Cấp phát / Allocation: " + value(first(allocation, "allocationId"))
+                        + " | " + value(assignment) + " | Số suất / Seats: " + value(first(allocation, "seats")), false);
+                String deviceTag = first(allocation, "deviceTag");
+                String deviceName = first(allocation, "deviceName");
+                String device = deviceTag.isBlank() ? first(allocation, "deviceId") : deviceTag;
+                appendWrapped(g, allocationLines, device.isBlank() && deviceName.isBlank()
+                        ? "Cấp trực tiếp cho người nhận / Assigned to recipient"
+                        : "Thiết bị / Device: " + value(device) + " - " + value(deviceName), false);
+                // Keep an allocation and its device together when the block fits on one page.
+                int remaining = HANDOVER_LINES_PER_PAGE - result.size() % HANDOVER_LINES_PER_PAGE;
+                if (allocationLines.size() <= HANDOVER_LINES_PER_PAGE && allocationLines.size() > remaining) {
+                    for (int blank = 0; blank < remaining; blank++) appendWrapped(g, result, " ", false);
+                }
+                result.addAll(allocationLines);
+            }
+            appendWrapped(g, result, " ", false);
+        }
+        if (assets.isEmpty()) appendWrapped(g, result, "Không có tài sản / No assets", false);
+        return result;
+    }
+
+    private void appendWrapped(Graphics2D g, List<TextLayout> lines, String text, boolean bold) {
+        for (String paragraph : text.split("\\R", -1)) {
+            var attributed = new AttributedString(paragraph.isEmpty() ? " " : paragraph);
+            attributed.addAttribute(TextAttribute.FONT, new Font(Font.SANS_SERIF, bold ? Font.BOLD : Font.PLAIN, 23));
+            var iterator = attributed.getIterator();
+            var measurer = new LineBreakMeasurer(iterator, g.getFontRenderContext());
+            while (measurer.getPosition() < iterator.getEndIndex()) lines.add(measurer.nextLayout(WIDTH - MARGIN * 2));
+        }
     }
 
     private int drawAsset(Graphics2D g, int y, int number, AssetLine line) {

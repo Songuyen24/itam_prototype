@@ -195,6 +195,13 @@ public class TransactionPublicationService {
         if (!existing.isEmpty()) return parse(existing.getFirst());
         JsonNode value;
         if (supplied != null) value = mapper.valueToTree(supplied);
+        else if (tx.getType() == TransactionType.HANDOVER) {
+            // The business transaction commits this snapshot before PDF/email publication starts.
+            String json = jdbc.queryForList("SELECT snapshot::text FROM handover_snapshots WHERE transaction_id=?",
+                    String.class, tx.getTransactionId()).stream().findFirst()
+                    .orElseThrow(() -> new AppException(HttpStatus.CONFLICT, "PUBLICATION_SNAPSHOT_MISSING", "Publication snapshot is missing"));
+            value = parse(json);
+        }
         else if (tx.getType() == TransactionType.IMPORT) {
             String json = jdbc.queryForObject("SELECT snapshot::text FROM transaction_revisions WHERE transaction_id=? AND revision=?", String.class,
                     tx.getTransactionId(), tx.getSubmittedRevision());
@@ -208,7 +215,7 @@ public class TransactionPublicationService {
     private void sendCompletion(TransactionEntity tx, DocumentEntity document) {
         String recipient = switch (tx.getType()) {
             case IMPORT -> importSubmitter(tx.getTransactionId(), tx.getSubmittedRevision());
-            case HANDOVER -> jdbc.queryForObject("SELECT u.email FROM transaction_handover_details d JOIN users u ON u.user_id=d.recipient_user_id WHERE d.transaction_id=?", String.class, tx.getTransactionId());
+            case HANDOVER -> publicationSnapshot(tx, null).path("recipientEmail").asText(null);
             case RECOVERY -> jdbc.queryForObject("SELECT u.email FROM transaction_recovery_details d JOIN users u ON u.user_id=d.returner_user_id WHERE d.transaction_id=?", String.class, tx.getTransactionId());
             case DISPOSAL -> disposalPurchasingRecipient;
             default -> throw unsupported();
