@@ -24,7 +24,7 @@ import java.util.List;
 
 @Component
 public class BilingualPdfGenerator {
-    static final String TEMPLATE_VERSION = "T17-3";
+    static final String TEMPLATE_VERSION = "T18-1";
     private static final int WIDTH = 1240;
     private static final int HEIGHT = 1754;
     private static final int MARGIN = 90;
@@ -33,7 +33,7 @@ public class BilingualPdfGenerator {
     public byte[] generate(String code, String type, Instant issuedAt, String actor, JsonNode snapshot) {
         try (var document = new PDDocument()) {
             var lines = assetLines(snapshot);
-            boolean detailed = "HANDOVER".equals(type) || "RECOVERY".equals(type);
+            boolean detailed = "HANDOVER".equals(type) || "RECOVERY".equals(type) || "DISPOSAL".equals(type);
             List<TextLayout> detailLines = List.of();
             int offset = 0;
             int total = lines.size();
@@ -45,8 +45,12 @@ public class BilingualPdfGenerator {
                 int y = header(g, code, type, issuedAt, actor, document.getNumberOfPages() + 1);
                 int end;
                 if (detailed) {
-                    if (offset == 0) detailLines = "HANDOVER".equals(type)
-                            ? handoverLines(g, snapshot, lines) : recoveryLines(g, snapshot, lines);
+                    if (offset == 0) detailLines = switch (type) {
+                        case "HANDOVER" -> handoverLines(g, snapshot, lines);
+                        case "RECOVERY" -> recoveryLines(g, snapshot, lines);
+                        case "DISPOSAL" -> disposalLines(g, snapshot, lines);
+                        default -> List.of();
+                    };
                     total = detailLines.size();
                     end = Math.min(offset + HANDOVER_LINES_PER_PAGE, total);
                     g.setColor(new Color(25, 30, 35));
@@ -94,7 +98,9 @@ public class BilingualPdfGenerator {
         drawText(g, "Người xử lý / Actor: " + value(actor), MARGIN, 339, 24, false);
         drawText(g, "Trang / Page " + page, WIDTH - 250, 339, 21, false);
         String detailsTitle = "HANDOVER".equals(type) ? "CHI TIẾT BÀN GIAO / HANDOVER DETAILS"
-                : "RECOVERY".equals(type) ? "CHI TIẾT THU HỒI / RECOVERY DETAILS" : "DANH SÁCH TÀI SẢN / ASSET LIST";
+                : "RECOVERY".equals(type) ? "CHI TIẾT THU HỒI / RECOVERY DETAILS"
+                : "DISPOSAL".equals(type) ? "CHI TIẾT THANH LÝ / DISPOSAL DETAILS"
+                : "DANH SÁCH TÀI SẢN / ASSET LIST";
         drawText(g, detailsTitle, MARGIN, 405, 27, true);
         return 445;
     }
@@ -177,6 +183,51 @@ public class BilingualPdfGenerator {
             appendWrapped(g, result, " ", false);
         }
         if (assets.isEmpty()) appendWrapped(g, result, "Không có tài sản / No assets", false);
+        return result;
+    }
+
+    private List<TextLayout> disposalLines(Graphics2D g, JsonNode snapshot, List<AssetLine> assets) {
+        var result = new ArrayList<TextLayout>();
+        appendWrapped(g, result, "Ngày thanh lý / Disposal date: " + value(first(snapshot, "disposalDate")), false);
+        appendWrapped(g, result, "Lý do / Reason: " + value(first(snapshot, "reason")), false);
+        appendWrapped(g, result, " ", false);
+        appendWrapped(g, result, "TÀI SẢN THANH LÝ / RETIRED ASSETS", true);
+        for (int i = 0; i < assets.size(); i++) {
+            var asset = assets.get(i);
+            appendWrapped(g, result, (i + 1) + ". " + value(asset.tag) + " - " + value(asset.name), true);
+            appendWrapped(g, result, "Loại / Category: " + value(asset.category)
+                    + " | Serial: " + value(asset.serial), false);
+        }
+        if (assets.isEmpty()) appendWrapped(g, result, "Không có tài sản / No assets", false);
+
+        appendWrapped(g, result, " ", false);
+        appendWrapped(g, result, "OEM GIỮ THEO THIẾT BỊ / OEM RETAINED WITH DEVICE", true);
+        JsonNode oem = snapshot.path("oemAllocations");
+        if (!oem.isArray() || oem.isEmpty()) appendWrapped(g, result, "Không có / None", false);
+        else for (JsonNode allocation : oem) {
+            appendWrapped(g, result, "Cấp phát / Allocation: " + value(first(allocation, "allocationId"))
+                    + " | Gói / Package: " + value(first(allocation, "assetTag"))
+                    + " | Thiết bị / Device: " + value(first(allocation, "deviceTag"))
+                    + " | Số suất đã dùng / Consumed seats: " + value(first(allocation, "seats")), false);
+        }
+
+        JsonNode decisions = snapshot.path("perUserDecisions");
+        if (decisions.isArray() && !decisions.isEmpty()) {
+            appendWrapped(g, result, " ", false);
+            appendWrapped(g, result, "XỬ LÝ PER-USER / PER-USER OUTCOMES", true);
+            for (JsonNode decision : decisions) {
+                String action = first(decision, "action");
+                JsonNode before = decision.path("before");
+                appendWrapped(g, result, "Cấp phát / Allocation: " + value(first(before, "allocationId"))
+                        + " | Gói / Package: " + value(first(before, "assetTag"))
+                        + " | Số suất / Seats: " + value(first(before, "seats"))
+                        + " | " + ("RELEASED".equals(action)
+                        ? "Đã giải phóng suất / Seat released"
+                        : "Giữ cho người dùng, gỡ khỏi máy / Kept for user, unlinked from device")
+                        + " | Người dùng / User: " + value(first(before, "userName", "userId"))
+                        + " | Thiết bị cũ / Previous device: " + value(first(before, "deviceTag", "deviceId")), false);
+            }
+        }
         return result;
     }
 

@@ -24,4 +24,9 @@ public interface LicenseAllocationRepository extends JpaRepository<LicenseAlloca
 
     @EntityGraph(attributePaths={"license","device","user"})
     java.util.Optional<LicenseAllocationEntity> findByLicenseAssetIdAndDeviceAssetId(Long licenseAssetId, Long deviceAssetId);
+
+    @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths={"license","device","user"})
+    @Query("SELECT a FROM LicenseAllocationEntity a WHERE a.allocationId IN :ids ORDER BY a.allocationId")
+    java.util.List<LicenseAllocationEntity> lockAllById(@Param("ids") java.util.Collection<Long> ids);
 }

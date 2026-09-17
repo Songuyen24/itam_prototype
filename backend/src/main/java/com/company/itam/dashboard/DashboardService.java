@@ -23,8 +23,8 @@ public class DashboardService {
         var result = new LinkedHashMap<String, Object>();
         result.put("byStatus", counts("SELECT s.code,COUNT(*) FROM assets a JOIN asset_statuses s USING(status_id) GROUP BY s.code ORDER BY s.code"));
         result.put("byType", counts("SELECT t.code,COUNT(*) FROM assets a JOIN asset_types t USING(type_id) GROUP BY t.code ORDER BY t.code"));
-        result.put("byLocation", counts("SELECT COALESCE(l.name,'Unassigned'),COUNT(*) FROM assets a LEFT JOIN locations l USING(location_id) GROUP BY l.name ORDER BY 1"));
-        result.put("byDepartment", counts("SELECT COALESCE(d.name,'Unassigned'),COUNT(*) FROM assets a LEFT JOIN departments d USING(department_id) GROUP BY d.name ORDER BY 1"));
+        result.put("byLocation", counts("SELECT COALESCE(l.name,''),COUNT(*) FROM assets a LEFT JOIN locations l USING(location_id) GROUP BY COALESCE(l.name,'') ORDER BY 1"));
+        result.put("byDepartment", counts("SELECT COALESCE(d.name,''),COUNT(*) FROM assets a LEFT JOIN departments d USING(department_id) GROUP BY COALESCE(d.name,'') ORDER BY 1"));
         result.put("pendingReceivings", pending("IMPORT"));
         result.put("pendingDisposals", pending("DISPOSAL"));
         return result;

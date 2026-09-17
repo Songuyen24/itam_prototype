@@ -45,6 +45,15 @@ class BilingualPdfGeneratorTest {
                 """);
     }
 
+    private ObjectNode disposal() throws Exception {
+        return (ObjectNode) mapper.readTree("""
+                {"actorName":"System Administrator","reason":"Beyond repair","disposalDate":"2026-09-15",
+                 "assets":[{"assetId":7,"assetTag":"LAP-007","name":"Laptop mẫu","category":"DEVICE","serialNumber":"SER-007","autoAdded":false}],
+                 "oemAllocations":[{"allocationId":11,"licenseAssetId":9,"assetTag":"OEM-009","deviceId":7,"deviceTag":"LAP-007","seats":1}],
+                 "perUserDecisions":[{"action":"UNLINKED","before":{"allocationId":12,"assetTag":"USR-012","userName":"Nguyễn Văn A","deviceTag":"LAP-007","seats":1}}]}
+                """);
+    }
+
     private int[] pixels(ObjectNode snapshot) throws Exception {
         byte[] bytes = new BilingualPdfGenerator().generate("HO-TEST", "HANDOVER", Instant.parse("2026-09-17T00:00:00Z"), "IT Demo", snapshot);
         try (var document = Loader.loadPDF(bytes)) {
@@ -59,6 +68,39 @@ class BilingualPdfGeneratorTest {
             var image = new PDFRenderer(document).renderImage(0);
             return image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
         }
+    }
+
+    private int[] disposalPixels(ObjectNode snapshot, String actor) throws Exception {
+        byte[] bytes = new BilingualPdfGenerator().generate("DI-TEST", "DISPOSAL", Instant.parse("2026-09-17T00:00:00Z"), actor, snapshot);
+        try (var document = Loader.loadPDF(bytes)) {
+            var image = new PDFRenderer(document).renderImage(0);
+            return image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
+        }
+    }
+
+    @Test
+    void disposalReportRendersFrozenBusinessFieldsAndAllocationEvidence() throws Exception {
+        var original = disposal();
+        String previewPath = System.getProperty("t18.pdf.preview");
+        if (previewPath != null) Files.write(Path.of(previewPath), new BilingualPdfGenerator().generate(
+                "DI-T18-REVIEW", "DISPOSAL", Instant.parse("2026-09-17T00:00:00Z"),
+                "System Administrator", original));
+        var reason = original.deepCopy(); reason.put("reason", "Changed reason");
+        var date = original.deepCopy(); date.put("disposalDate", "2027-01-01");
+        var serial = original.deepCopy(); ((ObjectNode) serial.path("assets").get(0)).put("serialNumber", "CHANGED-SERIAL");
+        var oem = original.deepCopy(); ((ObjectNode) oem.path("oemAllocations").get(0)).put("allocationId", 999);
+        var decision = original.deepCopy(); ((ObjectNode) decision.path("perUserDecisions").get(0)).put("action", "RELEASED");
+        var decisionSeats = original.deepCopy(); ((ObjectNode) decisionSeats.path("perUserDecisions").get(0).path("before")).put("seats", 9);
+        var decisionPackage = original.deepCopy(); ((ObjectNode) decisionPackage.path("perUserDecisions").get(0).path("before")).put("assetTag", "CHANGED-PACKAGE");
+        int[] pixels = disposalPixels(original, "System Administrator");
+        assertThat(Arrays.equals(pixels, disposalPixels(reason, "System Administrator"))).isFalse();
+        assertThat(Arrays.equals(pixels, disposalPixels(date, "System Administrator"))).isFalse();
+        assertThat(Arrays.equals(pixels, disposalPixels(serial, "System Administrator"))).isFalse();
+        assertThat(Arrays.equals(pixels, disposalPixels(oem, "System Administrator"))).isFalse();
+        assertThat(Arrays.equals(pixels, disposalPixels(decision, "System Administrator"))).isFalse();
+        assertThat(Arrays.equals(pixels, disposalPixels(decisionSeats, "System Administrator"))).isFalse();
+        assertThat(Arrays.equals(pixels, disposalPixels(decisionPackage, "System Administrator"))).isFalse();
+        assertThat(Arrays.equals(pixels, disposalPixels(original, "Changed actor"))).isFalse();
     }
 
     @Test
