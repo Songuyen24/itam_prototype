@@ -27,12 +27,54 @@ class BilingualPdfGeneratorTest {
                 """);
     }
 
+    private ObjectNode recovery() throws Exception {
+        return (ObjectNode) mapper.readTree("""
+                {"returnerName":"Nguyễn Văn A","returnerEmail":"user@itam.example","recoveryDate":"2026-09-17",
+                 "receivingLocationName":"Kho Hà Nội","reason":"Nghỉ việc", "lines":[
+                 {"assetTag":"RAM-001","name":"Memory","category":"COMPONENT","parentAssetId":7,
+                  "details":{"componentAction":"DETACH"},"allocations":[]},
+                 {"assetTag":"LIC-001","name":"Office package","category":"LICENSE","seats":2,
+                  "allocations":[{"allocationId":11,"seats":1,"action":"RESERVED","assignmentType":"OEM"},
+                                 {"allocationId":12,"seats":1,"action":"RELEASED","assignmentType":"PER_USER"},
+                                 {"allocationId":13,"seats":1,"action":"UNLINKED","assignmentType":"PER_USER"}],
+                  "details":{"allocationDecisions":[
+                    {"action":"RESERVED","before":{"allocationId":11,"deviceId":7,"relationshipId":101}},
+                    {"action":"RELEASED","before":{"allocationId":12,"userId":8,"deviceId":7,"relationshipId":102}},
+                    {"action":"UNLINKED","before":{"allocationId":13,"userId":9,"deviceId":7,"relationshipId":103}}]}}
+                 ]}
+                """);
+    }
+
     private int[] pixels(ObjectNode snapshot) throws Exception {
         byte[] bytes = new BilingualPdfGenerator().generate("HO-TEST", "HANDOVER", Instant.parse("2026-09-17T00:00:00Z"), "IT Demo", snapshot);
         try (var document = Loader.loadPDF(bytes)) {
             var image = new PDFRenderer(document).renderImage(0);
             return image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
         }
+    }
+
+    private int[] recoveryPixels(ObjectNode snapshot) throws Exception {
+        byte[] bytes = new BilingualPdfGenerator().generate("RC-TEST", "RECOVERY", Instant.parse("2026-09-17T00:00:00Z"), "IT Demo", snapshot);
+        try (var document = Loader.loadPDF(bytes)) {
+            var image = new PDFRenderer(document).renderImage(0);
+            return image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
+        }
+    }
+
+    @Test
+    void recoveryReportRendersFrozenContextAndEachAllocationOutcome() throws Exception {
+        var original = recovery();
+        String previewPath = System.getProperty("t16.pdf.preview");
+        if (previewPath != null) Files.write(Path.of(previewPath), new BilingualPdfGenerator().generate(
+                "RC-TEST", "RECOVERY", Instant.parse("2026-09-17T00:00:00Z"), "IT Demo", original));
+        var changedReason = original.deepCopy(); changedReason.put("reason", "Thay đổi lý do");
+        var changedComponent = original.deepCopy(); ((ObjectNode) changedComponent.path("lines").get(0).path("details")).put("componentAction", "KEEP_ATTACHED");
+        var changedAllocation = original.deepCopy();
+        ((ObjectNode) changedAllocation.path("lines").get(1).path("allocations").get(2)).put("action", "RELEASED");
+        ((ObjectNode) changedAllocation.path("lines").get(1).path("details").path("allocationDecisions").get(2)).put("action", "RELEASED");
+        assertThat(Arrays.equals(recoveryPixels(original), recoveryPixels(changedReason))).isFalse();
+        assertThat(Arrays.equals(recoveryPixels(original), recoveryPixels(changedComponent))).isFalse();
+        assertThat(Arrays.equals(recoveryPixels(original), recoveryPixels(changedAllocation))).isFalse();
     }
 
     @ParameterizedTest
