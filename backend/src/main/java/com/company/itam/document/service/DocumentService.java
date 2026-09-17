@@ -8,10 +8,8 @@ import com.company.itam.document.dto.DocumentResponse;
 import com.company.itam.document.entity.DocumentEntity;
 import com.company.itam.document.repository.DocumentRepository;
 import com.company.itam.workflow.core.entity.TransactionEntity;
-import com.company.itam.workflow.core.enums.TransactionStatus;
 import com.company.itam.workflow.core.repository.TransactionRepository;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -140,8 +138,4 @@ public class DocumentService {
         return new AppException(HttpStatus.BAD_REQUEST, "DOCUMENT_REQUEST_INVALID", "Invalid document request");
     }
 
-    private AppException workflowNotReady() {
-        return new AppException(HttpStatus.CONFLICT, "DOCUMENT_WORKFLOW_NOT_READY",
-                "Document changes require the receiving draft and revision workflow");
-    }
 }
