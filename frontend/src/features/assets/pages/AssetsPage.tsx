@@ -31,7 +31,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
   const { t } = useTranslation(['assets', 'common']);
   const { user } = useAuth();
   const canManageAssets = !myAssets && canManageInventory(user?.role);
-  const canCreateBaseline = canManageAssets && user?.role === 'ADMIN';
+  const canCreateBaseline = canManageAssets;
   // Filters & Pagination
   const [keyword, setKeyword] = useState('');
   const [statusId, setStatusId] = useState<number | undefined>();

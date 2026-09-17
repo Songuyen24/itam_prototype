@@ -22,8 +22,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   const cfg = asset.hardwareConfig || {};
 
   const formatCurrency = (val?: number) => {
-    if (val === undefined || val === null) return new Intl.NumberFormat(i18n.language, {style:'currency',currency:'VND'}).format(0);
-    return new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'VND' }).format(val);
+    return new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'VND' }).format(val ?? 0);
   };
 
   const formatDate = (val?: string) => {

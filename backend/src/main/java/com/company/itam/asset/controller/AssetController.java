@@ -84,7 +84,7 @@ public class AssetController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PostMapping
     public ResponseEntity<ApiResponse<AssetDetailResponse>> createHardwareAsset(
             @Valid @RequestBody CreateHardwareAssetRequest request) {

@@ -115,22 +115,21 @@ class AuthorizationControllerTest {
     }
 
     @Test
-    void onlyAdminCanCreateBaselineAssets() throws Exception {
-        Map<String, Object> payload = Map.of(
-                "creationPurpose", "BASELINE",
-                "assetTag", fixturePrefix + "-BASELINE",
-                "name", "Opening inventory asset",
-                "typeId", typeId);
+    void adminAndItStaffCanCreateBaselineAssets() throws Exception {
+        for (String role : List.of("ADMIN", "IT_STAFF")) {
+            Map<String, Object> payload = Map.of(
+                    "creationPurpose", "BASELINE",
+                    "assetTag", fixturePrefix + "-BASELINE-" + role,
+                    "name", "Opening inventory asset",
+                    "typeId", typeId);
 
-        api(HttpMethod.POST, "/v1/assets", login("IT_STAFF"), payload)
-                .andExpect(status().isForbidden());
-
-        JsonNode created = responseData(api(HttpMethod.POST, "/v1/assets", login("ADMIN"), payload)
-                .andExpect(status().isCreated()));
-        long assetId = created.path("assetId").asLong();
-        assertThat(jdbc.queryForObject(
-                "select action from audit_logs where entity_type='ASSET' and entity_id=? order by audit_log_id desc limit 1",
-                String.class, assetId)).isEqualTo("CREATE_BASELINE");
+            JsonNode created = responseData(api(HttpMethod.POST, "/v1/assets", login(role), payload)
+                    .andExpect(status().isCreated()));
+            long assetId = created.path("assetId").asLong();
+            assertThat(jdbc.queryForObject(
+                    "select action from audit_logs where entity_type='ASSET' and entity_id=? order by audit_log_id desc limit 1",
+                    String.class, assetId)).isEqualTo("CREATE_BASELINE");
+        }
     }
 
     @ParameterizedTest
