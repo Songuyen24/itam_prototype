@@ -58,7 +58,9 @@ class TransactionPublicationIntegrationTest {
         jdbc.update("INSERT INTO transaction_handover_details(transaction_id,recipient_user_id,handover_date,destination_location_id) VALUES (?,?,?,?)",
                 id, recipient, LocalDate.now(), location);
         var snapshot = mapper.readTree("""
-                {"lines":[{"assetId":1,"assetTag":"AST-T17","name":"Laptop mẫu","category":"DEVICE",
+                {"recipientName":"Nguyễn Văn A","recipientEmail":"user01@itam.example",
+                "handoverDate":"2026-09-10","destinationLocationName":"T17 test location",
+                "lines":[{"assetId":1,"assetTag":"AST-T17","name":"Laptop mẫu","category":"DEVICE",
                 "seats":0,"details":{"serialNumber":"SER-T17"}}]}
                 """);
 
