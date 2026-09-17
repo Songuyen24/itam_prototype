@@ -35,9 +35,12 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -58,6 +61,7 @@ public class AssetService {
     private final AssetMapper assetMapper;
     private final LicenseDetailsService licenses;
     private final AssetAuditService audit;
+    private final JdbcTemplate jdbc;
 
     public AssetService(
             AssetRepository assetRepository,
@@ -70,8 +74,9 @@ public class AssetService {
             LocationRepository locationRepository,
             SupplierRepository supplierRepository,
             UserRepository userRepository,
-            AssetMapper assetMapper, LicenseDetailsService licenses, AssetAuditService audit) {
+            AssetMapper assetMapper, LicenseDetailsService licenses, AssetAuditService audit, JdbcTemplate jdbc) {
         this.licenses = licenses; this.audit = audit;
+        this.jdbc = jdbc;
         this.assetRepository = assetRepository;
         this.assetHardwareDetailsRepository = assetHardwareDetailsRepository;
         this.assetTypeRepository = assetTypeRepository;
@@ -94,22 +99,46 @@ public class AssetService {
         return PageResponse.of(page.map(assetMapper::toResponse));
     }
 
-    /**
-     * Get recovery candidates owned by/attached to a user:
-     *  - DEVICE in IN_USE
-     *  - COMPONENT linked to a device owned by the user (any non-RETIRED status)
-     *  - LICENSE PER_USER in ACTIVE/RELEASED state attached to a device of the user
-     * License OEM is excluded (always auto-bundled with its device).
-     */
+    public record RecoveryCandidate(Long assetId, String assetTag, String name, String categoryCode,
+                                    String licenseAssignmentTypeCode, Long assignedToUserId, String assignedToFullName,
+                                    Long allocationId, String deviceTag, Integer seats) {}
+
+    private static final String RECOVERY_CANDIDATES = """
+            SELECT a.asset_id, a.asset_tag, a.name, c.code AS category_code, NULL::varchar AS license_assignment_type_code, a.assigned_to, u.full_name,
+                   NULL::bigint AS allocation_id, NULL::varchar AS device_tag, NULL::integer AS seats, 1 AS sort_order
+            FROM assets a JOIN asset_types t ON t.type_id=a.type_id JOIN asset_categories c ON c.category_id=t.category_id
+            JOIN users u ON u.user_id=a.assigned_to JOIN asset_statuses s ON s.status_id=a.status_id
+            WHERE c.code <> 'LICENSE' AND s.code='IN_USE' AND a.assigned_to=?
+            UNION ALL
+            SELECT a.asset_id, a.asset_tag, a.name, c.code, lat.code, la.user_id, u.full_name,
+                   la.allocation_id, d.asset_tag, la.seat_count, 2 AS sort_order
+            FROM license_allocations la JOIN assets a ON a.asset_id=la.license_asset_id
+            JOIN asset_types t ON t.type_id=a.type_id JOIN asset_categories c ON c.category_id=t.category_id
+            JOIN asset_license_details ld ON ld.asset_id=a.asset_id
+            JOIN license_assignment_types lat ON lat.license_assignment_type_id=ld.license_assignment_type_id
+            JOIN users u ON u.user_id=la.user_id LEFT JOIN assets d ON d.asset_id=la.device_asset_id
+            WHERE lat.code='PER_USER' AND la.status='ACTIVE' AND la.user_id=?
+            """;
+
     @Transactional(readOnly = true)
-    public PageResponse<AssetResponse> getRecoveryCandidates(Long userId, String keyword, Pageable pageable) {
+    public PageResponse<RecoveryCandidate> getRecoveryCandidates(Long userId, String keyword, Pageable pageable) {
         Authentication authentication = requireAuthentication();
         if (!canReadInventory(authentication)) {
             throw new AccessDeniedException("Access denied");
         }
-        // Use raw repository to compose the page directly: simpler than reshaping the spec for IN_USE-only.
-        Page<AssetEntity> page = assetRepository.findRecoveryCandidates(userId, keyword, pageable);
-        return PageResponse.of(page.map(assetMapper::toResponse));
+        if (userId == null || userId < 1 || pageable.getPageNumber() < 0 || pageable.getPageSize() < 1 || pageable.getPageSize() > 100 || (keyword != null && keyword.length() > 100))
+            throw new AppException(HttpStatus.BAD_REQUEST, "RECOVERY_REQUEST_INVALID", "RECOVERY_REQUEST_INVALID");
+        String search = (keyword == null ? "" : keyword).trim().toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        String pattern = "%" + search + "%";
+        String filtered = "SELECT * FROM (" + RECOVERY_CANDIDATES + ") candidates WHERE LOWER(asset_tag) LIKE ? ESCAPE '\\' OR LOWER(name) LIKE ? ESCAPE '\\'";
+        Object[] filterArgs = {userId, userId, pattern, pattern};
+        long total = jdbc.queryForObject("SELECT COUNT(*) FROM (" + filtered + ") counted", Long.class, filterArgs);
+        List<RecoveryCandidate> content = jdbc.query(filtered + " ORDER BY sort_order, asset_tag, asset_id, allocation_id LIMIT ? OFFSET ?", (rs, row) ->
+                        new RecoveryCandidate(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),
+                                rs.getLong(6), rs.getString(7), rs.getObject(8, Long.class), rs.getString(9), rs.getObject(10, Integer.class)),
+                userId, userId, pattern, pattern, pageable.getPageSize(), pageable.getOffset());
+        int pages = total == 0 ? 0 : (int) Math.ceil((double) total / pageable.getPageSize());
+        return new PageResponse<>(content, pageable.getPageNumber(), pageable.getPageSize(), total, pages, pageable.getPageNumber() + 1 >= pages);
     }
 
     public PageResponse<AssetResponse> getMyAssets(String keyword, Pageable pageable) {

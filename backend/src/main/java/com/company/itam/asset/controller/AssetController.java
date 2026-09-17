@@ -68,12 +68,12 @@ public class AssetController {
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping("/recovery-candidates")
-    public ResponseEntity<ApiResponse<PageResponse<AssetResponse>>> getRecoveryCandidates(
+    public ResponseEntity<ApiResponse<PageResponse<AssetService.RecoveryCandidate>>> getRecoveryCandidates(
             @RequestParam Long userId,
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        PageResponse<AssetResponse> result = assetService.getRecoveryCandidates(userId, keyword, pageable);
+        PageResponse<AssetService.RecoveryCandidate> result = assetService.getRecoveryCandidates(userId, keyword, pageable);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

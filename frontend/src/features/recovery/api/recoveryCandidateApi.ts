@@ -5,7 +5,11 @@ export interface AssetCandidate {
   assetId: number;
   assetTag: string;
   name: string;
-  category: string;
+  category?: string;
+  categoryCode?: string;
+  allocationId?: number | null;
+  deviceTag?: string | null;
+  seats?: number | null;
   licenseAssignmentTypeCode: string | null;
   assignedToUserId: number | null;
   assignedToFullName: string | null;

@@ -176,7 +176,7 @@ public class TransactionPublicationService {
         JsonNode snapshot = publicationSnapshot(tx, suppliedSnapshot);
         int version = Math.toIntExact(documents.countByTransactionTransactionIdAndDocumentType(tx.getTransactionId(), type) + 1);
         Instant issuedAt = Instant.now();
-        String actor = tx.getProcessedBy() == null ? tx.getRequester().getFullName() : tx.getProcessedBy().getFullName();
+        String actor = snapshotActor(tx, snapshot);
         byte[] bytes = pdf.generate(tx.getTransactionCode(), tx.getType().name(), issuedAt, actor, snapshot);
         String fileName = tx.getTransactionCode() + "-v" + version + ".pdf";
         var stored = storage.storeGeneratedPdf(tx.getType(), fileName, bytes);
@@ -216,7 +216,7 @@ public class TransactionPublicationService {
         String recipient = switch (tx.getType()) {
             case IMPORT -> importSubmitter(tx.getTransactionId(), tx.getSubmittedRevision());
             case HANDOVER -> publicationSnapshot(tx, null).path("recipientEmail").asText(null);
-            case RECOVERY -> jdbc.queryForObject("SELECT u.email FROM transaction_recovery_details d JOIN users u ON u.user_id=d.returner_user_id WHERE d.transaction_id=?", String.class, tx.getTransactionId());
+            case RECOVERY -> publicationSnapshot(tx, null).path("returnerEmail").asText(null);
             case DISPOSAL -> disposalPurchasingRecipient;
             default -> throw unsupported();
         };
@@ -249,6 +249,18 @@ public class TransactionPublicationService {
     private String importSubmitter(Long id, int revision) {
         return jdbc.queryForObject("SELECT u.email FROM transaction_revisions r JOIN users u ON u.user_id=r.submitted_by WHERE r.transaction_id=? AND r.revision=?",
                 String.class, id, revision);
+    }
+
+    private String snapshotActor(TransactionEntity tx, JsonNode snapshot) {
+        if (tx.getType() == TransactionType.RECOVERY) {
+            String frozen = snapshot.path("actorName").asText();
+            if (!frozen.isBlank()) return frozen;
+            for (JsonNode line : snapshot.path("lines")) {
+                frozen = line.path("details").path("actorName").asText();
+                if (!frozen.isBlank()) return frozen;
+            }
+        }
+        return tx.getProcessedBy() == null ? tx.getRequester().getFullName() : tx.getProcessedBy().getFullName();
     }
 
     private UserEntity currentUserOr(UserEntity fallback) {

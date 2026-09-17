@@ -16,9 +16,34 @@ export interface RecoveryRequest {
   recoveryDate: string;
   reason: string;
   assetIds: number[];
+  allocationIds: number[];
   componentActions: Record<number, { componentAction: string; recoverPerUser: boolean }>;
   perUserActions: Record<number, boolean>;
   expectedFingerprint: string;
+}
+
+export function buildRecoveryRequest(
+  check: SmartCheckResponse,
+  assetIds: number[],
+  allocationIds: number[],
+  reason: string,
+  componentActions: Record<number, string> = {},
+  perUserActions: Record<number, boolean> = Object.fromEntries(allocationIds.map(id => [id, true])),
+): RecoveryRequest {
+  return {
+    returnerUserId: 0,
+    receivingLocationId: 0,
+    recoveryDate: '',
+    reason,
+    assetIds,
+    allocationIds,
+    componentActions: Object.fromEntries(Object.entries(componentActions).map(([id, action]) => [Number(id), {
+      componentAction: action,
+      recoverPerUser: false,
+    }])),
+    perUserActions,
+    expectedFingerprint: check.fingerprint,
+  };
 }
 
 export interface RecoveryLine {
@@ -48,7 +73,7 @@ export interface Recovery {
 }
 
 export const recoveryApi = {
-  smartCheck: (body: { assetIds: number[]; reason: string }) =>
+  smartCheck: (body: { returnerUserId: number; assetIds: number[]; allocationIds: number[]; reason: string }) =>
     httpClient<ApiResponse<SmartCheckResponse>>('/v1/recoveries/smart-check', { method: 'POST', body: JSON.stringify(body) }),
   complete: (body: RecoveryRequest) =>
     httpClient<ApiResponse<Recovery>>('/v1/recoveries', { method: 'POST', body: JSON.stringify(body) }),

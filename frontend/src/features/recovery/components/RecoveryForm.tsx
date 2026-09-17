@@ -2,54 +2,55 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { locationApi } from '@/features/catalogs/api/catalogApi';
 import { LocationItem } from '@/features/catalogs/types/catalog.types';
-import { SmartCheckResponse, RecoveryRequest, Recovery, recoveryApi } from '../api/recoveryApi';
+import { buildRecoveryRequest, SmartCheckResponse, RecoveryRequest, Recovery, recoveryApi } from '../api/recoveryApi';
 import { AssetCandidate, recoveryCandidateApi } from '../api/recoveryCandidateApi';
+import { handoverApi } from '@/features/handover/api/handoverApi';
 
 const loadLocations = (keyword: string, page: number) => locationApi.getAll(keyword, true, page, 10);
 function localDate() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 
 interface Recipient { id: number; fullName: string; email: string; accountStatus: string }
 
-const CATEGORY_LABEL: Record<string, { vi: string; en: string; emoji: string }> = {
-  DEVICE:    { vi: 'Thiết bị',    en: 'Device',     emoji: '💻' },
-  COMPONENT: { vi: 'Linh kiện',  en: 'Component',  emoji: '🔧' },
-  LICENSE:   { vi: 'License',    en: 'License',    emoji: '🪪' },
-};
+const CATEGORY_ICON: Record<string, string> = { DEVICE: '💻', COMPONENT: '🔧', LICENSE: '🪪' };
+const categoryLabel = (t: (key: string, options?: Record<string, unknown>) => string, category: string) =>
+  t(`category${category[0]}${category.slice(1).toLowerCase()}`);
 
 function UserPicker({ onSelect, disabled }: { onSelect: (r: Recipient) => void; disabled: boolean }) {
-  const { t } = useTranslation('handover');
+  const { t } = useTranslation('recovery');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(0);
   const [items, setItems] = useState<Recipient[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/v1/users?keyword=${encodeURIComponent(keyword)}&page=${page}&size=10`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('itam_auth_token') || ''}` }
-    })
-      .then(r => r.json())
+    setError(false);
+    handoverApi.users(keyword, page)
       .then(r => { setItems(r.data?.content || []); setTotal(r.data?.totalElements || 0); })
+      .catch(() => { setItems([]); setTotal(0); setError(true); })
       .finally(() => setLoading(false));
-  }, [keyword, page]);
+  }, [keyword, page, retry]);
 
   const pages = Math.ceil(total / 10);
   return (
     <fieldset disabled={disabled} style={{ border: '1px solid #ccc', padding: 12, margin: 8 }}>
-      <legend>{t('searchUsers')}</legend>
-      <input className="form-input" placeholder="Search..." value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
-      {loading && <span>Loading...</span>}
+      <legend>{t('searchAssets')}</legend>
+      <input className="form-input" placeholder={t('searchPlaceholder')} value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
+      {loading && <span>{t('loading')}</span>}
+      {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}
       {items.map(item => (
-        <div key={item.id} style={{ padding: 4, cursor: 'pointer' }} onClick={() => onSelect(item)}>
+        <button type="button" key={item.id} disabled={disabled} style={{ display: 'block', padding: 4, cursor: 'pointer' }} onClick={() => onSelect(item)}>
           <strong>{item.fullName}</strong> · {item.email}
-        </div>
+        </button>
       ))}
       {pages > 1 && (
         <div style={{ marginTop: 8 }}>
-          <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Prev</button>
+          <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
           <span style={{ margin: '0 8px' }}>{page + 1} / {pages}</span>
-          <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>Next</button>
+          <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>{t('next')}</button>
         </div>
       )}
     </fieldset>
@@ -60,21 +61,23 @@ function UserPicker({ onSelect, disabled }: { onSelect: (r: Recipient) => void; 
  *  operator can immediately see Devices, Components, and Per-User Licenses belonging to that user. */
 function UserAssetPicker({
   userId,
-  selectedIds,
+  selectedKeys,
   onToggle,
   disabled,
 }: {
   userId: number | null;
-  selectedIds: number[];
+  selectedKeys: string[];
   onToggle: (a: AssetCandidate) => void;
   disabled: boolean;
 }) {
-  const { t, i18n } = useTranslation('recovery');
+  const { t } = useTranslation('recovery');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(0);
   const [items, setItems] = useState<AssetCandidate[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     if (!userId) {
@@ -83,20 +86,23 @@ function UserAssetPicker({
       return;
     }
     setLoading(true);
+    setError(false);
     recoveryCandidateApi
       .byUser(userId, keyword, page, 20)
       .then(r => {
         setItems(r.data?.content || []);
         setTotal(r.data?.totalElements || 0);
       })
+      .catch(() => { setItems([]); setTotal(0); setError(true); })
       .finally(() => setLoading(false));
-  }, [userId, keyword, page]);
+  }, [userId, keyword, page, retry]);
 
   const pages = Math.ceil(total / 20);
-  const isIn = (id: number) => selectedIds.includes(id);
+  const selectionKey = (item: AssetCandidate) => item.allocationId == null ? `asset-${item.assetId}` : `allocation-${item.allocationId}`;
+  const isIn = (item: AssetCandidate) => selectedKeys.includes(selectionKey(item));
 
   const grouped = items.reduce<Record<string, AssetCandidate[]>>((acc, item) => {
-    const cat = item.category || 'OTHER';
+    const cat = item.categoryCode || item.category || 'OTHER';
     (acc[cat] ||= []).push(item);
     return acc;
   }, {});
@@ -117,16 +123,17 @@ function UserAssetPicker({
             }}
           />
           {loading && <span>{t('loading')}</span>}
+          {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}
           {!loading && items.length === 0 && <p style={{ color: '#999' }}>{t('noDevicesForUser')}</p>}
           {Object.entries(grouped).map(([cat, list]) => (
             <div key={cat} style={{ marginTop: 8 }}>
               <div style={{ fontWeight: 600, fontSize: 13, color: '#555', marginBottom: 4 }}>
-                {CATEGORY_LABEL[cat]?.emoji ?? '•'} {CATEGORY_LABEL[cat]?.[i18n.language as 'vi' | 'en'] ?? cat}
+                {CATEGORY_ICON[cat] ?? '•'} {categoryLabel(t, cat)}
                 {' '}<span style={{ color: '#999', fontWeight: 400 }}>({list.length})</span>
               </div>
               {list.map(item => (
                 <label
-                  key={item.assetId}
+                  key={selectionKey(item)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -136,9 +143,10 @@ function UserAssetPicker({
                     borderBottom: '1px solid #f0f0f0',
                   }}
                 >
-                  <input type="checkbox" checked={isIn(item.assetId)} onChange={() => onToggle(item)} />
+                  <input type="checkbox" checked={isIn(item)} onChange={() => onToggle(item)} />
                   <span>
                     <strong>{item.assetTag}</strong> · {item.name}
+                    {item.allocationId != null && <span> · {t('allocation', { id: item.allocationId })}{item.seats != null ? ` · ${t('seats', { count: item.seats })}` : ''}{item.deviceTag ? ` · ${t('assignedToDevice', { deviceTag: item.deviceTag })}` : ''}</span>}
                     {item.licenseAssignmentTypeCode && (
                       <span style={{
                         marginLeft: 8,
@@ -157,9 +165,9 @@ function UserAssetPicker({
           ))}
           {pages > 1 && (
             <div style={{ marginTop: 8 }}>
-              <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Prev</button>
+              <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
               <span style={{ margin: '0 8px' }}>{page + 1} / {pages}</span>
-              <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>Next</button>
+              <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>{t('next')}</button>
             </div>
           )}
         </>
@@ -168,15 +176,17 @@ function UserAssetPicker({
   );
 }
 
-function SmartCheckDialog({
-  check, onConfirm, onCancel, busy, t, lang,
+export function SmartCheckDialog({
+  check, selectedAssetIds, selectedAllocationIds, reason, onConfirm, onCancel, busy, t,
 }: {
   check: SmartCheckResponse;
+  selectedAssetIds: number[];
+  selectedAllocationIds: number[];
+  reason: string;
   onConfirm: (request: RecoveryRequest) => void;
   onCancel: () => void;
   busy: boolean;
-  t: (key: string) => string;
-  lang: 'vi' | 'en';
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   const [componentActions, setComponentActions] = useState<Record<number, string>>(() => {
     const init: Record<number, string> = {};
@@ -185,13 +195,14 @@ function SmartCheckDialog({
   });
   const [perUserActions, setPerUserActions] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {};
-    check.optionalAssets?.forEach(a => { init[a.allocationId] = a.selected; });
+    check.optionalAssets?.forEach(a => { init[a.allocationId] = selectedAllocationIds.includes(a.allocationId) || a.selected; });
     return init;
   });
 
   // Separate required into device vs OEM for clearer display
   const requiredDevices = check.requiredAssets?.filter(a => a.category === 'DEVICE') ?? [];
   const requiredOem     = check.requiredAssets?.filter(a => a.category === 'LICENSE') ?? [];
+  const requiredComponents = check.requiredAssets?.filter(a => a.category === 'COMPONENT') ?? [];
 
   // Scenario tags for blockedAssets
   const tagBlocked = (reason: string) => {
@@ -203,21 +214,12 @@ function SmartCheckDialog({
   };
 
   const hasBlocked = (check.blockedAssets?.length ?? 0) > 0;
+  const hasOptionalPerUser = check.optionalAssets?.some(a => !selectedAllocationIds.includes(a.allocationId)) ?? false;
 
-  const assetIds = check.requiredAssets?.map(a => a.assetId) || [];
-  const request: RecoveryRequest = {
-    returnerUserId: 0,
-    receivingLocationId: 0,
-    recoveryDate: localDate(),
-    reason: '',
-    assetIds,
-    componentActions: Object.fromEntries(Object.entries(componentActions).map(([k, v]) => [Number(k), { componentAction: v, recoverPerUser: perUserActions[Number(k)] ?? false }])),
-    perUserActions,
-    expectedFingerprint: check.fingerprint,
-  };
+  const request = () => buildRecoveryRequest(check, selectedAssetIds, selectedAllocationIds, reason, componentActions, perUserActions);
 
   return (
-    <dialog open style={{ padding: 24, minWidth: 600, maxWidth: 900 }}>
+    <dialog open style={{ padding: 24, width: 'min(900px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
       <h2>{t('smartCheckTitle')}</h2>
 
       {/* Blocked items — scenarios B, C, D when triggered */}
@@ -232,7 +234,7 @@ function SmartCheckDialog({
               <div key={a.assetId} style={{ padding: '6px 0', borderBottom: '1px solid #f5c6cb' }}>
                 <strong style={{ color: '#721c24' }}>{a.assetTag}</strong> · {a.name}
                 <span style={{ marginLeft: 8, fontSize: 11, background: '#fff', padding: '1px 6px', borderRadius: 3 }}>
-                  {CATEGORY_LABEL[a.category]?.[lang] ?? a.category} · {t(tag.key)}
+                  {categoryLabel(t, a.category)} · {t(tag.key)}
                 </span>
                 <p style={{ margin: '4px 0', color: '#721c24', fontSize: 13 }}>→ {a.reason}</p>
               </div>
@@ -275,6 +277,13 @@ function SmartCheckDialog({
         </div>
       ) : null}
 
+      {requiredComponents.length ? (
+        <div style={{ marginBottom: 16 }}>
+          <h3>🔧 {t('requiredComponents')} ({requiredComponents.length})</h3>
+          {requiredComponents.map(a => <div key={a.assetId} style={{ padding: '4px 8px', background: '#d4edda', marginBottom: 4, borderRadius: 4 }}><strong>{a.assetTag}</strong> · {a.name}</div>)}
+        </div>
+      ) : null}
+
       {/* Components with KEEP/DETACH decisions */}
       {check.componentDecisions?.length ? (
         <div style={{ marginBottom: 16 }}>
@@ -298,19 +307,20 @@ function SmartCheckDialog({
       {/* Per-User Licenses — optional */}
       {check.optionalAssets?.length ? (
         <div style={{ marginBottom: 16 }}>
-          <h3>👤 {t('perUserLicenses')} ({check.optionalAssets.length})</h3>
+          <h3>👤 {t(hasOptionalPerUser ? 'perUserLicenses' : 'perUserLicensesRequired')} ({check.optionalAssets.length})</h3>
           {check.optionalAssets.map(a => (
             <label key={a.allocationId} style={{ display: 'block', padding: 4 }}>
-              <input type="checkbox" checked={perUserActions[a.allocationId] ?? false}
+              <input type="checkbox" disabled={selectedAllocationIds.includes(a.allocationId)} checked={perUserActions[a.allocationId] ?? false}
                 onChange={e => setPerUserActions(prev => ({ ...prev, [a.allocationId]: e.target.checked }))} />
               <span style={{ marginLeft: 8 }}>
-                {a.assetTag} · {a.name} · {a.seats} seat(s)
+                {a.assetTag} · {a.name} · {t('seats', { count: a.seats })}
+                {selectedAllocationIds.includes(a.allocationId) && <span style={{ color: '#666', fontSize: 12 }}> · {t('selectedStandalone')}</span>}
                 {a.userName && <span style={{ color: '#666' }}> · {a.userName}</span>}
-                {a.deviceTag && <span style={{ color: '#666', fontSize: 12 }}> · on {a.deviceTag}</span>}
+                {a.deviceTag && <span style={{ color: '#666', fontSize: 12 }}> · {t('assignedToDevice', { deviceTag: a.deviceTag })}</span>}
               </span>
             </label>
           ))}
-          <p style={{ fontSize: 12, color: '#666', marginTop: 4 }}>{t('perUserHint')}</p>
+          <p style={{ fontSize: 12, color: '#666', marginTop: 4 }}>{t(hasOptionalPerUser ? 'perUserHint' : 'perUserRequiredHint')}</p>
         </div>
       ) : null}
 
@@ -318,7 +328,7 @@ function SmartCheckDialog({
         <button type="button" className="btn btn-secondary" disabled={busy} onClick={onCancel}>{t('back')}</button>
         <button type="button" className="btn btn-primary" disabled={busy || hasBlocked}
                 title={hasBlocked ? t('cannotProceedBlocked') : undefined}
-                onClick={() => onConfirm(request)}>
+                onClick={() => onConfirm(request())}>
           {busy ? t('loading') : t('complete')}
         </button>
       </div>
@@ -327,7 +337,7 @@ function SmartCheckDialog({
 }
 
 export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) => void }) {
-  const { t, i18n } = useTranslation('recovery');
+  const { t } = useTranslation('recovery');
   const [selected, setSelected] = useState<AssetCandidate[]>([]);
   const [returner, setReturner] = useState<Recipient | null>(null);
   const [location, setLocation] = useState<LocationItem | null>(null);
@@ -337,11 +347,10 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const frozen = busy || smartCheck !== null;
-  const lang = (i18n.language as 'vi' | 'en') || 'vi';
 
   function toggle(a: AssetCandidate) {
-    if (selected.some(s => s.assetId === a.assetId)) {
-      setSelected(items => items.filter(s => s.assetId !== a.assetId));
+    if (selected.some(s => s.assetId === a.assetId && s.allocationId === a.allocationId)) {
+      setSelected(items => items.filter(s => s.assetId !== a.assetId || s.allocationId !== a.allocationId));
     } else {
       setSelected(items => [...items, a]);
     }
@@ -358,7 +367,12 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
     setError('');
     if (!returner || !location || selected.length === 0) { setError(t('required')); return; }
     if (!reason.trim()) { setError(t('reasonRequired')); return; }
-    const body = { assetIds: selected.map(a => a.assetId), reason };
+    const body = {
+      returnerUserId: returner.id,
+      assetIds: selected.filter(a => a.allocationId == null).map(a => a.assetId),
+      allocationIds: selected.flatMap(a => a.allocationId == null ? [] : [a.allocationId]),
+      reason,
+    };
     setBusy(true);
     try {
       const r = await recoveryApi.smartCheck(body);
@@ -393,7 +407,7 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
 
   // Count selected per category for the summary panel
   const selectedCounts = selected.reduce<Record<string, number>>((acc, a) => {
-    const c = a.category || 'OTHER';
+    const c = a.categoryCode || a.category || 'OTHER';
     acc[c] = (acc[c] || 0) + 1;
     return acc;
   }, {});
@@ -410,28 +424,29 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
       <p style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>{t('selectDevicesHint')}</p>
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
         <UserAssetPicker
+          key={returner?.id ?? 'none'}
           userId={returner?.id || null}
-          selectedIds={selected.map(a => a.assetId)}
+          selectedKeys={selected.map(a => a.allocationId == null ? `asset-${a.assetId}` : `allocation-${a.allocationId}`)}
           onToggle={toggle}
           disabled={frozen}
         />
         <div style={{ border: '1px solid #ccc', padding: 12, margin: 8 }}>
-          <strong>{t('selected')}</strong> ({selected.length})
+          <strong>{t('selected', { count: selected.length })}</strong>
           {Object.keys(selectedCounts).length > 0 && (
             <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
               {Object.entries(selectedCounts).map(([c, n]) => (
                 <span key={c} style={{ marginRight: 8 }}>
-                  {CATEGORY_LABEL[c]?.emoji} {CATEGORY_LABEL[c]?.[lang] ?? c}: {n}
+                  {CATEGORY_ICON[c]} {categoryLabel(t, c)}: {n}
                 </span>
               ))}
             </div>
           )}
           {selected.length === 0 && <p style={{ color: '#999', marginTop: 4 }}>{t('noDevices')}</p>}
           {selected.map(a => (
-            <div key={a.assetId} style={{ padding: '4px 0', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={a.allocationId == null ? `asset-${a.assetId}` : `allocation-${a.allocationId}`} style={{ padding: '4px 0', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>
                 <strong>{a.assetTag}</strong> · {a.name}
-                <span style={{ marginLeft: 4, fontSize: 11, color: '#888' }}>{CATEGORY_LABEL[a.category]?.[lang] ?? a.category}</span>
+                <span style={{ marginLeft: 4, fontSize: 11, color: '#888' }}>{categoryLabel(t, a.categoryCode || a.category || 'OTHER')}</span>
               </span>
               <button type="button" className="btn btn-secondary" style={{ padding: '2px 8px' }} disabled={frozen} onClick={() => toggle(a)}>×</button>
             </div>
@@ -446,41 +461,48 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
         {busy ? t('loading') : t('preview')}
       </button>
       {smartCheck && (
-        <SmartCheckDialog check={smartCheck} onConfirm={confirm} onCancel={() => setSmartCheck(null)} busy={busy} t={t as unknown as (key: string) => string} lang={lang} />
+        <SmartCheckDialog check={smartCheck}
+          selectedAssetIds={selected.filter(a => a.allocationId == null).map(a => a.assetId)}
+          selectedAllocationIds={selected.flatMap(a => a.allocationId == null ? [] : [a.allocationId])}
+          reason={reason} onConfirm={confirm} onCancel={() => setSmartCheck(null)} busy={busy} t={t as unknown as (key: string, options?: Record<string, unknown>) => string} />
       )}
     </form>
   );
 }
 
 function HandoverLocationPicker({ onSelect, disabled }: { onSelect: (l: LocationItem) => void; disabled: boolean }) {
-  const { t } = useTranslation('handover');
+  const { t } = useTranslation('recovery');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(0);
   const [items, setItems] = useState<LocationItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     setLoading(true);
-    loadLocations(keyword, page).then(r => { setItems(r.data?.content || []); setTotal(r.data?.totalElements || 0); }).finally(() => setLoading(false));
-  }, [keyword, page]);
+    setError(false);
+    loadLocations(keyword, page).then(r => { setItems(r.data?.content || []); setTotal(r.data?.totalElements || 0); }).catch(() => { setItems([]); setTotal(0); setError(true); }).finally(() => setLoading(false));
+  }, [keyword, page, retry]);
 
   const pages = Math.ceil(total / 10);
   return (
     <fieldset disabled={disabled} style={{ border: '1px solid #ccc', padding: 12, margin: 8 }}>
       <legend>{t('searchLocations')}</legend>
-      <input className="form-input" placeholder="Search..." value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
-      {loading && <span>Loading...</span>}
+      <input className="form-input" placeholder={t('searchPlaceholder')} value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
+      {loading && <span>{t('loading')}</span>}
+      {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}
       {items.map(item => (
-        <div key={item.locationId} style={{ padding: 4, cursor: 'pointer' }} onClick={() => onSelect(item)}>
+        <button type="button" key={item.locationId} disabled={disabled} style={{ display: 'block', padding: 4, cursor: 'pointer' }} onClick={() => onSelect(item)}>
           {item.name}
-        </div>
+        </button>
       ))}
       {pages > 1 && (
         <div style={{ marginTop: 8 }}>
-          <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Prev</button>
+          <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
           <span style={{ margin: '0 8px' }}>{page + 1} / {pages}</span>
-          <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>Next</button>
+          <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>{t('next')}</button>
         </div>
       )}
     </fieldset>
