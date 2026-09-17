@@ -163,10 +163,13 @@ public class ImportDraftService {
         }
         entityManager.flush();
         int revision = t.getSubmittedRevision()+1;
+        var submitter = actor();
+        var submittedSnapshot = (com.fasterxml.jackson.databind.node.ObjectNode) snapshot(id);
+        submittedSnapshot.put("submitterEmail", submitter.getEmail());
         // Metadata/files remain immutable; the working links may change after withdrawal.
         jdbc.update("UPDATE documents SET is_locked=true WHERE NOT is_locked AND document_id IN (SELECT document_id FROM transaction_document_links WHERE transaction_id=?)",id);
         jdbc.update("INSERT INTO transaction_revisions(transaction_id,revision,content_version,submitted_by,snapshot) VALUES (?,?,?,?,CAST(? AS jsonb))",
-                id,revision,t.getContentVersion(),actor().getUserId(),snapshot(id).toString());
+                id,revision,t.getContentVersion(),submitter.getUserId(),submittedSnapshot.toString());
         t.setSubmittedRevision(revision); t.setStatus(TransactionStatus.PENDING); changed(t,"SUBMIT");
         event(t,"SUBMITTED",null);
         return TransactionSummaryResponse.fromEntity(t);
@@ -307,9 +310,19 @@ public class ImportDraftService {
                 jdbc.update("INSERT INTO audit_logs(entity_type,entity_id,transaction_id,actor_user_id,action,old_data,new_data,details) VALUES ('ASSET',?,?,?,'IMPORT',?::jsonb,?::jsonb,?)",assetId,id,actor().getUserId(),"{\"status\":\"PENDING_IMPORT\"}","{\"status\":\"IN_STOCK\"}","revision="+revision);
             }
         }
+        var processor = actor();
         t.setStatus(approve?TransactionStatus.COMPLETED:TransactionStatus.REJECTED);
-        t.setProcessedBy(actor()); t.setProcessedAt(Instant.now());
+        t.setProcessedBy(processor); t.setProcessedAt(Instant.now());
         t.setCompletedAt(approve?t.getProcessedAt():null); t.setRejectionReason(approve?null:reason.trim());
+        var publicationSnapshot = (com.fasterxml.jackson.databind.node.ObjectNode) parse(jdbc.queryForObject(
+                "SELECT snapshot::text FROM transaction_revisions WHERE transaction_id=? AND revision=?",
+                String.class, id, revision));
+        publicationSnapshot.put("actorName", processor.getFullName());
+        if (!approve) publicationSnapshot.put("rejectionReason", t.getRejectionReason());
+        jdbc.update("""
+                INSERT INTO transaction_publication_snapshots(transaction_id,snapshot)
+                VALUES (?,CAST(? AS jsonb)) ON CONFLICT (transaction_id) DO NOTHING
+                """, id, publicationSnapshot.toString());
         changed(t,approve?"APPROVE":"REJECT"); event(t,approve?"COMPLETED":"REJECTED",t.getRejectionReason());
         return TransactionSummaryResponse.fromEntity(t);
     }

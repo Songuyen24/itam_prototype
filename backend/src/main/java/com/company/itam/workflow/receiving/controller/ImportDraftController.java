@@ -37,7 +37,7 @@ public class ImportDraftController {
     }
     @PostMapping("/{id}/submit") public Object submit(@PathVariable Long id,@Valid @RequestBody Change request) {
         var result=service.submit(id,request.expectedVersion());
-        publications.afterCommit(id,()->publications.onImportSubmitted(id));
+        publications.afterCommit(id,()->publications.onImportSubmitted(id,result.submittedRevision()));
         return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),result);
     }
     @PostMapping("/{id}/withdraw") public Object withdraw(@PathVariable Long id,@Valid @RequestBody Process request) {

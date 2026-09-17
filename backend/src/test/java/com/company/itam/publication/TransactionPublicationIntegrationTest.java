@@ -61,7 +61,7 @@ class TransactionPublicationIntegrationTest {
                 {"recipientName":"Nguyễn Văn A","recipientEmail":"user01@itam.example",
                 "handoverDate":"2026-09-10","destinationLocationName":"T17 test location",
                 "lines":[{"assetId":1,"assetTag":"AST-T17","name":"Laptop mẫu","category":"DEVICE",
-                "seats":0,"details":{"serialNumber":"SER-T17"}}]}
+                "seats":0,"details":{"serialNumber":"SER-T17","actorName":"System Administrator"}}]}
                 """);
 
         publications.onCompleted(id, snapshot);
