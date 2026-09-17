@@ -237,7 +237,7 @@ public class TransactionPublicationService {
         String event = tx.getType().name() + "_COMPLETED";
         String subject = "Hoàn tất phiếu / Transaction completed: " + tx.getTransactionCode();
         String body = "Biên bản song ngữ đã sẵn sàng / The bilingual report is ready.\nTệp / File: " + document.getOriginalFileName()
-                + "\nĐường dẫn / Link: /api/v1/documents/" + document.getDocumentId() + "/download";
+                + "\nTệp PDF được đính kèm / The PDF is attached.";
         send(tx, recipient, event, subject, body, document);
     }
 
@@ -264,7 +264,11 @@ public class TransactionPublicationService {
         entry.setEventType(event); entry.setSubject(subject); entry.setContent(body); entry.setDocument(document); entry.setStatus(EmailStatus.PENDING);
         emails.saveAndFlush(entry);
         try {
-            gateway.send(recipient, subject, body); entry.setStatus(EmailStatus.SENT); entry.setSentAt(Instant.now());
+            if (document == null) gateway.send(recipient, subject, body);
+            else gateway.send(recipient, subject, body, new EmailGateway.Attachment(
+                    document.getOriginalFileName(), document.getMimeType(), document.getStoragePath(),
+                    document.getFileSize(), document.getChecksum(), storage.read(document)));
+            entry.setStatus(EmailStatus.SENT); entry.setSentAt(Instant.now());
         } catch (RuntimeException ex) {
             entry.setStatus(EmailStatus.FAILED); entry.setErrorMessage(ex.getMessage());
         }
@@ -295,7 +299,7 @@ public class TransactionPublicationService {
 
     private String snapshotActor(TransactionEntity tx, JsonNode snapshot) {
         if (tx.getType() == TransactionType.IMPORT || tx.getType() == TransactionType.HANDOVER
-                || tx.getType() == TransactionType.RECOVERY) {
+                || tx.getType() == TransactionType.RECOVERY || tx.getType() == TransactionType.DISPOSAL) {
             String frozen = snapshot.path("actorName").asText();
             if (!frozen.isBlank()) return frozen;
             for (JsonNode line : snapshot.path("lines")) {

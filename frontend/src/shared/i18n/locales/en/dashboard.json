@@ -5,6 +5,7 @@
   "byType": "By type",
   "byLocation": "By location",
   "byDepartment": "By department",
+  "unassigned": "Unassigned",
   "pendingReceivings": "Pending receiving requests",
   "pendingDisposals": "Pending disposal requests",
   "export": "Export Excel",

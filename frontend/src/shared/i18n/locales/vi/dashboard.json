@@ -5,6 +5,7 @@
   "byType": "Theo loại",
   "byLocation": "Theo vị trí",
   "byDepartment": "Theo phòng ban",
+  "unassigned": "Chưa phân bổ",
   "pendingReceivings": "Phiếu nhập chờ xử lý",
   "pendingDisposals": "Phiếu thanh lý chờ duyệt",
   "export": "Xuất Excel",

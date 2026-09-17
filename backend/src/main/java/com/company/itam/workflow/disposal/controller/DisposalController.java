@@ -40,9 +40,21 @@ public class DisposalController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(messages.getMessage("DISPOSAL_CREATED"), result));
     }
 
+    @GetMapping("/{id}")
+    public ApiResponse<DisposalResponse> get(@PathVariable Long id) {
+        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"), service.get(id));
+    }
+
+    @PostMapping("/{id}/per-user")
+    public ApiResponse<DisposalResponse> resolvePerUser(@PathVariable Long id,
+            @Valid @RequestBody PerUserRequest request) {
+        return ApiResponse.success(messages.getMessage("DISPOSAL_PER_USER_RESOLVED"), service.resolvePerUser(id, request));
+    }
+
     @PostMapping("/{id}/approve")
-    public ApiResponse<DisposalResponse> approve(@PathVariable Long id) {
-        var result = service.approve(id);
+    public ApiResponse<DisposalResponse> approve(@PathVariable Long id,
+            @Valid @RequestBody ApproveRequest request) {
+        var result = service.approve(id, request);
         publications.afterCommit(id, () -> publications.onCompleted(id, result));
         return ApiResponse.success(messages.getMessage("DISPOSAL_APPROVED"), result);
     }

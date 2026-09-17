@@ -4,7 +4,8 @@ import { disposalApi } from '@/features/disposal/api/disposalApi';
 import { dashboardApi } from '@/features/dashboard/api/dashboardApi';
 import { DisposalsPage } from '@/features/disposal/pages/DisposalsPage';
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
-import { DisposalReview } from '@/features/disposal/components/DisposalReview';
+import { DisposalDetail, DisposalReview } from '@/features/disposal/components/DisposalReview';
+import { dashboardLabel } from '@/features/dashboard/pages/DashboardPage';
 import enDisposal from '@/shared/i18n/locales/en/disposal.json';
 import viDisposal from '@/shared/i18n/locales/vi/disposal.json';
 import enDashboard from '@/shared/i18n/locales/en/dashboard.json';
@@ -22,12 +23,16 @@ describe('T18 disposal and dashboard', () => {
   it('uses server smart-check before creating a disposal and exposes admin decisions', async () => {
     await disposalApi.smartCheck([7]);
     await disposalApi.create({ assetIds: [7], reason: 'Broken', disposalDate: '2026-09-15', expectedFingerprint: 'checked' });
-    await disposalApi.approve(9);
+    await disposalApi.detail(9);
+    await disposalApi.resolvePerUser(9, 'viewed', [{ allocationId: 77, release: true }]);
+    await disposalApi.approve(9, 'refreshed');
     await disposalApi.reject(9, 'Repair first');
     expect(client.mock.calls).toEqual([
       ['/v1/disposals/smart-check', { method: 'POST', body: JSON.stringify({ assetIds: [7] }) }],
       ['/v1/disposals', { method: 'POST', body: JSON.stringify({ assetIds: [7], reason: 'Broken', disposalDate: '2026-09-15', expectedFingerprint: 'checked' }) }],
-      ['/v1/disposals/9/approve', { method: 'POST' }],
+      ['/v1/disposals/9'],
+      ['/v1/disposals/9/per-user', { method: 'POST', body: JSON.stringify({ expectedFingerprint: 'viewed', decisions: [{ allocationId: 77, release: true }] }) }],
+      ['/v1/disposals/9/approve', { method: 'POST', body: JSON.stringify({ expectedFingerprint: 'refreshed' }) }],
       ['/v1/disposals/9/reject', { method: 'POST', body: JSON.stringify({ reason: 'Repair first' }) }],
     ]);
   });
@@ -59,6 +64,34 @@ describe('T18 disposal and dashboard', () => {
     expect(html).toContain('autoAdded');
     expect(html).toContain('perUserWarning');
     expect(html).toContain('confirmCreate');
+  });
+
+  it('shows the viewed request facts, unresolved Per-User choices, and consumed OEM seats', () => {
+    const html = renderToStaticMarkup(<DisposalDetail value={{
+      transactionId: 9, transactionCode: 'DIS-09', status: 'PENDING', actorName: 'Nguyen Admin', reason: 'Broken',
+      disposalDate: '2026-09-15', createdAt: '2026-09-14T10:00:00Z', fingerprint: 'viewed', warnings: [],
+      assets: [{ assetId: 1, assetTag: 'LAP-01', name: 'Laptop', category: 'DEVICE', autoAdded: false, serialNumber: 'SN-01' }],
+      perUserLinks: [{ allocationId: 77, licenseAssetId: 2, assetTag: 'USR-01', deviceId: 1, deviceTag: 'LAP-01', userName: 'Mai', seats: 2 }],
+      oemAllocations: [{ allocationId: 88, licenseAssetId: 3, assetTag: 'OEM-01', deviceId: 1, deviceTag: 'LAP-01', seats: 1 }],
+    }} role="ADMIN" decisions={{ 77: true }} saving={false} action={null} rejectReason=""
+      onDecision={() => {}} onResolve={() => {}} onChooseAction={() => {}} onRejectReason={() => {}}
+      onApprove={() => {}} onReject={() => {}} onClose={() => {}} />);
+    expect(html).toContain('Nguyen Admin');
+    expect(html).toContain('Broken');
+    expect(html).toContain('SN-01');
+    expect(html).toContain('USR-01');
+    expect(html).toContain('checked');
+    expect(html).toContain('OEM-01');
+    expect(html).toMatch(/approve[^<]*<\/button>/);
+    expect(html).toMatch(/button[^>]*disabled=""[^>]*>approve/);
+  });
+
+  it('translates only known dashboard system labels', () => {
+    const t = (key: string, options?: Record<string, unknown>) => `${key}:${String(options?.defaultValue ?? '')}`;
+    expect(dashboardLabel(t, 'byStatus', 'IN_STOCK')).toBe('common:status.IN_STOCK:IN_STOCK');
+    expect(dashboardLabel(t, 'byDepartment', 'Research')).toBe('Research');
+    expect(dashboardLabel(t, 'byLocation', '')).toBe('unassigned:');
+    expect(dashboardLabel(t, 'byLocation', 'Unassigned')).toBe('Unassigned');
   });
 
   it('keeps Vietnamese and English keys aligned', () => {

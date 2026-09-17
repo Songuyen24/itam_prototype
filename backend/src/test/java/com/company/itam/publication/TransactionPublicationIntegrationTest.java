@@ -1,6 +1,8 @@
 package com.company.itam.publication;
 
 import com.company.itam.publication.service.TransactionPublicationService;
+import com.company.itam.publication.service.EmailGateway;
+import com.company.itam.publication.service.LocalEmailGateway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.pdfbox.Loader;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,6 +29,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest(properties = "itam.documents.storage-root=target/t17-storage")
 @AutoConfigureMockMvc
@@ -35,6 +40,7 @@ class TransactionPublicationIntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper mapper;
     @Autowired MockMvc mockMvc;
+    @SpyBean LocalEmailGateway emailGateway;
 
     @BeforeEach
     void authenticate() {
@@ -64,6 +70,7 @@ class TransactionPublicationIntegrationTest {
                 "seats":0,"details":{"serialNumber":"SER-T17","actorName":"System Administrator"}}]}
                 """);
 
+        reset(emailGateway);
         publications.onCompleted(id, snapshot);
         var first = publications.status(id);
         assertThat(first.pdf().status()).isEqualTo("READY");
@@ -71,6 +78,12 @@ class TransactionPublicationIntegrationTest {
         assertThat(first.emails()).hasSize(1);
         assertThat(first.emails().getFirst().recipient()).isEqualTo("user01@itam.example");
         assertThat(first.emails().getFirst().status()).isEqualTo("SENT");
+        var attachment = org.mockito.ArgumentCaptor.forClass(EmailGateway.Attachment.class);
+        verify(emailGateway).send(org.mockito.ArgumentMatchers.eq("user01@itam.example"),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), attachment.capture());
+        assertThat(attachment.getValue().fileName()).endsWith(".pdf");
+        assertThat(attachment.getValue().mimeType()).isEqualTo("application/pdf");
+        assertThat(attachment.getValue().content()).startsWith("%PDF".getBytes());
         byte[] pdf = jdbc.queryForObject("SELECT storage_path FROM documents WHERE document_id=?", String.class, first.pdf().documentId()) == null
                 ? new byte[0] : java.nio.file.Files.readAllBytes(java.nio.file.Path.of("target/t17-storage").toAbsolutePath().normalize()
                     .resolve(jdbc.queryForObject("SELECT storage_path FROM documents WHERE document_id=?", String.class, first.pdf().documentId())));
