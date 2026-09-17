@@ -40,7 +40,6 @@ public class LicenseAllocationService {
     public LicenseAllocationEntity allocatePerUser(Long licenseId, UserEntity recipient, int seats, Long handoverId, UserEntity actor) {
         var license=lock(licenseId);
         if (recipient.getAccountStatus()!=com.company.itam.common.enums.AccountStatus.ACTIVE) fail("LICENSE_WORKFLOW_REQUIRED");
-        capacity(license,seats);
         checkTransaction(handoverId,"HANDOVER",recipient.getUserId());
         checkLine(handoverId,licenseId);
         if (!LicenseCodes.PER_USER.equals(license.getLicenseDetails().getAssignmentType().getCode())) fail("LICENSE_WORKFLOW_REQUIRED");

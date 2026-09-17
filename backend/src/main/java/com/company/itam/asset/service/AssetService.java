@@ -144,7 +144,7 @@ public class AssetService {
     @Transactional
     public AssetDetailResponse createHardwareAsset(CreateHardwareAssetRequest request) {
         Authentication auth = requireAuthentication();
-        if (!hasAuthority(auth, "ADMIN")) throw new AccessDeniedException("Access denied");
+        if (!hasAuthority(auth, "ADMIN") && !hasAuthority(auth, "IT_STAFF")) throw new AccessDeniedException("Access denied");
         if (request.getCreationPurpose() != com.company.itam.asset.dto.request.AssetCreationPurpose.BASELINE) {
             throw new AppException(HttpStatus.BAD_REQUEST, "ASSET_BASELINE_REQUIRED", "ASSET_BASELINE_REQUIRED");
         }
