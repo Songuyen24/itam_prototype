@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { dashboardApi, DashboardSummary } from '../api/dashboardApi';
@@ -18,8 +18,8 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
-  const load = async () => { setLoading(true); setError(''); try { setData((await dashboardApi.summary()).data); } catch (e) { setError(e instanceof Error ? e.message : t('error')); } finally { setLoading(false); } };
-  useEffect(() => { void load(); }, []);
+  const load = useCallback(async () => { setLoading(true); setError(''); try { setData((await dashboardApi.summary()).data); } catch (e) { setError(e instanceof Error ? e.message : t('error')); } finally { setLoading(false); } }, [t]);
+  useEffect(() => { void load(); }, [load]);
   const exportReport = async () => { setExporting(true); setError(''); try { await dashboardApi.exportAssets(); } catch (e) { setError(e instanceof Error ? e.message : t('exportError')); } finally { setExporting(false); } };
   const groups: [string, string, Record<string, number> | undefined][] = [['byStatus', t('byStatus'), data?.byStatus], ['byType', t('byType'), data?.byType], ['byLocation', t('byLocation'), data?.byLocation], ['byDepartment', t('byDepartment'), data?.byDepartment]];
 

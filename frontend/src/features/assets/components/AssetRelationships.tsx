@@ -30,7 +30,7 @@ export function AssetRelationships({asset}: {asset:AssetDetail}) {
       .then(([r,h,a,d])=>{if(active){setRows(r.data.content);setHistory(h.data.content);setAllocations(a?.data.content || []);setDetail(d.data);setPages(Math.max(r.data.totalPages,h.data.totalPages,a?.data.totalPages || 0,1));}})
       .catch(e=>{if(active)setError(e.message || t('relationships.loadError'));}).finally(()=>{if(active)setLoading(false);});
     return ()=>{active=false;};
-  },[asset.assetId,page,revision,t]);
+  },[asset.assetId, asset.license, page, revision, t]);
   const alreadyLinked=asset.categoryCode==='COMPONENT' && rows.some(r=>r.child.assetId===asset.assetId);
   const noSeats=!!detail.license && detail.license.availableSeats<1;
   const canLink=!loading && !alreadyLinked && !noSeats && detail.statusCode==='IN_STOCK' && !detail.assignedToUserId && (!detail.license || detail.license.assignmentTypeCode==='OEM');

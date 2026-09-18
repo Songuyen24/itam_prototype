@@ -35,7 +35,7 @@ export function PublicationPanel({ transactionId, canManage = false, canRegenera
       const next = (await publicationApi.status(transactionId)).data;
       if (request === generation.current) setValue(next);
     } catch (cause) {
-      if (request === generation.current) setError(cause instanceof Error ? cause.message : t('publication.loadError'));
+      if (request === generation.current) setError(cause instanceof Error ? cause.message : t('publication.loadError', { lng: i18n?.language }));
     } finally {
       if (request === generation.current) setLoading(false);
     }

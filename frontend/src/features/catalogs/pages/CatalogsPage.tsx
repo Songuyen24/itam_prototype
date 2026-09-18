@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CatalogTabKey,
@@ -110,6 +110,7 @@ export const CatalogsPage: React.FC = () => {
   const [modalErrorMessage, setModalErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const requestVersion = useRef(0);
 
   // Load auxiliary data (categories & types)
   useEffect(() => {
@@ -124,6 +125,7 @@ export const CatalogsPage: React.FC = () => {
 
   // Fetch items for current tab
   const fetchTabItems = useCallback(async () => {
+    const version = ++requestVersion.current;
     setIsLoading(true);
     setToastMessage(null);
 
@@ -169,24 +171,27 @@ export const CatalogsPage: React.FC = () => {
           break;
       }
 
-      if (res && res.success && res.data) {
+      if (requestVersion.current === version && res && res.success && res.data) {
         setItems(res.data.content || []);
         setTotalPages(res.data.totalPages || 1);
         setTotalElements(res.data.totalElements || 0);
       }
     } catch (err: any) {
-      setToastMessage({
-        type: 'error',
-        text: err.message || t('catalogs:feedback.loadError'),
-      });
-      setItems([]);
+      if (requestVersion.current === version) {
+        setToastMessage({
+          type: 'error',
+          text: err.message || t('catalogs:feedback.loadError'),
+        });
+        setItems([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (requestVersion.current === version) setIsLoading(false);
     }
-  }, [activeTab, search, statusFilter, currentPage, pageSize, user?.id]);
+  }, [activeTab, search, statusFilter, currentPage, pageSize, t]);
 
   useEffect(() => {
     fetchTabItems();
+    return () => { requestVersion.current += 1; };
   }, [fetchTabItems]);
 
   const handleTabChange = (tab: CatalogTabKey) => {

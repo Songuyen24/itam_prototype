@@ -59,6 +59,11 @@ public class SecurityConfig {
                     // Document services also enforce transaction scope and report ownership.
                     .requestMatchers(HttpMethod.GET, "/v1/documents/*/download", "/api/v1/documents/*/download")
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF", "USER")
+                    .requestMatchers(HttpMethod.GET, "/v1/transactions/*/publication", "/api/v1/transactions/*/publication",
+                            "/v1/transactions/*/email-logs", "/api/v1/transactions/*/email-logs")
+                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                    .requestMatchers(HttpMethod.GET, "/v1/transactions/*/pdf", "/api/v1/transactions/*/pdf")
+                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF", "USER")
                     .requestMatchers(HttpMethod.GET, "/v1/documents", "/api/v1/documents",
                             "/v1/documents/*", "/api/v1/documents/*", "/v1/transactions", "/api/v1/transactions",
                             "/v1/transactions/*", "/api/v1/transactions/*")

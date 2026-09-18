@@ -47,7 +47,7 @@ export function DisposalsPage() {
     }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : t('error')); })
       .finally(() => { if (active) setAssetLoading(false); });
     return () => { active = false; };
-  }, [assetKeyword, assetPage, reload]);
+  }, [assetKeyword, assetPage, reload, t]);
 
   useEffect(() => {
     let active = true;
@@ -61,7 +61,7 @@ export function DisposalsPage() {
     }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : t('error')); })
       .finally(() => { if (active) setPendingLoading(false); });
     return () => { active = false; };
-  }, [pendingPage, reload]);
+  }, [pendingPage, reload, t]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();

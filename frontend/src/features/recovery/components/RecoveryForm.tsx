@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, RefObject, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { locationApi } from '@/features/catalogs/api/catalogApi';
 import { LocationItem } from '@/features/catalogs/types/catalog.types';
@@ -177,7 +177,7 @@ function UserAssetPicker({
 }
 
 export function SmartCheckDialog({
-  check, selectedAssetIds, selectedAllocationIds, reason, onConfirm, onCancel, busy, t,
+  check, selectedAssetIds, selectedAllocationIds, reason, onConfirm, onCancel, busy, t, restoreFocusRef,
 }: {
   check: SmartCheckResponse;
   selectedAssetIds: number[];
@@ -187,7 +187,20 @@ export function SmartCheckDialog({
   onCancel: () => void;
   busy: boolean;
   t: (key: string, options?: Record<string, unknown>) => string;
+  restoreFocusRef?: RefObject<HTMLElement>;
 }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const opener = restoreFocusRef?.current ?? document.activeElement as HTMLElement | null;
+    dialog.showModal();
+    dialog.querySelector<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled)')?.focus();
+    return () => {
+      if (dialog.open) dialog.close();
+      opener?.focus();
+    };
+  }, [restoreFocusRef]);
   const [componentActions, setComponentActions] = useState<Record<number, string>>(() => {
     const init: Record<number, string> = {};
     check.componentDecisions?.forEach(c => { init[c.assetId] = c.defaultAction || 'KEEP_ATTACHED'; });
@@ -219,8 +232,10 @@ export function SmartCheckDialog({
   const request = () => buildRecoveryRequest(check, selectedAssetIds, selectedAllocationIds, reason, componentActions, perUserActions);
 
   return (
-    <dialog open style={{ padding: 24, width: 'min(900px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
-      <h2>{t('smartCheckTitle')}</h2>
+    <dialog ref={dialogRef} aria-labelledby="recovery-smart-check-title"
+      onCancel={event => { event.preventDefault(); if (!busy) onCancel(); }}
+      style={{ margin: 'auto', padding: 24, width: 'min(900px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
+      <h2 id="recovery-smart-check-title">{t('smartCheckTitle')}</h2>
 
       {/* Blocked items — scenarios B, C, D when triggered */}
       {check.blockedAssets?.length ? (
@@ -346,6 +361,7 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
   const [smartCheck, setSmartCheck] = useState<SmartCheckResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const previewTrigger = useRef<HTMLElement | null>(null);
   const frozen = busy || smartCheck !== null;
 
   function toggle(a: AssetCandidate) {
@@ -364,6 +380,7 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
 
   async function review(e: FormEvent) {
     e.preventDefault();
+    previewTrigger.current = (e.nativeEvent as SubmitEvent).submitter as HTMLElement | null;
     setError('');
     if (!returner || !location || selected.length === 0) { setError(t('required')); return; }
     if (!reason.trim()) { setError(t('reasonRequired')); return; }
@@ -464,7 +481,8 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
         <SmartCheckDialog check={smartCheck}
           selectedAssetIds={selected.filter(a => a.allocationId == null).map(a => a.assetId)}
           selectedAllocationIds={selected.flatMap(a => a.allocationId == null ? [] : [a.allocationId])}
-          reason={reason} onConfirm={confirm} onCancel={() => setSmartCheck(null)} busy={busy} t={t as unknown as (key: string, options?: Record<string, unknown>) => string} />
+          reason={reason} onConfirm={confirm} onCancel={() => setSmartCheck(null)} busy={busy}
+          restoreFocusRef={previewTrigger} t={t as unknown as (key: string, options?: Record<string, unknown>) => string} />
       )}
     </form>
   );

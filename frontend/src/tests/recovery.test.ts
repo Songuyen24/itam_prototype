@@ -58,4 +58,14 @@ describe('T16 recovery completion payload', () => {
     const blocked = { ...check, requiredAssets: [], componentDecisions: [], blockedAssets: [{ assetId: 11, assetTag: 'OEM-11', name: 'OEM', category: 'LICENSE', reason: 'OEM blocked' }] };
     expect(render(blocked, [11])).toMatch(/button[^>]*disabled=""[^>]*>complete/);
   });
+
+  it('uses a labelled native dialog instead of a declaratively open dialog', () => {
+    const html = renderToStaticMarkup(createElement(SmartCheckDialog, {
+      check, selectedAssetIds: [], selectedAllocationIds: [], reason: 'Replacement',
+      onConfirm: () => {}, onCancel: () => {}, busy: false, t: (key: string) => key,
+    }));
+    expect(html).toContain('<dialog');
+    expect(html).toContain('aria-labelledby="recovery-smart-check-title"');
+    expect(html).not.toContain('<dialog open');
+  });
 });

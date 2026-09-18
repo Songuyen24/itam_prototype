@@ -17,7 +17,7 @@ function DisposalDialog({ title, busy = false, restoreFocusRef, onClose, childre
     dialog.showModal();
     dialog.querySelector<HTMLElement>('button, input, textarea, select, [tabindex]:not([tabindex="-1"])')?.focus();
     return () => { if (dialog.open) dialog.close(); opener?.focus(); };
-  }, []);
+  }, [restoreFocusRef]);
   return <dialog ref={ref} className="modal-content modal-lg disposal-dialog" aria-labelledby={titleId}
     onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>
     <div className="modal-header"><h2 className="modal-title" id={titleId}>{title}</h2></div>
