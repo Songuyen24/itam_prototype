@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Department,
@@ -65,6 +65,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedAssetDetail, setSelectedAssetDetail] = useState<AssetDetail | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const requestVersion = useRef(0);
 
   // Load auxiliary catalog data only for roles allowed to manage the inventory.
   useEffect(() => {
@@ -109,6 +110,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
 
   // Fetch asset list
   const fetchAssets = useCallback(async () => {
+    const version = ++requestVersion.current;
     setIsLoading(true);
     setToastMessage(null);
     try {
@@ -126,20 +128,23 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
         locationId,
       }));
 
-      if (res.success && res.data) {
+      if (requestVersion.current === version && res.success && res.data) {
         setAssets(res.data.content);
         setTotalPages(res.data.totalPages);
         setTotalElements(res.data.totalElements);
       }
     } catch (err: any) {
-      setToastMessage({ type: 'error', text: err.message || t('assets:toasts.loadListError') });
+      if (requestVersion.current === version) {
+        setToastMessage({ type: 'error', text: err.message || t('assets:toasts.loadListError') });
+      }
     } finally {
-      setIsLoading(false);
+      if (requestVersion.current === version) setIsLoading(false);
     }
-  }, [keyword, statusId, typeId, modelId, departmentId, locationId, currentPage, pageSize, user?.id, myAssets, t]);
+  }, [keyword, statusId, typeId, modelId, departmentId, locationId, currentPage, pageSize, myAssets, t]);
 
   useEffect(() => {
     fetchAssets();
+    return () => { requestVersion.current += 1; };
   }, [fetchAssets]);
 
   // Handlers

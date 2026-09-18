@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AssetCategoryItem } from '../types/catalog.types';
+
+const EMPTY_CATEGORIES: AssetCategoryItem[] = [];
 
 export interface CatalogFormData {
   id?: number;
@@ -33,7 +35,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
   isOpen,
   title,
   initialData,
-  categories = [],
+  categories = EMPTY_CATEGORIES,
   showCodeField = true,
   codeDisabled = false,
   showAddressField = false,
@@ -45,6 +47,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation('catalogs');
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [formData, setFormData] = useState<CatalogFormData>({
     code: '',
     name: '',
@@ -74,6 +77,19 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
     setValidationError(null);
   }, [initialData, isOpen, categories]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const dialog = dialogRef.current;
+    const opener = document.activeElement as HTMLElement | null;
+    if (!dialog) return;
+    dialog.showModal();
+    dialog.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)')?.focus();
+    return () => {
+      if (dialog.open) dialog.close();
+      opener?.focus();
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -100,12 +116,13 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <dialog ref={dialogRef} className="modal-content catalog-dialog" aria-labelledby="catalog-modal-title"
+      onCancel={event => { event.preventDefault(); if (!isSaving) onClose(); }}
+      onClick={event => { if (event.target === event.currentTarget && !isSaving) onClose(); }}>
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
-            <h3 className="modal-title">{title ?? t('forms.deleteTitle')}</h3>
-            <button type="button" className="alert-close-btn" onClick={onClose}>
+            <h3 id="catalog-modal-title" className="modal-title">{title ?? t('forms.deleteTitle')}</h3>
+            <button type="button" className="alert-close-btn" onClick={onClose} disabled={isSaving}>
               &times;
             </button>
           </div>
@@ -224,7 +241,6 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </dialog>
   );
 };

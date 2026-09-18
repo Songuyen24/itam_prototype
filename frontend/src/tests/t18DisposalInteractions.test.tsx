@@ -5,8 +5,9 @@ import { DisposalReview } from '@/features/disposal/components/DisposalReview';
 import { ApiError } from '@/shared/api/httpClient';
 
 const client = vi.hoisted(() => vi.fn());
+const t = vi.hoisted(() => (key: string) => key);
 vi.mock('@/shared/api/httpClient', async importOriginal => ({ ...(await importOriginal<typeof import('@/shared/api/httpClient')>()), httpClient: client }));
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t }) }));
 vi.mock('@/features/auth/contexts/AuthContext', () => ({ useAuth: () => ({ user: { role: 'ADMIN' } }) }));
 vi.mock('@/features/documents/components/PublicationPanel', () => ({ PublicationPanel: () => <section>publication</section> }));
 

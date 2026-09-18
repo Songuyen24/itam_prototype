@@ -1,4 +1,3 @@
-.handover-page { max-width: 1400px; margin: 0 auto; }
 .handover-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 20px 0; }
 .handover-picker { padding: 16px; border: 1px solid var(--border-color, #ddd); border-radius: 8px; margin-bottom: 12px; }
 .handover-options { display: grid; gap: 6px; margin: 12px 0; }

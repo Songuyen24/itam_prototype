@@ -16,7 +16,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import java.time.LocalDate;
@@ -31,6 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
 @SpringBootTest(properties = "itam.documents.storage-root=target/t17-storage")
 @AutoConfigureMockMvc
@@ -103,15 +104,129 @@ class TransactionPublicationIntegrationTest {
     }
 
     @Test
-    @WithMockUser(authorities = "PUR_STAFF")
     void purchasingCannotRegenerateOrResend() throws Exception {
-        mockMvc.perform(post("/v1/transactions/1/pdf/regenerate")).andExpect(status().isForbidden());
-        mockMvc.perform(post("/v1/transactions/1/email/resend")).andExpect(status().isForbidden());
+        var purchaser = user("pur01@itam.example").authorities(new SimpleGrantedAuthority("PUR_STAFF"));
+        mockMvc.perform(post("/v1/transactions/1/pdf/regenerate").with(purchaser)).andExpect(status().isForbidden());
+        mockMvc.perform(post("/v1/transactions/1/email/resend").with(purchaser)).andExpect(status().isForbidden());
     }
 
     @Test
-    @WithMockUser(authorities = "USER")
     void endUserCannotEnumeratePublicationStatus() throws Exception {
-        mockMvc.perform(get("/v1/transactions/1/publication")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/v1/transactions/1/publication")
+                        .with(user("user01@itam.example").authorities(new SimpleGrantedAuthority("USER"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void purchasingCanReadOnlyImportPublicationEndpoints() throws Exception {
+        Long importId = publishedImport();
+        Long handoverId = publishedHandover("user01@itam.example");
+
+        for (String suffix : List.of("/publication", "/email-logs", "/pdf")) {
+            mockMvc.perform(get("/v1/transactions/{id}" + suffix, importId)
+                            .with(user("pur01@itam.example").authorities(new SimpleGrantedAuthority("PUR_STAFF"))))
+                    .andExpect(status().isOk());
+            mockMvc.perform(get("/v1/transactions/{id}" + suffix, handoverId)
+                            .with(user("pur01@itam.example").authorities(new SimpleGrantedAuthority("PUR_STAFF"))))
+                    .andExpect(status().isForbidden());
+        }
+
+        for (String suffix : List.of("/publication", "/email-logs", "/pdf")) {
+            mockMvc.perform(get("/v1/transactions/{id}" + suffix, importId)
+                            .with(user("it01@itam.example").authorities(new SimpleGrantedAuthority("IT_STAFF"))))
+                    .andExpect(status().isOk());
+        }
+        mockMvc.perform(get("/api/v1/transactions/{id}/publication", importId).contextPath("/api")
+                        .with(user("pur01@itam.example").authorities(new SimpleGrantedAuthority("PUR_STAFF"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void endUserCanDownloadOnlyOwnPublicationPdf() throws Exception {
+        Long ownHandoverId = publishedHandover("user01@itam.example");
+        Long otherHandoverId = publishedHandover(createUser("USER"));
+        Long ownRecoveryId = publishedRecovery("user01@itam.example");
+        Long otherRecoveryId = publishedRecovery(createUser("USER"));
+        var endUser = user("user01@itam.example").authorities(new SimpleGrantedAuthority("USER"));
+
+        mockMvc.perform(get("/v1/transactions/{id}/pdf", ownHandoverId).with(endUser))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/v1/transactions/{id}/pdf", otherHandoverId).with(endUser))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/v1/transactions/{id}/pdf", ownRecoveryId).with(endUser))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/v1/transactions/{id}/pdf", otherRecoveryId).with(endUser))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/v1/documents/{id}/download", publicationDocumentId(ownHandoverId)).with(endUser))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/v1/transactions/{id}/publication", ownHandoverId).with(endUser))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/v1/transactions/{id}/email-logs", ownHandoverId).with(endUser))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/v1/transactions/{id}/pdf", ownHandoverId).with(anonymous()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private Long publishedImport() {
+        Long purchaser = jdbc.queryForObject("SELECT user_id FROM users WHERE email='pur01@itam.example'", Long.class);
+        Long admin = jdbc.queryForObject("SELECT user_id FROM users WHERE email='admin@itam.example'", Long.class);
+        Long id = jdbc.queryForObject("""
+                INSERT INTO transactions(transaction_code,type,status,requester_id,processed_by,processed_at,completed_at,
+                    content_version,submitted_revision)
+                VALUES (?,'IMPORT','COMPLETED',?,?,now(),now(),1,1) RETURNING transaction_id
+                """, Long.class, "IMP-PUBLICATION-" + UUID.randomUUID(), purchaser, admin);
+        jdbc.update("""
+                INSERT INTO transaction_revisions(transaction_id,revision,content_version,submitted_by,snapshot)
+                VALUES (?,1,1,?,CAST(? AS jsonb))
+                """, id, purchaser, "{\"actorName\":\"System Administrator\",\"submitterEmail\":\"pur01@itam.example\",\"assets\":[]}");
+        publications.onImportProcessed(id, true);
+        return id;
+    }
+
+    private Long publishedHandover(String recipientEmail) throws Exception {
+        Long admin = jdbc.queryForObject("SELECT user_id FROM users WHERE email='admin@itam.example'", Long.class);
+        Long recipient = jdbc.queryForObject("SELECT user_id FROM users WHERE email=?", Long.class, recipientEmail);
+        Long location = jdbc.queryForObject("SELECT location_id FROM locations WHERE code='T17_TEST'", Long.class);
+        Long id = jdbc.queryForObject("""
+                INSERT INTO transactions(transaction_code,type,status,requester_id,processed_by,processed_at,completed_at)
+                VALUES (?,'HANDOVER','COMPLETED',?,?,now(),now()) RETURNING transaction_id
+                """, Long.class, "HO-PUBLICATION-" + UUID.randomUUID(), admin, admin);
+        jdbc.update("INSERT INTO transaction_handover_details(transaction_id,recipient_user_id,handover_date,destination_location_id) VALUES (?,?,?,?)",
+                id, recipient, LocalDate.now(), location);
+        publications.onCompleted(id, mapper.readTree("""
+                {"recipientEmail":"%s","actorName":"System Administrator","lines":[]}
+                """.formatted(recipientEmail)));
+        return id;
+    }
+
+    private Long publishedRecovery(String returnerEmail) throws Exception {
+        Long admin = jdbc.queryForObject("SELECT user_id FROM users WHERE email='admin@itam.example'", Long.class);
+        Long returner = jdbc.queryForObject("SELECT user_id FROM users WHERE email=?", Long.class, returnerEmail);
+        Long location = jdbc.queryForObject("SELECT location_id FROM locations WHERE code='T17_TEST'", Long.class);
+        Long id = jdbc.queryForObject("""
+                INSERT INTO transactions(transaction_code,type,status,requester_id,processed_by,processed_at,completed_at)
+                VALUES (?,'RECOVERY','COMPLETED',?,?,now(),now()) RETURNING transaction_id
+                """, Long.class, "RC-PUBLICATION-" + UUID.randomUUID(), admin, admin);
+        jdbc.update("INSERT INTO transaction_recovery_details(transaction_id,returner_user_id,recovery_date,receiving_location_id,reason) VALUES (?,?,?,?,'Test')",
+                id, returner, LocalDate.now(), location);
+        publications.onCompleted(id, mapper.readTree("""
+                {"returnerEmail":"%s","actorName":"System Administrator","lines":[]}
+                """.formatted(returnerEmail)));
+        return id;
+    }
+
+    private Long publicationDocumentId(Long transactionId) {
+        return jdbc.queryForObject("SELECT document_id FROM documents WHERE transaction_id=? AND publication_version IS NOT NULL",
+                Long.class, transactionId);
+    }
+
+    private String createUser(String role) {
+        String email = role.toLowerCase() + "-publication-" + UUID.randomUUID() + "@itam.example";
+        jdbc.update("""
+                INSERT INTO users(email,full_name,role_id,account_status)
+                SELECT ?,?,role_id,'ACTIVE' FROM roles WHERE code=?
+                """, email, "Publication " + role, role);
+        return email;
     }
 }
