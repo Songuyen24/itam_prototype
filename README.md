@@ -16,14 +16,14 @@
 
 Email hiện được mô phỏng, không gửi SMTP thật. Chứng từ và PDF được lưu thành file cục bộ. Dùng dữ liệu giả lập khi trình diễn.
 
-## Tài liệu Word
+## Tài liệu hướng dẫn
 
-- [Tổng quan và bàn giao](docs/handover/README.docx)
-- [Hướng dẫn cài đặt](docs/handover/HUONG_DAN_CAI_DAT.docx)
-- [Hướng dẫn sử dụng](docs/handover/HUONG_DAN_SU_DUNG.docx)
-- [Dữ liệu mẫu](docs/handover/DU_LIEU_MAU.docx)
-- [Kịch bản demo](docs/handover/KICH_BAN_DEMO.docx)
-- [Backlog phát triển tiếp theo](docs/handover/BACKLOG.docx)
+- [Tổng quan và bàn giao](docs/handover/markdown/README.md)
+- [Hướng dẫn cài đặt](docs/handover/markdown/HUONG_DAN_CAI_DAT.md)
+- [Hướng dẫn sử dụng](docs/handover/markdown/HUONG_DAN_SU_DUNG.md)
+- [Dữ liệu mẫu](docs/handover/markdown/DU_LIEU_MAU.md)
+- [Kịch bản demo](docs/handover/markdown/KICH_BAN_DEMO.md)
+- [Backlog phát triển tiếp theo](docs/handover/markdown/BACKLOG.md)
 
 Người cài đặt bắt đầu với hướng dẫn cài đặt và dữ liệu mẫu; người dùng nghiệp vụ đọc hướng dẫn sử dụng; người trình diễn dùng kịch bản demo.
 
@@ -124,7 +124,7 @@ Không trỏ test vào database có dữ liệu cần giữ. Chạy `.\mvnw.cmd 
 - backend/: API, nghiệp vụ, migration, kiểm thử.
 - frontend/: màn hình, API client, bản dịch, kiểm thử.
 - storage/: chứng từ và biên bản; sao lưu cùng database để bảo toàn liên kết file.
-- docs/handover/: tài liệu Word dành cho người tiếp nhận.
+- docs/handover/: tài liệu bàn giao, gồm markdown/ để đọc và word/ để tải hoặc chia sẻ.
 - .tmp/: log, ảnh kiểm tra và artifact tạm.
 - project_sources/: tài liệu tham chiếu nội bộ, bị Git ignore; chuyển giao riêng nếu người nhận có quyền sử dụng.
 
