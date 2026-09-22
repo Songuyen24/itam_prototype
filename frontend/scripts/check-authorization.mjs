@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.ITAM_PLAYWRIGHT_MODULE || 'playwright');
 const baseUrl = process.env.ITAM_FRONTEND_URL || 'http://127.0.0.1:5173';
-const output = new URL('../../.tmp_authorization/', import.meta.url);
+const output = new URL('../../../.tmp/authorization/', import.meta.url);
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true, channel: process.env.ITAM_BROWSER_CHANNEL || 'msedge' });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -176,7 +176,7 @@ try {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   assert.deepEqual(errors, []);
   console.log('PASS: 4 role logins/switches, direct routes, restored-role validation, account isolation, pending switch and stale response, cross-tab USER switch, read-only detail, PUR API isolation.');
-  console.log('Screenshots: .tmp_authorization/user-desktop.png and purchasing-mobile.png');
+  console.log('Screenshots: .tmp/authorization/user-desktop.png and purchasing-mobile.png');
 } finally {
   await browser.close();
 }

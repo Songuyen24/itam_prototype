@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.ITAM_PLAYWRIGHT_MODULE || 'playwright');
 const baseUrl = process.env.ITAM_FRONTEND_URL || 'http://127.0.0.1:5173';
-const output = new URL('../../.tmp_documents/', import.meta.url);
+const output = new URL('../../../.tmp/documents/', import.meta.url);
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true, channel: process.env.ITAM_BROWSER_CHANNEL || 'msedge' });
 const sampleName = 'sample-invoice-fictional-supplier-and-purchase-order-with-a-long-filename-2026.pdf';

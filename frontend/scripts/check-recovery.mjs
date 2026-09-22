@@ -4,7 +4,7 @@ import { mkdir } from 'node:fs/promises';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.ITAM_PLAYWRIGHT_MODULE || 'playwright');
-const output = new URL('../../.tmp_recovery/', import.meta.url);
+const output = new URL('../../../.tmp/recovery/', import.meta.url);
 const base = process.env.ITAM_FRONTEND_URL || 'http://127.0.0.1:5173';
 const pageData = content => ({ content, totalElements: content.length, totalPages: 1, pageNumber: 0 });
 const candidates = [
