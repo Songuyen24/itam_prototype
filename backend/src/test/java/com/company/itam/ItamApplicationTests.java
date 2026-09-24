@@ -1,11 +1,14 @@
 package com.company.itam;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
+@SpringBootTest
+@ActiveProfiles("test")
 class ItamApplicationTests {
 
     @Test
     void contextLoads() {
-        // Scaffold test - actual tests will be implemented later
     }
 }

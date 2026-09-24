@@ -1,0 +1,19 @@
+{
+  "title": "Asset overview",
+  "description": "Asset totals and transactions awaiting action.",
+  "byStatus": "By status",
+  "byType": "By type",
+  "byLocation": "By location",
+  "byDepartment": "By department",
+  "unassigned": "Unassigned",
+  "pendingReceivings": "Pending receiving requests",
+  "pendingDisposals": "Pending disposal requests",
+  "export": "Export Excel",
+  "exporting": "Exporting...",
+  "loading": "Loading dashboard",
+  "ready": "Dashboard is ready",
+  "retry": "Retry",
+  "empty": "No data available.",
+  "error": "Unable to load dashboard.",
+  "exportError": "Unable to export the Excel report."
+}

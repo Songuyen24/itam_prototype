@@ -1,0 +1,27 @@
+package com.company.itam.catalog.repository;
+
+import com.company.itam.catalog.entity.SoftwareCatalogEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface SoftwareCatalogRepository extends JpaRepository<SoftwareCatalogEntity, Long> {
+    Page<SoftwareCatalogEntity> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    Page<SoftwareCatalogEntity> findByManufacturerContainingIgnoreCase(String manufacturer, Pageable pageable);
+    Page<SoftwareCatalogEntity> findByNameContainingIgnoreCaseOrManufacturerContainingIgnoreCase(String name, String manufacturer, Pageable pageable);
+    Page<SoftwareCatalogEntity> findByIsActive(Boolean isActive, Pageable pageable);
+
+    boolean existsByManufacturerIgnoreCaseAndNameIgnoreCaseAndVersionIgnoreCase(
+            String manufacturer,
+            String name,
+            String version
+    );
+    boolean existsByNameIgnoreCaseAndManufacturerIgnoreCase(String name, String manufacturer);
+    @org.springframework.data.jpa.repository.Query("SELECT e FROM SoftwareCatalogEntity e WHERE (:active IS NULL OR e.isActive=:active) AND (lower(e.name) LIKE lower(concat('%',:search,'%')) OR lower(e.manufacturer) LIKE lower(concat('%',:search,'%')))")
+    Page<SoftwareCatalogEntity> searchActive(@org.springframework.data.repository.query.Param("search") String search,
+        @org.springframework.data.repository.query.Param("active") Boolean active, Pageable pageable);
+}

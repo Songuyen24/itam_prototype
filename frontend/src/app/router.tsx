@@ -1,12 +1,74 @@
+import { HandoversPage } from '@/features/handover/pages/HandoversPage';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
+import { CatalogsPage } from '@/features/catalogs/pages/CatalogsPage';
+import { AssetsPage } from '@/features/assets/pages/AssetsPage';
+import LoginPage from '@/features/auth/pages/LoginPage';
+import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
+import { useAuth } from '@/features/auth/contexts/AuthContext';
+import { AccountPage } from '@/features/auth/pages/AccountPage';
+import { RecoveriesPage } from '@/features/recovery/pages/RecoveriesPage';
+import { getHomePath, INVENTORY_ROLES } from '@/features/auth/permissions';
+import { DocumentsPage } from '@/features/documents/pages/DocumentsPage';
+import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
+import { DisposalsPage } from '@/features/disposal/pages/DisposalsPage';
+import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
 
 function AppRoutes() {
+  const { user, token } = useAuth();
+  const homePath = getHomePath(user?.role);
+
   return (
     <Routes>
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={<div>Welcome to ITAM</div>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <MainLayout key={`${token}:${user?.id}:${user?.role}`} />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to={homePath} replace />} />
+        <Route
+          path="catalogs"
+          element={
+            <ProtectedRoute allowedRoles={INVENTORY_ROLES}>
+              <CatalogsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="assets"
+          element={
+            <ProtectedRoute allowedRoles={INVENTORY_ROLES}>
+              <AssetsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="my-assets"
+          element={
+            <ProtectedRoute allowedRoles={['USER']}>
+              <AssetsPage myAssets />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="documents"
+          element={
+            <ProtectedRoute allowedRoles={DOCUMENT_ROLES}>
+              <DocumentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="receivings" element={<ProtectedRoute allowedRoles={DOCUMENT_ROLES}><DocumentsPage receiving /></ProtectedRoute>} />
+        <Route path="handovers" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><HandoversPage /></ProtectedRoute>} />
+        <Route path="recoveries" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><RecoveriesPage /></ProtectedRoute>} />
+        <Route path="disposals" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><DisposalsPage /></ProtectedRoute>} />
+        <Route path="dashboard" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><DashboardPage /></ProtectedRoute>} />
+        <Route path="account" element={<AccountPage />} />
+        <Route path="*" element={<Navigate to={homePath} replace />} />
       </Route>
     </Routes>
   );

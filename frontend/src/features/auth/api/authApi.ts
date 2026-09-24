@@ -1,0 +1,28 @@
+import { httpClient } from '@/shared/api/httpClient';
+import { AuthUser, LoginPayload, LoginResponse, CurrentUserResponse } from '../types/auth.types';
+
+export const authApi = {
+  async login(payload: LoginPayload): Promise<LoginResponse> {
+    const res = await httpClient<{ success: boolean; data: LoginResponse }>(
+      '/v1/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+    return (res as { success: boolean; data: LoginResponse }).data;
+  },
+
+  async me(): Promise<AuthUser> {
+    const res = await httpClient<{ success: boolean; data: CurrentUserResponse }>(
+      '/v1/auth/me',
+      { method: 'GET' }
+    );
+    const { roleCode, ...user } = res.data;
+    return { ...user, role: roleCode };
+  },
+
+  async logout(): Promise<void> {
+    await httpClient<{ success: boolean }>('/v1/auth/logout', { method: 'POST' });
+  },
+};
