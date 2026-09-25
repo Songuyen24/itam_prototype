@@ -18,6 +18,8 @@ Email hiện được mô phỏng, không gửi SMTP thật. Chứng từ và PD
 
 ## Tài liệu hướng dẫn
 
+- [Biên bản và kết quả kiểm tra ngày 25/09/2026](docs/handover/markdown/BIEN_BAN_BAN_GIAO.md)
+- [Trạng thái task đối chiếu source và commit](docs/handover/markdown/TRANG_THAI_TASK.md)
 - [Tổng quan và bàn giao](docs/handover/markdown/README.md)
 - [Hướng dẫn cài đặt](docs/handover/markdown/HUONG_DAN_CAI_DAT.md)
 - [Hướng dẫn sử dụng](docs/handover/markdown/HUONG_DAN_SU_DUNG.md)
@@ -114,10 +116,15 @@ Backend integration test cần database PostgreSQL riêng dành cho test. Tại 
 $env:TEST_DB_URL = 'jdbc:postgresql://localhost:5432/itam_test'
 $env:TEST_DB_USERNAME = 'YOUR_TEST_USER'
 $env:TEST_DB_PASSWORD = 'YOUR_TEST_PASSWORD'
+$env:SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE = '4'
+$env:SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE = '1'
+$env:DOCUMENT_STORAGE_ROOT = '../.tmp/test-storage'
 .\mvnw.cmd test
 ```
 
 Không trỏ test vào database có dữ liệu cần giữ. Chạy `.\mvnw.cmd package` tại backend để tạo JAR trong target. Frontend build nằm trong dist; `npm run preview` dùng để xem bản build local, không thay thế web server production.
+
+Giới hạn pool trên tránh nhiều Spring test context giữ quá nhiều kết nối PostgreSQL; storage test cũng tách khỏi chứng từ demo. Xóa các biến tiến trình dành cho test hoặc mở terminal mới trước khi chạy ứng dụng. Ngày 25/09/2026: backend 245/245, frontend 140/140, lint/build đạt; migration V1–V21 và demo bốn vai trò đạt trên database riêng. Bộ Word chưa kiểm tra trực quan được do thiếu LibreOffice; xem biên bản để biết phạm vi và điều kiện còn mở.
 
 ## Cấu trúc và lưu trữ
 
@@ -131,5 +138,7 @@ Không trỏ test vào database có dữ liệu cần giữ. Chạy `.\mvnw.cmd 
 ## Giới hạn và hỗ trợ
 
 Prototype chưa bao gồm gửi email thật, chữ ký số, ứng dụng mobile hoặc cấu hình production hoàn chỉnh. Quy trình thay linh kiện trên thiết bị đang sử dụng thuộc backlog, khác với chức năng quản lý quan hệ/thu hồi linh kiện đã có. Các mở rộng cần chốt phạm vi và tiêu chí nghiệm thu.
+
+Lỗi còn mở H01: tab Lịch sử thu hồi chưa tải lại phiếu từ backend sau reload/mở lại trang. Tạm tra cứu qua Chứng từ; xem biên bản và backlog để biết tiêu chí sửa. Không coi test tự động đạt là xác nhận mọi luồng UI đã hoàn thiện.
 
 Khi gặp lỗi, ghi bước tái hiện, vai trò, mã phiếu/tài sản và thông báo; không đính kèm mật khẩu, token hoặc chứng từ thật. Xem hướng dẫn cài đặt để xử lý lỗi database, Flyway, storage và kết nối frontend.

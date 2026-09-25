@@ -126,6 +126,8 @@ Thiết bị/linh kiện được chuyển sang IN_USE và gán người nhận/
 
 ## 7. Thu hồi
 
+Lưu ý phiên bản kiểm tra ngày 25/09/2026: tab Lịch sử thu hồi chỉ giữ các phiếu vừa tạo trong phiên trang, chưa tải lại phiếu cũ khi mở trang/reload (H01). Để tra cứu phiếu đã lưu, vào Chứng từ, lọc loại Thu hồi hoặc nhập mã phiếu và mở PDF. Dữ liệu backend vẫn được lưu; không tạo lại phiếu chỉ vì tab Lịch sử đang trống.
+
 1. Vào Thu hồi, chọn người trả và vị trí nhận.
 
 2. Chọn thiết bị IN_USE thuộc người trả, ngày và lý do.

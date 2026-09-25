@@ -14,6 +14,10 @@ ITAM Prototype hỗ trợ quản lý vòng đời tài sản công nghệ thông
 
 ## Bộ tài liệu
 
+- [BIEN_BAN_BAN_GIAO.md](BIEN_BAN_BAN_GIAO.md): phiên bản, kết quả kiểm tra thực tế, mã phiếu demo và phần xác nhận tiếp nhận.
+
+- [TRANG_THAI_TASK.md](TRANG_THAI_TASK.md): trạng thái T10–T18/T11B/T12B với source và commit merge.
+
 - [HUONG_DAN_CAI_DAT.md](HUONG_DAN_CAI_DAT.md): chuẩn bị máy, database, cấu hình, chạy ứng dụng và xử lý lỗi.
 
 - [HUONG_DAN_SU_DUNG.md](HUONG_DAN_SU_DUNG.md): các bước thao tác theo vai trò, trạng thái và kết quả mong đợi.

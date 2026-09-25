@@ -1,7 +1,8 @@
 # Environment
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.*.example
 
 # Backend
 backend/target/
@@ -15,11 +16,9 @@ frontend/dist/
 frontend/.DS_Store
 
 # Storage (keep directory structure, ignore contents)
-storage/import/*
-storage/handover/*
-storage/recovery/*
-storage/disposal/*
-!storage/**/.gitkeep
+/storage/**
+!/storage/**/
+!/storage/**/.gitkeep
 
 # IDE
 .idea/
@@ -43,6 +42,14 @@ Thumbs.db
 *.orig
 .tmp*/
 .tmp_*
+*.tsbuildinfo
+
+# Local database backups and Office lock files
+*.dump
+*.backup
+~$*.docx
+~$*.xlsx
+~$*.pptx
 
 # Local reference/source materials
 project_sources/
