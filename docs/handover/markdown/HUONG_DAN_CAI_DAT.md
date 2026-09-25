@@ -141,12 +141,20 @@ $env:TEST_DB_USERNAME = 'YOUR_TEST_USER'
 
 $env:TEST_DB_PASSWORD = 'YOUR_TEST_PASSWORD'
 
+$env:SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE = '4'
+
+$env:SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE = '1'
+
+$env:DOCUMENT_STORAGE_ROOT = '../.tmp/test-storage'
+
 .\mvnw.cmd test
 ```
 
 Source integration test dùng profile test; biến TEST_DB_* nên được đặt rõ thay vì phụ thuộc password mặc định. Lưu kết quả chạy kiểm tra vào hồ sơ nghiệm thu, kèm phiên bản ứng dụng và môi trường sử dụng. Chạy demo desktop và resize theo Kịch bản demo ([KICH_BAN_DEMO.md](KICH_BAN_DEMO.md)); không cần test điện thoại.
 
 ## 7. Xử lý lỗi thường gặp
+
+- Test báo `too many clients`: các Spring context có thể giữ nhiều connection pool; dùng giới hạn pool 4/minimum idle 1 như trên. Đợt 25/09/2026 đã chạy 245 test đạt với cấu hình này. Dùng terminal mới trước chạy demo để không mang cấu hình/storage test sang ứng dụng.
 
 - Kết nối DB lỗi: kiểm tra PostgreSQL, port, database/role, quyền schema, biến môi trường và profile IDE.
 
@@ -161,3 +169,19 @@ Source integration test dùng profile test; biến TEST_DB_* nên được đặ
 - PDF/file không tồn tại: kiểm tra DOCUMENT_STORAGE_ROOT và working directory; database và storage cần khớp nhau.
 
 - Không có email trong hộp thư: đúng với LocalEmailGateway, xem lịch sử email giả lập trong ứng dụng/log.
+
+## 8. Migration và phục hồi mẫu đã kiểm tra
+
+Ngày 25/09/2026 đã khởi động backend với database PostgreSQL 18.4 trống, Flyway chạy đủ V1–V21, JPA validate thành công. Flyway đi kèm vẫn cảnh báo PostgreSQL 18 mới hơn phiên bản 16 đã được công cụ kiểm chứng; cần chạy lại migration trên phiên bản PostgreSQL của máy nhận. Không sửa checksum hoặc xóa migration cũ để bỏ qua cảnh báo/lỗi.
+
+Nếu nhận bộ snapshot giả lập từ đợt kiểm tra, tạo một database đích **mới, trống**, rồi dùng PostgreSQL CLI:
+
+```powershell
+createdb -h localhost -p 5432 -U YOUR_LOCAL_USER itam_demo_restore
+pg_restore -h localhost -p 5432 -U YOUR_LOCAL_USER -d itam_demo_restore --no-owner --no-privileges --exit-on-error itam-handover-demo.dump
+Expand-Archive -LiteralPath demo-storage.zip -DestinationPath .tmp/demo-restored-files
+```
+
+CLI sẽ hỏi mật khẩu của role local; không ghi mật khẩu thật vào lệnh hoặc tài liệu. Thêm thư mục `bin` PostgreSQL vào PATH hoặc gọi đường dẫn tuyệt đối. Không dùng `--clean` trên database có dữ liệu cần giữ.
+
+Đặt DB_URL tới database phục hồi và DOCUMENT_STORAGE_ROOT tới đường dẫn tuyệt đối của `.tmp/demo-restored-files/storage`, rồi chạy backend trong terminal mới. Snapshot đã chứa lịch sử Flyway; không nạp thêm schema hoặc sample SQL cũ. Giữ database và thư mục storage cùng bộ. Lần phục hồi kiểm tra đạt 4 assets, 4 transactions và 5 documents; bên nhận vẫn phải mở thử các file sau khi giải nén. Snapshot là trạng thái sau demo, không phục hồi bằng cách sửa trạng thái phiếu/tài sản trực tiếp.

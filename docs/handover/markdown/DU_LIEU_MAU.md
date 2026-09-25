@@ -33,6 +33,10 @@ Tài liệu dành cho người chuẩn bị môi trường demo và kiểm thử
 
 Migration không seed phòng ban, vị trí, nhà cung cấp, model, phần mềm hoặc tài sản nghiệp vụ. Cần tạo các mục này qua UI trước khi chạy kịch bản đầy đủ.
 
+**Bước bắt buộc nếu demo linh kiện:** ADMIN vào danh mục nhóm tài sản, bật hoạt động cho COMPONENT trước khi tạo RAM/STORAGE. Cài mới ngày 25/09/2026 xác nhận nhóm này mặc định inactive; có loại RAM trong seed không có nghĩa nhóm đã được bật.
+
+Đợt kiểm tra ngày 25/09/2026 đã tạo bộ dữ liệu riêng và lưu snapshot database cùng storage. Đây là dữ liệu sau khi chạy hết vòng đời, không phải dữ liệu tự seed khi cài mới. Mã tài sản, vị trí snapshot và kết quả thực tế nằm trong [BIEN_BAN_BAN_GIAO.md](BIEN_BAN_BAN_GIAO.md).
+
 ## 2. Bộ danh mục tổng hợp đề xuất
 
 Vào Quản lý Danh mục và tạo các bản ghi sau. Có thể đổi tên hiển thị, nhưng nên giữ mã ngắn, duy nhất và dễ nhận biết.
