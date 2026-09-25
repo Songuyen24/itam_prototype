@@ -18,6 +18,8 @@ Tài liệu dành cho người trình diễn và người theo dõi nghiệm thu
 
 Nếu dữ liệu đã được dùng ở lần demo trước, tạo mã mới thay vì cố khôi phục thủ công trạng thái workflow.
 
+Kịch bản chính đã chạy ngày 25/09/2026 trên database riêng, kết hợp API thật và thao tác trình duyệt. Xem [BIEN_BAN_BAN_GIAO.md](BIEN_BAN_BAN_GIAO.md) để đối chiếu mã phiếu, vai trò, kết quả và những nhánh UI chưa chạy lại. Không dùng kết quả mong đợi trong tài liệu này thay cho bằng chứng thực tế.
+
 ## 2. Mở đầu  phân quyền và tổng quan
 
 Vai trò: ADMIN
