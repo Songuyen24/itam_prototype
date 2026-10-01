@@ -303,7 +303,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
               {/* Asset Name */}
               <div className="form-group">
                 <label className="form-label">
-                  {t('fields.name')} <span style={{ color: 'var(--danger)' }}>*</span>
+                  {t('fields.name')} <span aria-hidden="true" style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -318,7 +318,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
               {/* Asset Type */}
               <div className="form-group">
                 <label className="form-label">
-                  {t('fields.type')} <span style={{ color: 'var(--danger)' }}>*</span>
+                  {t('fields.type')} <span aria-hidden="true" style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <select
                   className="form-input"

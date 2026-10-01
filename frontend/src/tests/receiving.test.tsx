@@ -28,17 +28,29 @@ describe('T14 receiving',()=>{
   });
   it('requires hardware condition while keeping serial optional',()=>{
     const html=renderToStaticMarkup(<ReceivingAssetForm refs={refs} initial={{name:'Laptop',typeId:1}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);
-    expect(html).toMatch(/receiving.conditionId<select[^>]*required/);
+    expect(html).toMatch(/receiving.name<span[^>]*aria-hidden="true"[^>]*>\*<\/span><input[^>]*required/);
+    expect(html).toMatch(/receiving.typeId<span[^>]*aria-hidden="true"[^>]*>\*<\/span><select[^>]*required/);
+    expect(html).toMatch(/receiving.conditionId<span[^>]*aria-hidden="true"[^>]*>\*<\/span><select[^>]*required/);
     expect(html).toMatch(/receiving.serialNumber<input[^>]*type="text"/);
     expect(html).not.toMatch(/receiving.serialNumber<input[^>]*required/);
     expect(html).toContain('receiving.actualRam');
   });
   it('requires subscription expiry and seats and omits hardware fields for licenses',()=>{
     const html=renderToStaticMarkup(<ReceivingAssetForm refs={refs} initial={{name:'Package',typeId:2,license:{softwareCatalogId:1,assignmentTypeId:1,termTypeId:1,seatCount:10}}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);
-    expect(html).toMatch(/receiving.expiryDate<input[^>]*required/);
+    for(const field of ['softwareCatalogId','assignmentTypeId','termTypeId','seatCount','expiryDate']) {
+      expect(html).toMatch(new RegExp(`receiving\\.${field}<span[^>]*aria-hidden="true"[^>]*>\\*<\\/span>`));
+    }
+    expect(html).toMatch(/receiving.expiryDate<span[^>]*>\*<\/span><input[^>]*required/);
     expect(html).toContain('min="1"');
     expect(html).not.toContain('receiving.conditionId');
     expect(html).not.toContain('licenseKey');
+  });
+  it('keeps perpetual license expiry optional and unmarked',()=>{
+    const perpetual={...refs,terms:[{id:2,name:'Perpetual',code:'PERPETUAL'}]};
+    const html=renderToStaticMarkup(<ReceivingAssetForm refs={perpetual} initial={{name:'Package',typeId:2,license:{softwareCatalogId:1,assignmentTypeId:1,termTypeId:2,seatCount:10}}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);
+    expect(html).toMatch(/receiving.expiryDate<input/);
+    expect(html).not.toMatch(/receiving.expiryDate<span[^>]*>\*<\/span>/);
+    expect(html).not.toMatch(/receiving.expiryDate<input[^>]*required/);
   });
   it('renders frozen model defaults, actual values and effective configuration',()=>{
     const html=renderToStaticMarkup(<ReceivingAssetDetails line={{assetId:1,assetTag:'OLD-TAG',name:'Old name',category:'DEVICE',input:{name:'Old name',typeId:1,actualRam:'32GB'},model:{default_ram:'16GB'},effectiveHardware:{ram:'32GB'}}}/>);
