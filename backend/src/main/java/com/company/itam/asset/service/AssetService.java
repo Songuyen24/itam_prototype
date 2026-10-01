@@ -323,7 +323,7 @@ public class AssetService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id));
 
         if (receiving ? asset.getStatus().getCode() != AssetStatus.PENDING_IMPORT
-                : (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT || assetRepository.hasReceivingHistory(id))) {
+                : (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT || assetRepository.hasActiveReceiving(id))) {
             throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
         }
         if (!receiving && (request.getExpectedVersion() == null

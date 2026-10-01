@@ -130,6 +130,41 @@ class ChecklistCompletionIntegrationTest {
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
     }
 
+    @Test void completedReceivingAssetConditionCanBeUpdatedWithoutChangingFrozenRevision() throws Exception {
+        var t=drafts.create("condition update",null);
+        var request=hardware();
+        Long oldCondition=request.getConditionId();
+        Long newCondition=jdbc.queryForObject("SELECT condition_id FROM asset_conditions WHERE code='DAMAGED'",Long.class);
+        Long usedCondition=jdbc.queryForObject("SELECT condition_id FROM asset_conditions WHERE code='USED'",Long.class);
+        assertThat(newCondition).isNotEqualTo(oldCondition);
+        t=drafts.addHardware(t.transactionId(),t.expectedVersion(),request);
+        long assetId=jdbc.queryForObject("SELECT asset_id FROM transaction_assets WHERE transaction_id=?",Long.class,t.transactionId());
+        documents.upload(file("condition.pdf","sample"),t.transactionId(),DocumentType.INVOICE,null,t.expectedVersion());
+        t=drafts.submit(t.transactionId(),t.expectedVersion()+1);
+        login("it01@itam.example","IT_STAFF");
+        drafts.process(t.transactionId(),t.expectedVersion(),t.submittedRevision(),true,null);
+        String frozen=drafts.revisions(t.transactionId()).getFirst().get("snapshot").toString();
+        entityManager.clear();
+        long version=jdbc.queryForObject("SELECT version FROM assets WHERE asset_id=?",Long.class,assetId);
+
+        mvc.perform(put("/v1/assets/"+assetId).with(user("it01@itam.example").authorities(new SimpleGrantedAuthority("IT_STAFF")))
+                .contentType("application/json").content("{\"name\":\"Checklist sample device\",\"typeId\":"+request.getTypeId()+",\"conditionId\":"+newCondition+",\"expectedVersion\":"+version+"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.conditionId").value(newCondition));
+
+        entityManager.clear();
+        version=jdbc.queryForObject("SELECT version FROM assets WHERE asset_id=?",Long.class,assetId);
+        mvc.perform(put("/v1/assets/"+assetId).with(user("it01@itam.example").authorities(new SimpleGrantedAuthority("IT_STAFF")))
+                .contentType("application/json").content("{\"name\":\"Checklist sample device\",\"typeId\":"+request.getTypeId()+",\"conditionId\":"+usedCondition+",\"expectedVersion\":"+version+"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.conditionId").value(usedCondition));
+
+        login("it01@itam.example","IT_STAFF");
+        assertThat(drafts.revisions(t.transactionId()).getFirst().get("snapshot").toString()).isEqualTo(frozen);
+        assertThat(jdbc.queryForObject("SELECT condition_id FROM asset_hardware_details WHERE asset_id=?",Long.class,assetId)).isEqualTo(usedCondition);
+        var audit=jdbc.queryForMap("SELECT old_data,new_data FROM audit_logs WHERE entity_type='ASSET' AND entity_id=? AND action='UPDATE' ORDER BY audit_log_id DESC LIMIT 1",assetId);
+        assertThat(audit.get("old_data").toString()).contains("\"conditionId\": "+newCondition);
+        assertThat(audit.get("new_data").toString()).contains("\"conditionId\": "+usedCondition);
+    }
+
     @Test void omittedTagOnUpdateIsPreservedButExplicitChangesAreRejected() throws Exception {
         login("admin@itam.example","ADMIN");
         var saved=assets.createHardwareAsset(hardware());

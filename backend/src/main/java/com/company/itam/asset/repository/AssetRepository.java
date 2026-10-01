@@ -28,8 +28,8 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long>, JpaSp
     String nextGeneratedAssetTag();
 
     Optional<AssetEntity> findByAssetTag(String assetTag);
-    @Query(value="SELECT EXISTS(SELECT 1 FROM transaction_assets a JOIN transactions t USING(transaction_id) WHERE a.asset_id=:id AND t.type='IMPORT')",nativeQuery=true)
-    boolean hasReceivingHistory(@Param("id") Long id);
+    @Query(value="SELECT EXISTS(SELECT 1 FROM transaction_assets a JOIN transactions t USING(transaction_id) WHERE a.asset_id=:id AND t.type='IMPORT' AND t.status IN ('DRAFT','PENDING'))",nativeQuery=true)
+    boolean hasActiveReceiving(@Param("id") Long id);
     boolean existsByAssetTag(String assetTag);
     boolean existsByAssetTagIgnoreCase(String assetTag);
 
