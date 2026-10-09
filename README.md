@@ -11,10 +11,10 @@
 - Import Excel tồn đầu kỳ với xem trước, kiểm tra lỗi và xác nhận.
 - Nhập kho mua mới qua phiếu nháp, chứng từ, gửi duyệt và lịch sử phiên bản.
 - Bàn giao, thu hồi, thanh lý theo quyền và trạng thái nghiệp vụ.
-- Sinh biên bản PDF, lưu chứng từ và theo dõi email giả lập.
+- Sinh biên bản PDF, lưu chứng từ và theo dõi trạng thái gửi email.
 - Dashboard thống kê và xuất danh sách tài sản ra Excel.
 
-Email hiện được mô phỏng, không gửi SMTP thật. Chứng từ và PDF được lưu thành file cục bộ. Dùng dữ liệu giả lập khi trình diễn.
+Email mặc định được mô phỏng. Có thể bật Mailpit để gửi SMTP hoàn toàn cục bộ và xem thư thử tại giao diện web; không có thư nào được chuyển ra Internet. Chứng từ và PDF được lưu thành file cục bộ. Dùng dữ liệu giả lập khi trình diễn.
 
 ## Tài liệu hướng dẫn
 
@@ -74,6 +74,24 @@ cd backend
 ```
 
 Backend mặc định tại http://localhost:8080/api. Khi chạy từ backend, ứng dụng đọc được .env ở thư mục cha; đường dẫn storage tương đối cũng tính từ backend. Không cần bật profile dev vì profile đó có cấu hình database cố định, có thể ghi đè giá trị mong muốn.
+
+### Email cục bộ với Mailpit (tùy chọn)
+
+Giữ `ITAM_EMAIL_MODE=simulated` để dùng chế độ mặc định chỉ ghi nhận lần gửi. Để kiểm tra email thật qua SMTP cục bộ, khởi động Mailpit trước rồi đặt `ITAM_EMAIL_MODE=mailpit` trong `.env` và khởi động lại backend. Backend chỉ kết nối `127.0.0.1:1025`, không dùng xác thực hoặc TLS; địa chỉ gửi cố định là `itam@itam.example` và timeout là 5 giây.
+
+Nếu có Docker Compose:
+
+```powershell
+docker compose -f docker-compose.mailpit.yml up -d
+```
+
+Nếu không có Docker, tải bản Windows từ [trang phát hành Mailpit chính thức](https://github.com/axllent/mailpit/releases/tag/v1.31.4), giải nén và chạy:
+
+```powershell
+.\mailpit.exe --listen 127.0.0.1:8025 --smtp 127.0.0.1:1025
+```
+
+Mở http://127.0.0.1:8025 để xem nội dung UTF-8 và tệp PDF đính kèm. Cấu hình này chỉ dành cho phát triển/thử nghiệm cục bộ; xem thêm [tài liệu cài đặt Mailpit](https://mailpit.axllent.org/docs/install/).
 
 ### Frontend
 
@@ -137,7 +155,7 @@ Giới hạn pool trên tránh nhiều Spring test context giữ quá nhiều k�
 
 ## Giới hạn và hỗ trợ
 
-Prototype chưa bao gồm gửi email thật, chữ ký số, ứng dụng mobile hoặc cấu hình production hoàn chỉnh. Quy trình thay linh kiện trên thiết bị đang sử dụng thuộc backlog, khác với chức năng quản lý quan hệ/thu hồi linh kiện đã có. Các mở rộng cần chốt phạm vi và tiêu chí nghiệm thu.
+Prototype chưa bao gồm nhà cung cấp email hoặc SMTP relay bên ngoài, chữ ký số, ứng dụng mobile hoặc cấu hình production hoàn chỉnh. Mailpit chỉ giữ email thử trong máy cục bộ. Quy trình thay linh kiện trên thiết bị đang sử dụng thuộc backlog, khác với chức năng quản lý quan hệ/thu hồi linh kiện đã có. Các mở rộng cần chốt phạm vi và tiêu chí nghiệm thu.
 
 Lỗi còn mở H01: tab Lịch sử thu hồi chưa tải lại phiếu từ backend sau reload/mở lại trang. Tạm tra cứu qua Chứng từ; xem biên bản và backlog để biết tiêu chí sửa. Không coi test tự động đạt là xác nhận mọi luồng UI đã hoàn thiện.
 

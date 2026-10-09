@@ -187,7 +187,7 @@
     }
   },
   "publication": {
-    "title": "PDF report and simulated email",
+    "title": "PDF report and email delivery",
     "pdf": "PDF",
     "email": "Latest email",
     "version": "Publication version",
@@ -201,7 +201,7 @@
     "actionError": "Unable to complete the publication action.",
     "independentHint": "A PDF or email failure does not change the completed business transaction.",
     "pdfStatus": { "READY": "Ready", "NOT_GENERATED": "Not generated", "FAILED": "PDF generation failed" },
-    "emailStatus": { "PENDING": "Processing", "SENT": "Simulated sent", "FAILED": "Failed" },
+    "emailStatus": { "PENDING": "Processing", "SENT": "Sent", "FAILED": "Failed" },
     "events": {
       "IMPORT_SUBMITTED": "Receiving pending IT review",
       "IMPORT_REJECTED": "Receiving rejected",

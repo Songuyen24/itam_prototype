@@ -52,6 +52,6 @@ public class TransactionPublicationController {
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")
     @PostMapping("/email/resend")
     public ApiResponse<PublicationStatusResponse> resend(@PathVariable Long id) {
-        return ApiResponse.success(messages.getMessage("EMAIL_SIMULATED"), service.resend(id));
+        return ApiResponse.success(messages.getMessage("EMAIL_SENT"), service.resend(id));
     }
 }

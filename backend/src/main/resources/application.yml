@@ -12,6 +12,17 @@ spring:
     encoding: UTF-8
     fallback-to-system-locale: false
 
+  mail:
+    host: 127.0.0.1
+    port: 1025
+    default-encoding: UTF-8
+    properties:
+      "mail.smtp.auth": false
+      "mail.smtp.starttls.enable": false
+      "mail.smtp.connectiontimeout": 5000
+      "mail.smtp.timeout": 5000
+      "mail.smtp.writetimeout": 5000
+
   config:
     import:
       - optional:file:.env[.properties]
@@ -58,6 +69,9 @@ jwt:
   access-token-ttl: 86400000   # 24 hours in milliseconds
 
 itam:
+  email:
+    mode: ${ITAM_EMAIL_MODE:simulated}
+    from: itam@itam.example
   disposal:
     minimum-age-years: ${DISPOSAL_MINIMUM_AGE_YEARS:5}
   publication:
