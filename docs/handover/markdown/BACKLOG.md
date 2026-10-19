@@ -2,6 +2,48 @@
 
 Tài liệu dành cho quản lý dự án, nhóm phát triển và đại diện nghiệp vụ để lựa chọn công việc sau giai đoạn prototype. Các mức ưu tiên là đề xuất phục vụ lập kế hoạch, không phải cam kết tiến độ hoặc xác nhận đã được phê duyệt.
 
+## Phản hồi nhóm ngày 19/10/2026 — căn cứ hiện hành
+
+Nội dung do nhóm phản hồi, thay các phương án tạm trái nội dung dưới đây. Chưa phải bằng chứng đã triển khai.
+
+### Quyền phiếu
+
+- Nháp: người tạo sửa/hủy; người cùng role chỉ xem trong phạm vi được cấp, không sửa/hủy thay.
+- Chờ xử lý: khóa nội dung; người tạo được rút về nháp để sửa nếu chưa hoàn tất. Người có quyền duyệt được duyệt/từ chối, không sửa thay. Không tiếp tục áp dụng quy tắc tạm mọi người được hủy phiếu chờ; quyền hủy trực tiếp phiếu chờ của người tạo chưa được phản hồi xác nhận, cần đối chiếu khi làm.
+- Admin xử lý ngoại lệ cho nháp/chờ, bắt buộc lý do và audit; không vượt giới hạn phiếu hoàn tất.
+- Kiểm soát riêng xem/sửa/hủy/duyệt theo role, nghiệp vụ, trạng thái và người tạo. PUR không tự có quyền truy cập bàn giao/thu hồi/thanh lý.
+
+### USER
+
+- Giữ USER đăng nhập khi Admin cấp quyền truy cập; không tự cấp cho mọi hồ sơ nhân viên hoặc mọi USER. Admin kích hoạt/khóa, cấp/thu hồi quyền.
+- USER chỉ xem tài sản hiện được gán cho mình; không xem tài sản người khác, kho, dashboard quản trị, lịch sử nội bộ; không tạo/sửa/duyệt phiếu. Report mặc định bị chặn.
+- Khóa/thu hồi quyền không mất hồ sơ, tài sản hoặc lịch sử; kiểm tra cả phiên/token đang dùng. Hồ sơ nhân viên vẫn tách biệt tài khoản đăng nhập, liên kết đúng người.
+
+### Phiếu hoàn tất
+
+- Không sửa trực tiếp, xóa hoặc đưa về nháp, kể cả Admin.
+- Người phụ trách lập yêu cầu điều chỉnh có lý do, liên kết phiếu gốc; Admin xem xét/phê duyệt.
+- Sai mô tả/chứng từ: bổ sung/đính chính bằng phiên bản mới, giữ bản cũ. Sai tài sản/người nhận/trạng thái: nghiệp vụ phù hợp (ví dụ thu hồi rồi bàn giao lại).
+- Có giao dịch tiếp theo: kiểm tra ảnh hưởng, không tự đảo giao dịch cũ. Nếu chưa có chức năng điều chỉnh thì ghi backlog, không sửa trực tiếp database.
+
+### Report/Báo cáo
+
+- Bổ sung trang Report song ngữ, xem và xuất Excel theo bộ lọc.
+- Tài sản: loại, trạng thái, phòng ban, vị trí, người sử dụng.
+- Nghiệp vụ: phiếu nhập/bàn giao/thu hồi/thanh lý theo thời gian, trạng thái, người thực hiện.
+- Cấp phát: tài sản hiện giao từng người; license tổng/đã cấp/còn khả dụng, không cộng lẫn gói và suất.
+- Admin phân quyền xem và xuất riêng; Admin toàn bộ, IT/PUR chỉ phạm vi được cấp, USER mặc định không truy cập. Quyền Report không tự mở quyền xem/sửa phiếu gốc.
+- Đối soát với tài sản, phiếu và dashboard; phân biệt hoàn tất với nháp/chờ. Phạm vi Report này không còn hoãn; báo cáo lịch sử nâng cao ngoài phạm vi vẫn chờ mẫu/định nghĩa. Cần chốt ngày tính kỳ, đơn vị đếm và phạm vi cụ thể IT/PUR trước query tương ứng.
+
+### Công việc cần thực hiện theo phản hồi
+
+- [ ] P0: quyền riêng theo người tạo/trạng thái và Admin ngoại lệ có lý do/audit.
+- [ ] P0: USER được Admin cấp/thu hồi quyền, API chỉ trả tài sản của mình, kiểm tra token khi khóa/thu hồi.
+- [ ] P0: bảo vệ phiếu hoàn tất khỏi sửa/xóa/trả nháp ở cả API; không sửa database để xử lý sai sót.
+- [ ] P1: Report có quyền xem/xuất, bộ lọc, Excel và đối soát số liệu.
+- [ ] Backlog chức năng yêu cầu điều chỉnh, phiên bản đính chính và Admin duyệt nếu hiện chưa có; rà code trước kết luận thiếu.
+- [ ] Chuẩn bị và chạy demo/test theo `project_sources/docs/acceptance/2026-10-19-feedback-test-cases.md`; chưa chạy trong lượt ghi nhận.
+
 ## Nguyên tắc lựa chọn
 
 Ưu tiên hoàn tất nghiệm thu các luồng hiện có trước khi mở rộng. Với mỗi hạng mục, xác định người phụ trách, dữ liệu đầu vào, quyết định nghiệp vụ còn thiếu và tiêu chí hoàn thành. Không đưa các chức năng đã có vào danh sách chưa triển khai chỉ vì chưa có kết quả nghiệm thu.
