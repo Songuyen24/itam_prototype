@@ -26,15 +26,15 @@ function DisposalDialog({ title, busy = false, restoreFocusRef, onClose, childre
   </dialog>;
 }
 
-export function DisposalReview({ value, saving, error, restoreFocusRef, onCancel, onConfirm }: {
-  value: DisposalCheck; saving: boolean; error?: string; restoreFocusRef?: RefObject<HTMLElement>; onCancel: () => void; onConfirm: () => void;
+export function DisposalReview({ value, editing = false, saving, error, restoreFocusRef, onCancel, onConfirm }: {
+  value: DisposalCheck; editing?: boolean; saving: boolean; error?: string; restoreFocusRef?: RefObject<HTMLElement>; onCancel: () => void; onConfirm: () => void;
 }) {
   const { t } = useTranslation('disposal');
   const warningText = (warning: string) => warning.startsWith('PER_USER_LINKED:')
     ? t('perUserWarning', { assetTag: warning.slice('PER_USER_LINKED:'.length) }) : warning;
   return <DisposalDialog title={t('reviewTitle')} busy={saving} restoreFocusRef={restoreFocusRef} onClose={onCancel} footer={<>
     <button className="btn btn-secondary" disabled={saving} onClick={onCancel}>{t('cancel')}</button>
-    <button className="btn btn-primary" disabled={saving} onClick={onConfirm}>{saving ? t('saving') : t('confirmCreate')}</button>
+    <button className="btn btn-primary" disabled={saving} onClick={onConfirm}>{saving ? t('saving') : t(editing?'saveDraft':'confirmCreate')}</button>
   </>}>
     {error && <div className="alert-banner alert-danger" role="alert">{error}</div>}
     {value.warnings.length > 0 && <div className="alert-banner alert-danger">{value.warnings.map(warning => <span key={warning}>{warningText(warning)}</span>)}</div>}
@@ -53,21 +53,26 @@ function AllocationList({ title, rows, perUser = false }: {
   </div>)}</section>;
 }
 
-export function DisposalDetail({ value, role, decisions, saving, error, restoreFocusRef, action, rejectReason, onDecision, onResolve,
+export function DisposalDetail({ value, role, userId, onTransition, onEdit, decisions, saving, error, restoreFocusRef, action, rejectReason, onDecision, onResolve,
   onChooseAction, onRejectReason, onApprove, onReject, onClose }: {
   value: Disposal; role?: string; decisions: Record<number, boolean>; saving: boolean; error?: string; restoreFocusRef?: RefObject<HTMLElement>; action: 'approve' | 'reject' | null;
   rejectReason: string; onDecision: (id: number, release: boolean) => void; onResolve: () => void;
   onChooseAction: (action: 'approve' | 'reject' | null) => void; onRejectReason: (reason: string) => void;
   onApprove: () => void; onReject: () => void; onClose: () => void;
+  userId?: number; onTransition?: (action:'withdraw'|'submit'|'cancel')=>void; onEdit?: ()=>void;
 }) {
   const { t } = useTranslation('disposal');
   const pending = value.status === 'PENDING';
-  const canResolve = pending && (role === 'ADMIN' || role === 'IT_STAFF');
+  const editor = role==='ADMIN' || (role==='IT_STAFF' && userId===value.requesterId);
+  const canResolve = value.status==='DRAFT' && editor;
   const canDecide = pending && role === 'ADMIN';
   const warningText = (warning: string) => warning.startsWith('PER_USER_LINKED:')
     ? t('perUserWarning', { assetTag: warning.slice('PER_USER_LINKED:'.length) }) : warning;
   return <DisposalDialog title={t('detailTitle')} busy={saving} restoreFocusRef={restoreFocusRef} onClose={onClose} footer={<>
     <button className="btn btn-secondary" disabled={saving} onClick={onClose}>{t('close')}</button>
+    {editor&&pending&&<button className="btn btn-secondary" disabled={saving} onClick={()=>onTransition?.('withdraw')}>{t('withdraw')}</button>}
+    {editor&&value.status==='DRAFT'&&<><button className="btn btn-secondary" disabled={saving} onClick={onEdit}>{t('editDraft')}</button><button className="btn btn-primary" disabled={saving} onClick={()=>onTransition?.('submit')}>{t('submitDraft')}</button></>}
+    {((editor&&value.status==='DRAFT')||(role==='ADMIN'&&pending))&&<button className="btn btn-danger" disabled={saving} onClick={()=>{if(window.confirm(t('cancelTransactionConfirm')))onTransition?.('cancel');}}>{t('cancelTransaction')}</button>}
     {canDecide && <button className="btn btn-secondary" disabled={saving} onClick={() => onChooseAction('reject')}>{t('reject')}</button>}
     {canDecide && <button className="btn btn-primary" disabled={saving || value.perUserLinks.length > 0} onClick={() => onChooseAction('approve')}>{t('approve')}</button>}
   </>}>

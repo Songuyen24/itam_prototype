@@ -207,9 +207,9 @@ class DocumentControllerIntegrationTest {
     }
 
     @Test
-    void endUserCanDownloadOwnHandoverAndRecoveryReports() throws Exception {
-        assertDownload("USER", handoverReportId);
-        assertDownload("USER", recoveryReportId);
+    void endUserCannotDownloadHistoricalOwnReports() throws Exception {
+        mockMvc.perform(as("USER", get("/v1/documents/{id}/download", handoverReportId))).andExpect(status().isForbidden());
+        mockMvc.perform(as("USER", get("/v1/documents/{id}/download", recoveryReportId))).andExpect(status().isForbidden());
     }
 
     @Test
@@ -448,8 +448,8 @@ class DocumentControllerIntegrationTest {
     private void createUser(String key, String role) {
         String email = fixturePrefix + "-" + key + "@example.test";
         long id = jdbc.queryForObject("""
-                insert into users(email, full_name, role_id, account_status)
-                select ?, ?, role_id, 'ACTIVE' from roles where code = ? returning user_id
+                insert into users(email, full_name, role_id, account_status, password_hash, access_granted)
+                select ?, ?, role_id, 'ACTIVE', 'fixture-token-only', true from roles where code = ? returning user_id
                 """, Long.class, email, "Document test " + key, role);
         userIds.put(key, id);
         emails.put(key, email);

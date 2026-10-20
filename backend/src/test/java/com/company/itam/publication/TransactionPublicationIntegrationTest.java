@@ -142,7 +142,7 @@ class TransactionPublicationIntegrationTest {
     }
 
     @Test
-    void endUserCanDownloadOnlyOwnPublicationPdf() throws Exception {
+    void endUserCannotDownloadHistoricalPublicationPdf() throws Exception {
         Long ownHandoverId = publishedHandover("user01@itam.example");
         Long otherHandoverId = publishedHandover(createUser("USER"));
         Long ownRecoveryId = publishedRecovery("user01@itam.example");
@@ -150,15 +150,15 @@ class TransactionPublicationIntegrationTest {
         var endUser = user("user01@itam.example").authorities(new SimpleGrantedAuthority("USER"));
 
         mockMvc.perform(get("/v1/transactions/{id}/pdf", ownHandoverId).with(endUser))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
         mockMvc.perform(get("/v1/transactions/{id}/pdf", otherHandoverId).with(endUser))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/v1/transactions/{id}/pdf", ownRecoveryId).with(endUser))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
         mockMvc.perform(get("/v1/transactions/{id}/pdf", otherRecoveryId).with(endUser))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/v1/documents/{id}/download", publicationDocumentId(ownHandoverId)).with(endUser))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
         mockMvc.perform(get("/v1/transactions/{id}/publication", ownHandoverId).with(endUser))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/v1/transactions/{id}/email-logs", ownHandoverId).with(endUser))

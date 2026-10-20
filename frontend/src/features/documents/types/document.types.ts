@@ -1,7 +1,7 @@
 export const DOCUMENT_ROLES = ['ADMIN', 'IT_STAFF', 'PUR_STAFF'];
 
 export type TransactionType = 'IMPORT' | 'HANDOVER' | 'RECOVERY' | 'DISPOSAL';
-export type TransactionStatus = 'DRAFT' | 'PENDING' | 'COMPLETED' | 'REJECTED';
+export type TransactionStatus = 'DRAFT' | 'PENDING' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
 export type DocumentType =
   | 'INVOICE'
   | 'PURCHASE_ORDER'
@@ -23,6 +23,7 @@ export interface DocumentTransaction {
   expectedVersion?: number;
   submittedRevision?: number;
   requesterName?: string;
+  requesterId?: number;
   processedByName?: string;
   rejectionReason?: string;
 }

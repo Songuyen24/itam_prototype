@@ -55,8 +55,8 @@ public class ImportDraftService {
         // A document permission lookup may already have loaded this transaction.
         // Refresh AFTER acquiring the row lock: first-level cache must not validate stale state.
         entityManager.refresh(t, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
-        access.requireImportEditor(t);
         if (t.getStatus() != TransactionStatus.DRAFT) throw error("DOCUMENT_LOCKED");
+        access.requireImportEditor(t);
         if (version == null || version != t.getContentVersion()) throw error("TRANSACTION_VERSION_CONFLICT");
         return t;
     }
@@ -70,10 +70,14 @@ public class ImportDraftService {
     }
 
     public void changed(TransactionEntity t, String action) {
+        String previousStatus=switch(action) {case "SUBMIT"->"DRAFT";case "WITHDRAW","APPROVE","REJECT"->"PENDING";default->"DRAFT";};
+        changed(t,action,previousStatus);
+    }
+
+    private void changed(TransactionEntity t, String action, String previousStatus) {
         t.setContentVersion(t.getContentVersion() + 1);
         t.setUpdatedAt(Instant.now());
         transactions.saveAndFlush(t);
-        String previousStatus=switch(action) {case "SUBMIT"->"DRAFT";case "WITHDRAW","APPROVE","REJECT"->"PENDING";default->"DRAFT";};
         jdbc.update("INSERT INTO audit_logs(entity_type,entity_id,transaction_id,actor_user_id,action,details,old_data,new_data) VALUES ('TRANSACTION',?,?,?,?,?,jsonb_build_object('status',?::text),jsonb_build_object('status',?::text))",
                 t.getTransactionId(), t.getTransactionId(), actor().getUserId(), action,
                 "contentVersion=" + t.getContentVersion() + "; submittedRevision=" + t.getSubmittedRevision() + "; status=" + t.getStatus(),previousStatus,t.getStatus().name());
@@ -182,6 +186,18 @@ public class ImportDraftService {
         t.setStatus(TransactionStatus.DRAFT);
         jdbc.update("DELETE FROM import_asset_reservations WHERE transaction_id=?",id);
         changed(t,"WITHDRAW"); event(t,"WITHDRAWN",null); return TransactionSummaryResponse.fromEntity(t);
+    }
+
+    public TransactionSummaryResponse cancel(Long id, Long version) {
+        var t = lock(id, version);
+        if (t.getStatus() != TransactionStatus.DRAFT && t.getStatus() != TransactionStatus.PENDING)
+            throw error("DOCUMENT_LOCKED");
+        access.requireImportEditor(t, t.getStatus() == TransactionStatus.PENDING);
+        var previousStatus = t.getStatus().name();
+        t.setStatus(TransactionStatus.CANCELLED);
+        jdbc.update("DELETE FROM import_asset_reservations WHERE transaction_id=?", id);
+        changed(t,"CANCEL",previousStatus);
+        return TransactionSummaryResponse.fromEntity(t);
     }
 
     @Transactional(readOnly = true)

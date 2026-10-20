@@ -87,7 +87,8 @@
     "COMPLETED": "Completed",
     "PENDING_IMPORT": "Pending receipt",
     "IN_REPAIR": "Under repair",
-    "DAMAGED": "Damaged"
+    "DAMAGED": "Damaged",
+    "CANCELLED": "Cancelled"
   },
   "messages": {
     "confirmDelete": "Are you sure you want to delete?",

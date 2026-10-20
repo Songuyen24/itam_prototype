@@ -13,6 +13,7 @@ import { DocumentsPage } from '@/features/documents/pages/DocumentsPage';
 import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
 import { DisposalsPage } from '@/features/disposal/pages/DisposalsPage';
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
+import { UserAccessPage } from '@/features/auth/pages/UserAccessPage';
 
 function AppRoutes() {
   const { user, token } = useAuth();
@@ -68,6 +69,7 @@ function AppRoutes() {
         <Route path="disposals" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><DisposalsPage /></ProtectedRoute>} />
         <Route path="dashboard" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><DashboardPage /></ProtectedRoute>} />
         <Route path="account" element={<AccountPage />} />
+        <Route path="user-access" element={<ProtectedRoute allowedRoles={['ADMIN']}><UserAccessPage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to={homePath} replace />} />
       </Route>
     </Routes>

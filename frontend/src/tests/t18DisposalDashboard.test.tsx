@@ -18,6 +18,16 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => k
 vi.mock('@/features/auth/contexts/AuthContext', () => ({ useAuth: () => ({ user: { role: 'ADMIN' } }) }));
 
 describe('T18 disposal and dashboard', () => {
+  it('allows draft actions only for the creator and exposes withdrawal before pending edits', () => {
+    const value={transactionId:9,transactionCode:'D9',status:'DRAFT' as const,requesterId:1,actorName:'Owner',reason:'Broken',disposalDate:'2026-10-19',createdAt:'2026-10-19',assets:[],warnings:[],perUserLinks:[],oemAllocations:[],fingerprint:'v1'};
+    const props={decisions:{},saving:false,action:null,rejectReason:'',onDecision:()=>{},onResolve:()=>{},onChooseAction:()=>{},onRejectReason:()=>{},onApprove:()=>{},onReject:()=>{},onClose:()=>{}};
+    const peer=renderToStaticMarkup(<DisposalDetail {...props} value={value} role="IT_STAFF" userId={2}/>);
+    expect(peer).not.toContain('>editDraft</button>');expect(peer).not.toContain('>cancelTransaction</button>');
+    const owner=renderToStaticMarkup(<DisposalDetail {...props} value={value} role="IT_STAFF" userId={1}/>);
+    expect(owner).toContain('>editDraft</button>');expect(owner).toContain('>submitDraft</button>');
+    const pending=renderToStaticMarkup(<DisposalDetail {...props} value={{...value,status:'PENDING'}} role="IT_STAFF" userId={1}/>);
+    expect(pending).toContain('>withdraw</button>');expect(pending).not.toContain('>editDraft</button>');expect(pending).not.toContain('>cancelTransaction</button>');
+  });
   beforeEach(() => client.mockReset());
 
   it('uses server smart-check before creating a disposal and exposes admin decisions', async () => {

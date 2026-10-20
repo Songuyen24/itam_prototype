@@ -80,14 +80,15 @@
     "PENDING_DISPOSAL": "Chờ thanh lý",
     "DISPOSED": "Đã thanh lý",
     "RETIRED": "Thanh lý / Ngừng sử dụng",
-    "DRAFT": "Bản nháp",
-    "PENDING": "Chờ duyệt",
+    "DRAFT": "Nháp",
+    "PENDING": "Chờ xử lý",
     "APPROVED": "Đã duyệt",
     "REJECTED": "Từ chối",
     "COMPLETED": "Hoàn thành",
     "PENDING_IMPORT": "Chờ duyệt nhập",
     "IN_REPAIR": "Đang sửa chữa",
-    "DAMAGED": "Hỏng"
+    "DAMAGED": "Hỏng",
+    "CANCELLED": "Đã hủy"
   },
   "messages": {
     "confirmDelete": "Bạn có chắc chắn muốn xóa?",

@@ -24,6 +24,31 @@ public class UserEntity {
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
 
+    @Column(name = "access_granted", nullable = false)
+    private boolean accessGranted;
+
+    @Column(name = "access_version", nullable = false)
+    private long accessVersion;
+
+    @Column(name = "login_locked", nullable = false)
+    private boolean loginLocked;
+    public boolean isLoginLocked() { return loginLocked; }
+    public void setLoginLocked(boolean value) { loginLocked = value; }
+    public boolean isLoginBlocked() {
+        return loginLocked || (role != null && role.getCode() != com.company.itam.common.enums.Role.USER
+                && accountStatus != AccountStatus.ACTIVE);
+    }
+
+    public boolean isAccessGranted() { return accessGranted; }
+    public void setAccessGranted(boolean value) { accessGranted = value; }
+    public long getAccessVersion() { return accessVersion; }
+    public void setAccessVersion(long value) { accessVersion = value; }
+    public boolean canLogin() {
+        return !isLoginBlocked() && passwordHash != null
+                && role != null && role.getCode() != null
+                && (role.getCode() != com.company.itam.common.enums.Role.USER || accessGranted);
+    }
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
     private RoleEntity role;

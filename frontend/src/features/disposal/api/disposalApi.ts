@@ -6,11 +6,11 @@ export interface OemAllocation { allocationId: number; licenseAssetId: number; a
 export interface PerUserLink extends OemAllocation { userName: string; }
 export interface DisposalCheck { assets: DisposalAsset[]; warnings: string[]; fingerprint: string; oemAllocations?: OemAllocation[]; }
 export interface Disposal {
-  transactionId: number; transactionCode: string; status: 'PENDING' | 'COMPLETED' | 'REJECTED';
+  transactionId: number; transactionCode: string; status: 'DRAFT' | 'PENDING' | 'COMPLETED' | 'REJECTED' | 'CANCELLED'; requesterId?: number;
   actorName: string; reason: string; disposalDate: string; createdAt: string; assets: DisposalAsset[]; warnings: string[];
   perUserLinks: PerUserLink[]; oemAllocations: OemAllocation[]; fingerprint: string;
 }
-export interface DisposalRequest { assetIds: number[]; reason: string; disposalDate: string; expectedFingerprint: string; }
+export interface DisposalRequest { assetIds: number[]; reason: string; disposalDate: string; expectedFingerprint: string; expectedTransactionFingerprint?: string; }
 export interface TransactionSummary { transactionId: number; transactionCode: string; status: string; requesterName: string; createdAt: string; }
 
 export const disposalApi = {
@@ -19,6 +19,9 @@ export const disposalApi = {
   smartCheck: (assetIds: number[]) => httpClient<ApiResponse<DisposalCheck>>('/v1/disposals/smart-check', { method: 'POST', body: JSON.stringify({ assetIds }) }),
   create: (body: DisposalRequest) => httpClient<ApiResponse<Disposal>>('/v1/disposals', { method: 'POST', body: JSON.stringify(body) }),
   detail: (id: number) => httpClient<ApiResponse<Disposal>>(`/v1/disposals/${id}`),
+  edit: (id: number, body: DisposalRequest) => httpClient<ApiResponse<Disposal>>(`/v1/disposals/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  transition: (value: Disposal, action: 'withdraw'|'submit'|'cancel') => httpClient<ApiResponse<Disposal>>(`/v1/disposals/${value.transactionId}/${action}`, { method: 'POST', body: JSON.stringify({expectedFingerprint:value.fingerprint}) }),
+  list: (page = 0, status = 'PENDING') => httpClient<ApiResponse<PageResponse<TransactionSummary>>>(`/v1/transactions?type=DISPOSAL&status=${status}&page=${page}&size=50`),
   resolvePerUser: (id: number, expectedFingerprint: string, decisions: { allocationId: number; release: boolean }[]) =>
     httpClient<ApiResponse<Disposal>>(`/v1/disposals/${id}/per-user`, { method: 'POST', body: JSON.stringify({ expectedFingerprint, decisions }) }),
   approve: (id: number, expectedFingerprint: string) => httpClient<ApiResponse<Disposal>>(`/v1/disposals/${id}/approve`, { method: 'POST', body: JSON.stringify({ expectedFingerprint }) }),

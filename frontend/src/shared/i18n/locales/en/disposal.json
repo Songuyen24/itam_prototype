@@ -53,5 +53,13 @@
     "COMPONENT": "Component",
     "LICENSE": "License"
   },
-  "error": "Unable to load disposal data."
+  "error": "Unable to load disposal data.",
+  "state": "Status",
+  "submitDraft": "Submit draft",
+  "cancelTransaction": "Cancel transaction",
+  "cancelTransactionConfirm": "Cancel this transaction? History will be retained.",
+  "withdraw": "Withdraw to draft",
+  "editDraft": "Edit draft",
+  "saveDraft": "Save draft",
+  "savedDraft": "Draft saved."
 }

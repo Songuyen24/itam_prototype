@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ApiError, downloadFile, httpClient, invalidateSessionRequests, registerUnauthorizedHandler } from '@/shared/api/httpClient';
+import { ApiError, downloadFile, httpClient, invalidateSessionRequests, registerUnauthorizedHandler, registerOverrideReasonHandler } from '@/shared/api/httpClient';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -8,6 +8,21 @@ function deferred<T>() {
 }
 
 describe('httpClient Bearer token + 401 handler', () => {
+  it('retries an administrator exception only with an explicit reason', async () => {
+    registerOverrideReasonHandler(async()=> ' Approved correction ');
+    const request=vi.spyOn(globalThis,'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({code:'OVERRIDE_REASON_REQUIRED'}),{status:400}))
+      .mockResolvedValueOnce(new Response(JSON.stringify({success:true}),{status:200}));
+    await httpClient('/v1/import-drafts/7/withdraw',{method:'POST',body:'{}'});
+    expect(request).toHaveBeenCalledTimes(2);
+    expect((request.mock.calls[1][1]?.headers as Record<string,string>)['X-Override-Reason']).toBe('Approved%20correction');
+  });
+  it('does not retry an exception when the reason prompt is cancelled', async () => {
+    registerOverrideReasonHandler(async()=>null);
+    const request=vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({code:'OVERRIDE_REASON_REQUIRED'}),{status:400}));
+    await expect(httpClient('/v1/import-drafts/7/withdraw',{method:'POST',body:'{}'})).rejects.toBeInstanceOf(ApiError);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
   beforeEach(() => {
     let store: Record<string, string> = {};
     Object.defineProperty(globalThis, 'localStorage', {
@@ -23,6 +38,7 @@ describe('httpClient Bearer token + 401 handler', () => {
     localStorage.clear();
     vi.restoreAllMocks();
     registerUnauthorizedHandler(null);
+    registerOverrideReasonHandler(null);
     invalidateSessionRequests();
   });
 

@@ -40,6 +40,15 @@ function renderRoute(path: string) {
 }
 
 describe('Role-specific routes and navigation', () => {
+  it('allows only Admin to manage USER access', () => {
+    signIn('ADMIN');
+    expect(renderRoute('/user-access')).toContain('access.description');
+    for (const role of ['IT_STAFF','PUR_STAFF','USER']) {
+      signIn(role);
+      expect(renderRoute('/user-access')).toContain('data-redirect=');
+      expect(renderRoute('/account')).not.toContain('href="/user-access"');
+    }
+  });
   beforeEach(() => {
     session.user = null;
     session.token = null;

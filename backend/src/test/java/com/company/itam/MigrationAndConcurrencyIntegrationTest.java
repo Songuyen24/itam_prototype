@@ -32,6 +32,25 @@ class MigrationAndConcurrencyIntegrationTest {
                 List.of(new SimpleGrantedAuthority("PUR_STAFF"))));
     }
 
+    @Test void accessMigrationPreservesRecipientAssignmentsAndLegacyLocksWithoutGrantingUsers() {
+        String schema="p0_upgrade_"+UUID.randomUUID().toString().replace("-","");
+        Flyway latest=Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema)
+                .cleanDisabled(false).locations("classpath:db/migration").load();
+        try {
+            Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).target("21")
+                    .locations("classpath:db/migration").load().migrate();
+            Long recipient=jdbc.queryForObject("SELECT user_id FROM "+schema+".users WHERE email='user01@itam.example'",Long.class);
+            jdbc.update("UPDATE "+schema+".users SET account_status='LOCKED' WHERE user_id=?",recipient);
+            Long asset=jdbc.queryForObject("INSERT INTO "+schema+".assets(asset_tag,name,type_id,status_id,assigned_to,created_by) SELECT 'P0-preserved','Assigned',(SELECT min(type_id) FROM "+schema+".asset_types),(SELECT status_id FROM "+schema+".asset_statuses WHERE code='IN_USE'),?,user_id FROM "+schema+".users WHERE email='admin@itam.example' RETURNING asset_id",Long.class,recipient);
+            int count=jdbc.queryForObject("SELECT count(*) FROM "+schema+".users",Integer.class);
+            assertThat(latest.migrate().success).isTrue();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM "+schema+".users",Integer.class)).isEqualTo(count);
+            assertThat(jdbc.queryForObject("SELECT assigned_to FROM "+schema+".assets WHERE asset_id=?",Long.class,asset)).isEqualTo(recipient);
+            assertThat(jdbc.queryForObject("SELECT login_locked FROM "+schema+".users WHERE user_id=?",Boolean.class,recipient)).isTrue();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM "+schema+".users WHERE access_granted",Integer.class)).isZero();
+        } finally { latest.clean(); }
+    }
+
     @Test void allMigrationsRunOnAnEmptyIsolatedSchema() {
         String schema="checklist_"+UUID.randomUUID().toString().replace("-","");
         Flyway flyway=Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema)
@@ -73,16 +92,14 @@ class MigrationAndConcurrencyIntegrationTest {
         } finally { jdbc.update("DELETE FROM assets WHERE name=?",marker); }
     }
 
-    @Test void twoPurchasersEditingTheSameVersionOnlyCommitOneChange() throws Exception {
-        String second="pur-race-"+UUID.randomUUID()+"@itam.example";
-        jdbc.update("INSERT INTO users(email,full_name,role_id,account_status) SELECT ?,'Race PUR',role_id,'ACTIVE' FROM roles WHERE code='PUR_STAFF'",second);
+    @Test void twoCreatorRequestsEditingTheSameVersionOnlyCommitOneChange() throws Exception {
         login("pur01@itam.example");
         var draft=drafts.create("before",null);
         SecurityContextHolder.clearContext();
         try (var pool=Executors.newFixedThreadPool(2)) {
             CountDownLatch start=new CountDownLatch(1);
             List<Future<Boolean>> requests=new ArrayList<>();
-            for(String email:List.of("pur01@itam.example",second)) requests.add(pool.submit(()->{
+            for(String email:List.of("pur01@itam.example","pur01@itam.example")) requests.add(pool.submit(()->{
                 login(email);
                 try {
                     start.await(); drafts.updateNotes(draft.transactionId(),draft.expectedVersion(),email); return true;
@@ -97,7 +114,6 @@ class MigrationAndConcurrencyIntegrationTest {
         } finally {
             jdbc.update("DELETE FROM audit_logs WHERE transaction_id=?",draft.transactionId());
             jdbc.update("DELETE FROM transactions WHERE transaction_id=?",draft.transactionId());
-            jdbc.update("DELETE FROM users WHERE email=?",second);
         }
     }
 
@@ -110,7 +126,7 @@ class MigrationAndConcurrencyIntegrationTest {
         hardware.setTypeId(jdbc.queryForObject("SELECT type_id FROM asset_types WHERE code='LAPTOP'",Long.class));
         draft=drafts.addHardware(draft.transactionId(),draft.expectedVersion(),hardware);
         documents.upload(new org.springframework.mock.web.MockMultipartFile("file","initial.pdf","application/pdf","%PDF-1.4\nINITIAL".getBytes()),draft.transactionId(),com.company.itam.common.enums.DocumentType.INVOICE,null,draft.expectedVersion());
-        final var target=new com.company.itam.workflow.core.dto.TransactionSummaryResponse(draft.transactionId(),draft.transactionCode(),draft.type(),draft.status(),draft.createdAt(),true,null,draft.expectedVersion()+1,0,draft.requesterName(),null,null);
+        final var target=new com.company.itam.workflow.core.dto.TransactionSummaryResponse(draft.transactionId(),draft.transactionCode(),draft.type(),draft.status(),draft.createdAt(),true,null,draft.expectedVersion()+1,0,draft.requesterName(),null,null,draft.requesterId());
         SecurityContextHolder.clearContext();
         try(var pool=Executors.newFixedThreadPool(2)) {
             CountDownLatch start=new CountDownLatch(1);

@@ -13,6 +13,9 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM UserEntity u WHERE u.userId = :id")
+    Optional<UserEntity> findForAccessUpdate(@Param("id") Long id);
     Optional<UserEntity> findByEmail(String email);
     boolean existsByEmail(String email);
     Page<UserEntity> findByFullNameContainingIgnoreCase(String name, Pageable pageable);

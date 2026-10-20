@@ -64,7 +64,7 @@ public class DocumentService {
     public DocumentResponse upload(MultipartFile file, Long transactionId, DocumentType documentType,
                                    Long assetId, Long expectedVersion) {
         TransactionEntity transaction = findTransaction(transactionId);
-        accessService.requireImportEditor(transaction);
+        accessService.requireImportRole(transaction);
         if (assetId != null) {
             validateId(assetId);
         }
@@ -101,7 +101,7 @@ public class DocumentService {
     @Transactional
     public void delete(Long documentId, Long transactionId, Long expectedVersion) {
         DocumentEntity document = findDocument(documentId);
-        accessService.requireImportEditor(document.getTransaction());
+        accessService.requireImportRole(document.getTransaction());
         Long workingId = transactionId == null ? document.getTransaction().getTransactionId() : transactionId;
         TransactionEntity t = drafts.lockDraft(workingId, expectedVersion);
         if (jdbc.update("DELETE FROM transaction_document_links WHERE transaction_id=? AND document_id=?", workingId,documentId)!=1)

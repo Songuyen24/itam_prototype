@@ -64,7 +64,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     if (userOpt.isPresent()) {
                         UserEntity user = userOpt.get();
                         // Tài khoản đã khóa thì không cấp quyền truy cập
-                        if (user.getAccountStatus() == AccountStatus.LOCKED) {
+                        if (!user.canLogin() || user.getAccessVersion() != jwtTokenProvider.extractAccessVersion(token)) {
                             log.debug("Từ chối cấp quyền cho tài khoản bị khóa: {}", email);
                             filterChain.doFilter(request, response);
                             return;

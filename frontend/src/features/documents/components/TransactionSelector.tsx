@@ -66,7 +66,7 @@ export function TransactionSelector({ selectedId, onSelect, receiving=false }: T
             {t('fields.status')}
             <select className="form-select" value={status} onChange={(event) => { setStatus(event.target.value as TransactionStatus | ''); setPage(0); }}>
               <option value="">{t('filters.allStatuses')}</option>
-              {(['DRAFT', 'PENDING', 'COMPLETED', 'REJECTED'] as const).map((value) => (
+              {(['DRAFT', 'PENDING', 'COMPLETED', 'REJECTED', 'CANCELLED'] as const).map((value) => (
                 <option key={value} value={value}>{t(`statuses.${value}`)}</option>
               ))}
             </select>

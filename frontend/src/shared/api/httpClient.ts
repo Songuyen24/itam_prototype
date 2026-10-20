@@ -42,6 +42,10 @@ function getAuthToken(): string | null {
  * Hàm này được truyền từ bên ngoài vào httpClient để tránh phụ thuộc vòng tròn.
  */
 let onUnauthorized: (() => void) | null = null;
+let requestOverrideReason: (() => Promise<string | null>) | null = null;
+export function registerOverrideReasonHandler(handler: (() => Promise<string | null>) | null): void {
+  requestOverrideReason = handler;
+}
 export function registerUnauthorizedHandler(handler: (() => void) | null): void {
   onUnauthorized = handler;
 }
@@ -120,6 +124,11 @@ async function httpClient<T>(
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: response.statusText }));
     assertCurrentSession(token, revision, currentLang);
+    if (errorData.code === 'OVERRIDE_REASON_REQUIRED' && !headers['X-Override-Reason']) {
+      const reason = await requestOverrideReason?.();
+      assertCurrentSession(token, revision, currentLang);
+      if (reason?.trim()) return httpClient<T>(endpoint, { ...options, headers: { ...headers, 'X-Override-Reason': encodeURIComponent(reason.trim()) } });
+    }
     throw new ApiError(
       errorData.message || (currentLang === 'en' ? 'An error occurred' : 'Có lỗi xảy ra'),
       response.status,
