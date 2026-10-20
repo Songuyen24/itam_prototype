@@ -132,6 +132,7 @@ class AssetImportServiceTest {
                 auditLogRepository
         );
 
+        org.springframework.test.util.ReflectionTestUtils.setField(assetImportService, "jdbc", mock(org.springframework.jdbc.core.JdbcTemplate.class));
         sampleUser = new UserEntity();
         sampleUser.setUserId(1L);
         sampleUser.setEmail("it01@itam.example");

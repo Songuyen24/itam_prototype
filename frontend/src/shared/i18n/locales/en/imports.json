@@ -1,5 +1,5 @@
 {
-  "title": "Hardware Asset Excel Import",
+  "title": "Add assets from Excel",
   "subtitle": "Supports .xlsx, .xls files up to 1,000 rows",
   "steps": {
     "upload": "1. Select Excel File",
@@ -14,7 +14,10 @@
     "downloadTemplate": "Download Standard Excel Template",
     "downloadHelp": "Template includes column structure and format guidelines",
     "btnPreview": "Continue: Validate Data",
-    "analyzing": "Analyzing and validating Excel file..."
+    "analyzing": "Analyzing and validating Excel file...",
+    "retryBatchId": "Previous batch ID (when resubmitting a corrected file)",
+    "retryBatchPlaceholder": "Leave blank for a new import",
+    "keepRowOrder": "Use the previous batch ID only to correct failed rows; keep successful row contents unchanged. Start a new import for new purchases."
   },
   "preview": {
     "summary": "Validation Summary:",
@@ -34,20 +37,28 @@
     "colStatus": "Status",
     "colValidation": "Validation Status",
     "colError": "Error Details",
+    "generatedTag": "Generated tag",
+    "missing": "[Missing]",
     "btnBack": "Choose Another File",
     "btnConfirm": "Confirm Import ({{count}} rows)",
-    "importing": "Importing records into system..."
+    "importing": "Importing records into system...",
+    "previous": "Previous", "next": "Next", "page": "Page {{page}} / {{pages}}"
   },
   "completed": {
+    "resultTitle": "Result by row",
+    "receivingMessage": "Added {{count}} assets to the receiving draft.",
+    "retryFile": "Select a corrected file to retry",
+    "batchId": "Import batch ID: {{id}}",
     "successTitle": "Import Completed Successfully!",
-    "successMessage": "The system has successfully imported {{count}} new hardware assets.",
+    "successMessage": "Added {{count}} assets to stock.",
     "batchCode": "Import Batch Code:",
     "btnFinish": "Finish & Close"
   },
   "statusBadges": {
     "VALID": "VALID",
     "INVALID": "INVALID",
-    "DUPLICATE": "DUPLICATE"
+    "DUPLICATE": "DUPLICATE",
+    "IMPORTED": "IMPORTED"
   },
   "errors": {
     "fileRequired": "Please select an Excel file",
@@ -58,5 +69,7 @@
     "importFailed": "Could not import assets."
   },
   "openingInventory": "Import sample opening inventory. Blank tags are generated on confirmation; new purchases require a receiving transaction.",
-  "guide": { "title": "Import rules", "required": "Asset name and type are required; Asset Tag may be blank and is generated on confirmation.", "unique": "Asset Tag and Serial Number must be unique in the file and database.", "status": "A blank status defaults to IN_STOCK.", "preview": "Preview does not write to the database until confirmation." }
+  "receivingTitle": "Add assets from Excel to receiving draft",
+  "receivingHint": "Valid rows are added to the draft. IT confirms the transaction before the assets enter stock.",
+  "guide": { "title": "Import rules", "required": "Asset name and type are required; Asset Tag may be blank and is generated on confirmation.", "unique": "Asset Tag and Serial Number must be unique in the file and database.", "status": "Assets added directly enter IN_STOCK.", "license": "For licenses, enter software, assignment type, term and seat count; subscriptions need an expiry date.", "preview": "Preview does not write to the database until confirmation." }
 }

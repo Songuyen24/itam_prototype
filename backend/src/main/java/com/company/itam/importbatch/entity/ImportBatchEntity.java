@@ -19,6 +19,19 @@ public class ImportBatchEntity {
     @Column(name = "file_name", nullable = false, length = 500)
     private String fileName;
 
+    @Column(name = "request_id", unique = true)
+    private java.util.UUID requestId;
+    public java.util.UUID getRequestId() { return requestId; }
+    public void setRequestId(java.util.UUID value) { requestId = value; }
+    @Column(name = "retry_batch_id")
+    private Long retryBatchId;
+    @Column(name = "receiving_id")
+    private Long receivingId;
+    public Long getRetryBatchId() { return retryBatchId; }
+    public void setRetryBatchId(Long value) { retryBatchId = value; }
+    public Long getReceivingId() { return receivingId; }
+    public void setReceivingId(Long value) { receivingId = value; }
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private ImportBatchStatus status;

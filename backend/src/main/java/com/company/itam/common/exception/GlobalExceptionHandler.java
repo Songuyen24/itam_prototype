@@ -30,6 +30,12 @@ public class GlobalExceptionHandler {
         this.messageHelper = messageHelper;
     }
 
+    @ExceptionHandler(com.company.itam.importbatch.service.ImportValidationException.class)
+    public ResponseEntity<?> handleImportValidation(com.company.itam.importbatch.service.ImportValidationException ex) {
+        return ResponseEntity.badRequest().body(java.util.Map.of("success", false, "code", ex.getCode(),
+                "message", messageHelper.getMessage(ex.getCode()), "rows", ex.getRows()));
+    }
+
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ErrorResponse> handleAppException(AppException ex) {
         log.warn("Business exception: [{}] {}", ex.getCode(), ex.getMessage());

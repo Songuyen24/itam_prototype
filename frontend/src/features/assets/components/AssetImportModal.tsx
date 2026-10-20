@@ -1,18 +1,23 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { importApi } from '../api/importApi';
-import { ImportPreviewData, ValidationStatus } from '../types/import.types';
+import { receivingApi } from '@/features/receiving/api/receivingApi';
+import { ImportBatch, ImportPreviewData, ValidationStatus } from '../types/import.types';
+import { importPayload } from './importPayload';
+import { ApiError } from '@/shared/api/httpClient';
 
 interface AssetImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImportSuccess: (importedCount: number) => void;
+  receiving?: { id: number; version: number };
 }
 
 export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   isOpen,
   onClose,
   onImportSuccess,
+  receiving,
 }) => {
   const { t } = useTranslation(['imports', 'common']);
   const [step, setStep] = useState<'upload' | 'preview' | 'completed'>('upload');
@@ -23,6 +28,12 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   const [previewData, setPreviewData] = useState<ImportPreviewData | null>(null);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'VALID' | 'ERROR'>('ALL');
   const [importedCount, setImportedCount] = useState<number>(0);
+  const [result, setResult] = useState<ImportBatch | null>(null);
+  const [retryBatchId, setRetryBatchId] = useState<number | undefined>();
+  const [receivingVersion, setReceivingVersion] = useState(receiving?.version);
+  const [requestId, setRequestId] = useState<string>();
+  const [previewPage, setPreviewPage] = useState(0);
+  const [resultPage, setResultPage] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,6 +48,12 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     setPreviewData(null);
     setActiveFilter('ALL');
     setImportedCount(0);
+    setResult(null);
+    setRetryBatchId(undefined);
+    setReceivingVersion(receiving?.version);
+    setRequestId(undefined);
+    setPreviewPage(0);
+    setResultPage(0);
   };
 
   const handleClose = () => {
@@ -52,13 +69,17 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
         return;
       }
       setSelectedFile(file);
+      setRequestId(crypto.randomUUID());
+      setPreviewPage(0);
+      setPreviewData(null);
+      setResult(null);
       setErrorMessage(null);
     }
   };
 
   const handleDownloadTemplate = async () => {
     try {
-      await importApi.downloadTemplate();
+      await (receiving ? receivingApi.downloadTemplate() : importApi.downloadTemplate());
     } catch (err: any) {
       setErrorMessage(err.message || t('imports:errors.downloadFailed', 'Không thể tải file template mẫu'));
     }
@@ -74,7 +95,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     setErrorMessage(null);
 
     try {
-      const res = await importApi.preview(selectedFile);
+      const res = await (receiving ? receivingApi.previewExcel(selectedFile) : importApi.preview(selectedFile));
       if (res.success && res.data) {
         setPreviewData(res.data);
         setStep('preview');
@@ -91,9 +112,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   const handleConfirmImport = async () => {
     if (!previewData) return;
 
-    const validRows = previewData.rows.map((r) => r.rawData);
-
-    if (validRows.length === 0) {
+    if (previewData.validRows === 0) {
       setErrorMessage(t('imports:errors.noValidRows', 'Không có dòng hợp lệ nào để import'));
       return;
     }
@@ -102,20 +121,32 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     setErrorMessage(null);
 
     try {
-      const res = await importApi.confirm({
-        fileName: previewData.fileName,
-        validRows,
-      });
+      const payload = {...importPayload(previewData, retryBatchId), requestId: requestId ?? crypto.randomUUID()};
+      const res = receiving
+        ? await receivingApi.confirmExcel(receiving.id, receivingVersion ?? receiving.version, payload)
+        : await importApi.confirm(payload);
 
       if (res.success && res.data) {
-        setImportedCount(res.data.importedRows);
+        const batch = receiving ? 'batch' in res.data ? res.data.batch : null : res.data as ImportBatch;
+        if (!batch) throw new Error(t('imports:errors.importFailed'));
+        setImportedCount(batch.importedRows);
+        setResult(batch);
+        setResultPage(0);
+        setRetryBatchId(batch.importBatchId);
+        if (receiving && 'transaction' in res.data) setReceivingVersion(res.data.transaction.expectedVersion);
         setStep('completed');
-        onImportSuccess(res.data.importedRows);
+        onImportSuccess(batch.importedRows);
       } else {
         setErrorMessage(res.message || t('imports:errors.importFailed'));
       }
     } catch (err: any) {
       setErrorMessage(err.message || t('imports:errors.importFailed'));
+      if (err instanceof ApiError && err.code === 'NO_VALID_ROWS' && Array.isArray(err.rows) && previewData) {
+        const rows = err.rows as ImportPreviewData['rows'];
+        setPreviewData({...previewData,rows,validRows:0,invalidRows:rows.filter(row=>row.validationStatus==='INVALID').length,duplicateRows:rows.filter(row=>row.validationStatus==='DUPLICATE').length});
+        setActiveFilter('ALL');
+        setPreviewPage(0);
+      }
     } finally {
       setIsImporting(false);
     }
@@ -228,7 +259,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             <span style={{ fontSize: '20px' }}>📥</span>
             <div>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                {t('imports:title', 'Import tài sản phần cứng từ file Excel')}
+                {receiving ? t('imports:receivingTitle') : t('imports:title')}
               </h2>
               <div style={{ fontSize: '12px', color: '#64748b' }}>
                 {step === 'upload' && t('imports:steps.upload', '1. Chọn file Excel')}
@@ -255,7 +286,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
           </button>
         </div>
 
-        <p style={{ padding: '0 24px' }}>{t('imports:openingInventory')}</p>
+        <p style={{ padding: '0 24px' }}>{t(receiving ? 'imports:receivingHint' : 'imports:openingInventory')}</p>
         {/* Error Alert if any */}
         {errorMessage && (
           <div
@@ -321,6 +352,10 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 </button>
               </div>
 
+              <label className="form-label">{t('imports:upload.retryBatchId')}
+                <input className="form-input" type="number" min="1" step="1" value={retryBatchId ?? ''} onChange={e=>setRetryBatchId(e.target.value ? Number(e.target.value) : undefined)} placeholder={t('imports:upload.retryBatchPlaceholder')}/>
+              </label>
+              {retryBatchId && <p>{t('imports:upload.keepRowOrder')}</p>}
               {/* Upload Dropzone */}
               <div
                 onClick={() => fileInputRef.current?.click()}
@@ -340,6 +375,9 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     const f = e.dataTransfer.files[0];
                     if (f.name.endsWith('.xlsx') || f.name.endsWith('.xls')) {
                       setSelectedFile(f);
+                      setRequestId(crypto.randomUUID());
+                      setPreviewPage(0);
+                      setPreviewData(null);
                       setErrorMessage(null);
                     } else {
                       setErrorMessage(t('imports:errors.invalidFormat', 'Chỉ hỗ trợ file Excel (.xlsx, .xls)'));
@@ -384,7 +422,8 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <li>{t('imports:guide.required', 'Cột Tên tài sản và Loại tài sản là bắt buộc; Mã tài sản có thể để trống và sẽ được tự sinh khi xác nhận.')}</li>
                   <li>{t('imports:guide.unique', 'Mã tài sản và Số Serial phải duy nhất, không trùng trong file hoặc cơ sở dữ liệu.')}</li>
-                  <li>{t('imports:guide.status', 'Nếu để trống Trạng thái, hệ thống sẽ tự động gán IN_STOCK (Đang lưu kho).')}</li>
+                  {!receiving && <li>{t('imports:guide.status')}</li>}
+                  <li>{t('imports:guide.license')}</li>
                   <li>{t('imports:guide.preview', 'Preview không ghi vào database cho đến khi bạn xác nhận.')}</li>
                 </ul>
               </div>
@@ -463,7 +502,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
               <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
                 <button
                   type="button"
-                  onClick={() => setActiveFilter('ALL')}
+                  onClick={() => {setActiveFilter('ALL');setPreviewPage(0);}}
                   style={{
                     padding: '6px 12px',
                     borderRadius: '6px',
@@ -479,7 +518,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveFilter('VALID')}
+                  onClick={() => {setActiveFilter('VALID');setPreviewPage(0);}}
                   style={{
                     padding: '6px 12px',
                     borderRadius: '6px',
@@ -495,7 +534,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveFilter('ERROR')}
+                  onClick={() => {setActiveFilter('ERROR');setPreviewPage(0);}}
                   style={{
                     padding: '6px 12px',
                     borderRadius: '6px',
@@ -562,7 +601,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredRows.map((row) => {
+                      filteredRows.slice(previewPage*20,(previewPage+1)*20).map((row) => {
                         const isError = row.validationStatus !== 'VALID';
                         return (
                           <tr
@@ -574,17 +613,17 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                             <td style={{ textAlign: 'center', fontWeight: 600 }}>{row.rowNumber}</td>
                             <td style={{ textAlign: 'center' }}>{renderStatusBadge(row.validationStatus)}</td>
                             <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>
-                              {row.rawData?.assetTag || <span style={{ color: '#ef4444' }}>[Thiếu]</span>}
+                              {row.rawData?.assetTag || <span style={{ color: '#64748b' }}>{t('imports:preview.generatedTag')}</span>}
                             </td>
-                            <td>{row.rawData?.name || <span style={{ color: '#ef4444' }}>[Thiếu]</span>}</td>
+                            <td>{row.rawData?.name || <span style={{ color: '#ef4444' }}>{t('imports:preview.missing')}</span>}</td>
                             <td>{row.rawData?.type || '—'}</td>
                             <td style={{ fontFamily: 'monospace' }}>{row.rawData?.serialNumber || '—'}</td>
                             <td>
                               {row.errorMessage ? (
                                 <div style={{ color: '#dc2626', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                  {row.errors.map((err, i) => (
+                                  {row.errors?.length ? row.errors.map((err, i) => (
                                     <div key={i}>• [{err.column}]: {err.message}</div>
-                                  ))}
+                                  )) : row.errorMessage}
                                 </div>
                               ) : (
                                 <span style={{ color: '#16a34a' }}>✓ {t('imports:statusBadges.VALID', 'Sẵn sàng lưu kho')}</span>
@@ -597,6 +636,11 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   </tbody>
                 </table>
               </div>
+              {filteredRows.length>20 && <div className="receiving-actions" style={{justifyContent:'flex-end'}}>
+                <button type="button" className="btn btn-secondary" disabled={previewPage===0} onClick={()=>setPreviewPage(v=>v-1)}>{t('imports:preview.previous')}</button>
+                <span>{t('imports:preview.page',{page:previewPage+1,pages:Math.ceil(filteredRows.length/20)})}</span>
+                <button type="button" className="btn btn-secondary" disabled={(previewPage+1)*20>=filteredRows.length} onClick={()=>setPreviewPage(v=>v+1)}>{t('imports:preview.next')}</button>
+              </div>}
             </div>
           )}
 
@@ -605,11 +649,27 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             <div style={{ textAlign: 'center', padding: '32px 16px' }}>
               <div style={{ fontSize: '56px', marginBottom: '16px' }}>🎉</div>
               <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
-                {t('imports:completed.successTitle', 'Import Dữ Liệu Hoàn Tất!')}
+                {t('imports:completed.resultTitle')}
               </h3>
               <p style={{ fontSize: '14px', color: '#475569', maxWidth: '420px', margin: '0 auto 24px auto' }}>
-                {t('imports:completed.successMessage', { count: importedCount, defaultValue: `Đã thêm thành công ${importedCount} tài sản phần cứng mới vào hệ thống.` })}
+                {t(receiving ? 'imports:completed.receivingMessage' : 'imports:completed.successMessage', { count: importedCount })}
               </p>
+              {result && <p>{t('imports:completed.batchId',{id:result.importBatchId})}</p>}
+              {result?.rows && <div style={{maxHeight:'35vh',overflow:'auto',textAlign:'left',marginBottom:16}}>
+                <table className="data-table" style={{width:'100%'}}><thead><tr>
+                  <th>{t('imports:preview.colRow')}</th><th>{t('imports:preview.colValidation')}</th><th>{t('imports:preview.colTag')}</th><th>{t('imports:preview.colError')}</th>
+                </tr></thead><tbody>{result.rows.slice(resultPage*20,(resultPage+1)*20).map(row=><tr key={row.rowNumber}>
+                  <td>{row.rowNumber}</td><td>{t(`imports:statusBadges.${row.validationStatus}`,row.validationStatus)}</td>
+                  <td>{row.rawData?.assetTag || '—'}</td>
+                  <td>{row.errors?.map(error=>error.message).join('; ') || row.errorMessage || '—'}</td>
+                </tr>)}</tbody></table>
+              </div>}
+              {result?.rows && result.rows.length>20 && <div className="receiving-actions" style={{justifyContent:'center',marginBottom:12}}>
+                <button type="button" className="btn btn-secondary" disabled={resultPage===0} onClick={()=>setResultPage(v=>v-1)}>{t('imports:preview.previous')}</button>
+                <span>{t('imports:preview.page',{page:resultPage+1,pages:Math.ceil(result.rows.length/20)})}</span>
+                <button type="button" className="btn btn-secondary" disabled={(resultPage+1)*20>=result.rows.length} onClick={()=>setResultPage(v=>v+1)}>{t('imports:preview.next')}</button>
+              </div>}
+              {result && result.importedRows < result.totalRows && <button type="button" className="btn btn-secondary" onClick={()=>{setStep('upload');setPreviewData(null);setSelectedFile(null);}} style={{marginRight:8}}>{t('imports:completed.retryFile')}</button>}
               <button
                 type="button"
                 className="btn btn-primary"

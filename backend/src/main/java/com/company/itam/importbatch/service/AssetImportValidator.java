@@ -24,6 +24,8 @@ import java.util.*;
 @Component
 public class AssetImportValidator {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
     private final com.company.itam.common.util.MessageHelper messages;
     private final AssetRepository assetRepository;
     private final AssetHardwareDetailsRepository assetHardwareDetailsRepository;
@@ -162,7 +164,7 @@ public class AssetImportValidator {
                 errors.add(rowError(rowNumber, "type", "REQUIRED", "Loại tài sản là bắt buộc"));
             } else {
                 AssetTypeEntity typeEntity = cache.findType(typeVal);
-                if (typeEntity == null || (typeEntity.getCategory()!=null && typeEntity.getCategory().getCode()!=com.company.itam.common.enums.AssetCategory.DEVICE)) {
+                if (typeEntity == null || !Boolean.TRUE.equals(typeEntity.getIsActive())) {
                     errors.add(rowError(rowNumber, "type", "INVALID_REFERENCE",
                             "Loại tài sản không tồn tại trong danh mục: " + typeVal));
                 }
@@ -195,7 +197,7 @@ public class AssetImportValidator {
             }
 
             if (statusVal != null && cache.findStatus(statusVal) != null
-                    && (cache.findStatus(statusVal).getCode()==AssetStatus.PENDING_IMPORT || cache.findStatus(statusVal).getCode()==AssetStatus.IN_USE)) {
+                    && cache.findStatus(statusVal).getCode()!=AssetStatus.IN_STOCK) {
                 errors.add(rowError(rowNumber,"status","INVALID_REFERENCE","Use opening inventory status; receiving and assignment require their workflow"));
             }
             // 8. Validate Department
@@ -232,7 +234,7 @@ public class AssetImportValidator {
                     BigDecimal cost = parseBigDecimal(costObj);
                     if (cost.compareTo(BigDecimal.ZERO) < 0) {
                         errors.add(rowError(rowNumber, "purchaseCost", "INVALID_VALUE", "Giá mua không được âm"));
-                    } else if (cost.precision() > 18 || cost.scale() > 2) {
+                    } else if (cost.precision() - cost.scale() > 16 || cost.scale() > 2) {
                         errors.add(rowError(rowNumber, "purchaseCost", "INVALID_FORMAT", "Giá mua tối đa 16 chữ số phần nguyên và 2 chữ số thập phân"));
                     }
                 } catch (Exception e) {
@@ -254,6 +256,27 @@ public class AssetImportValidator {
                         "Hạn bảo hành không đúng định dạng (YYYY-MM-DD hoặc DD/MM/YYYY)"));
             }
 
+            var type = typeVal == null ? null : cache.findType(typeVal);
+            boolean license = type != null && type.getCategory() != null
+                    && type.getCategory().getCode() == com.company.itam.common.enums.AssetCategory.LICENSE;
+            if (license) {
+                for (String field : List.of("model", "serialNumber", "condition", "warrantyExpiration", "actualCpu", "actualRam", "actualStorage", "actualGraphicsCard"))
+                    if (normalize(row.get(field)) != null) errors.add(rowError(rowNumber, field, "LICENSE_HARDWARE_FIELDS", "Hardware fields are not allowed for licenses"));
+                for (String field : List.of("software", "licenseAssignment", "licenseTerm"))
+                    if (licenseReference(field, normalize(row.get(field))) == null)
+                        errors.add(rowError(rowNumber, field, "INVALID_REFERENCE", "Active license reference required"));
+                try {
+                    if (new BigDecimal(Objects.toString(row.get("seatCount"), "")).intValueExact() < 1) throw new IllegalArgumentException();
+                } catch (RuntimeException ex) { errors.add(rowError(rowNumber, "seatCount", "INVALID_VALUE", "Seat count must be a positive integer")); }
+                String expiry = normalize(row.get("licenseExpiry"));
+                Long termId = licenseReference("licenseTerm", normalize(row.get("licenseTerm")));
+                boolean subscription = termId != null && "SUBSCRIPTION".equals(jdbc.queryForObject("SELECT code FROM license_term_types WHERE license_term_type_id=?", String.class, termId));
+                if ((subscription && expiry == null) || (expiry != null && parseDate(expiry) == null))
+                    errors.add(rowError(rowNumber, "licenseExpiry", "INVALID_FORMAT", "A valid expiry date is required for subscriptions"));
+            } else {
+                for (String field : List.of("software", "licenseAssignment", "licenseTerm", "seatCount", "licenseExpiry"))
+                    if (normalize(row.get(field)) != null) errors.add(rowError(rowNumber, field, "LICENSE_ONLY", "This field only applies to licenses"));
+            }
             // Determine status
             ValidationStatus status;
             String errorMessage = null;
@@ -272,6 +295,39 @@ public class AssetImportValidator {
         }
 
         return validatedRows;
+    }
+
+    private Long licenseReference(String field, String value) {
+        if (value == null || jdbc == null) return null;
+        String table = switch (field) { case "software" -> "software_catalog"; case "licenseAssignment" -> "license_assignment_types"; default -> "license_term_types"; };
+        String id = switch (field) { case "software" -> "software_catalog_id"; case "licenseAssignment" -> "license_assignment_type_id"; default -> "license_term_type_id"; };
+        String match = field.equals("software") ? "lower(name)=lower(?)" : "(lower(name)=lower(?) OR lower(code)=lower(?))";
+        var ids = field.equals("software")
+                ? jdbc.queryForList("SELECT " + id + " FROM " + table + " WHERE is_active AND " + match, Long.class, value)
+                : jdbc.queryForList("SELECT " + id + " FROM " + table + " WHERE is_active AND " + match, Long.class, value, value);
+        return ids.size() == 1 ? ids.getFirst() : null;
+    }
+
+    public com.company.itam.asset.dto.request.CreateHardwareAssetRequest toRequest(Map<String, Object> data, CatalogCache cache) {
+        var r = new com.company.itam.asset.dto.request.CreateHardwareAssetRequest();
+        r.setName(normalize(data.get("name"))); r.setAssetTag(normalize(data.get("assetTag")));
+        var type = cache.findType(normalize(data.get("type"))); r.setTypeId(type.getTypeId());
+        String value = normalize(data.get("model")); if (value != null) r.setModelId(cache.findModel(value).getModelId());
+        value = normalize(data.get("condition")); if (value != null) r.setConditionId(cache.findCondition(value).getConditionId());
+        value = normalize(data.get("department")); if (value != null) r.setDepartmentId(cache.findDepartment(value).getDepartmentId());
+        value = normalize(data.get("location")); if (value != null) r.setLocationId(cache.findLocation(value).getLocationId());
+        value = normalize(data.get("supplier")); if (value != null) r.setSupplierId(cache.findSupplier(value).getSupplierId());
+        r.setSerialNumber(normalize(data.get("serialNumber"))); r.setPoNumber(normalize(data.get("poNumber")));
+        r.setPurchaseCost(parseBigDecimal(data.get("purchaseCost"))); r.setPurchaseDate(parseDate(normalize(data.get("purchaseDate"))));
+        r.setWarrantyExpiration(parseDate(normalize(data.get("warrantyExpiration"))));
+        r.setActualCpu(normalize(data.get("actualCpu"))); r.setActualRam(normalize(data.get("actualRam")));
+        r.setActualStorage(normalize(data.get("actualStorage"))); r.setActualGraphicsCard(normalize(data.get("actualGraphicsCard")));
+        if (type.getCategory() != null && type.getCategory().getCode() == com.company.itam.common.enums.AssetCategory.LICENSE)
+            r.setLicense(new com.company.itam.asset.dto.request.LicenseDetailsRequest(
+                    licenseReference("software", normalize(data.get("software"))), licenseReference("licenseAssignment", normalize(data.get("licenseAssignment"))),
+                    licenseReference("licenseTerm", normalize(data.get("licenseTerm"))), new BigDecimal(data.get("seatCount").toString()).intValueExact(), null,
+                    parseDate(normalize(data.get("licenseExpiry")))));
+        return r;
     }
 
     private ImportRowErrorResponse rowError(Integer row, String field, String code, String fallback) {
@@ -344,6 +400,7 @@ public class AssetImportValidator {
                 List<LocationEntity> locs,
                 List<SupplierEntity> suppliers) {
             for (AssetTypeEntity t : types) {
+                if (!Boolean.TRUE.equals(t.getIsActive())) continue;
                 if (t.getCode() != null) typeByCodeOrName.put(t.getCode().toLowerCase(Locale.ROOT), t);
                 if (t.getName() != null) typeByCodeOrName.put(t.getName().toLowerCase(Locale.ROOT), t);
             }
@@ -352,21 +409,26 @@ public class AssetImportValidator {
                 if (s.getName() != null) statusByCodeOrName.put(s.getName().toLowerCase(Locale.ROOT), s);
             }
             for (AssetConditionEntity c : conditions) {
+                if (!Boolean.TRUE.equals(c.getIsActive())) continue;
                 if (c.getCode() != null) conditionByCodeOrName.put(c.getCode().name().toLowerCase(Locale.ROOT), c);
                 if (c.getName() != null) conditionByCodeOrName.put(c.getName().toLowerCase(Locale.ROOT), c);
             }
             for (ModelEntity m : models) {
+                if (!Boolean.TRUE.equals(m.getIsActive())) continue;
                 if (m.getName() != null) modelByName.put(m.getName().toLowerCase(Locale.ROOT), m);
             }
             for (DepartmentEntity d : depts) {
+                if (!Boolean.TRUE.equals(d.getIsActive())) continue;
                 if (d.getCode() != null) deptByCodeOrName.put(d.getCode().toLowerCase(Locale.ROOT), d);
                 if (d.getName() != null) deptByCodeOrName.put(d.getName().toLowerCase(Locale.ROOT), d);
             }
             for (LocationEntity l : locs) {
+                if (!Boolean.TRUE.equals(l.getIsActive())) continue;
                 if (l.getCode() != null) locByCodeOrName.put(l.getCode().toLowerCase(Locale.ROOT), l);
                 if (l.getName() != null) locByCodeOrName.put(l.getName().toLowerCase(Locale.ROOT), l);
             }
             for (SupplierEntity s : suppliers) {
+                if (!Boolean.TRUE.equals(s.getIsActive())) continue;
                 if (s.getCode() != null) supplierByCodeOrName.put(s.getCode().toLowerCase(Locale.ROOT), s);
                 if (s.getName() != null) supplierByCodeOrName.put(s.getName().toLowerCase(Locale.ROOT), s);
             }

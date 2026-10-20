@@ -6,7 +6,7 @@ import { ReceivingAssetDetails } from '@/features/receiving/components/Receiving
 import en from '@/shared/i18n/locales/en/documents.json';
 import vn from '@/shared/i18n/locales/vi/documents.json';
 const client=vi.hoisted(()=>vi.fn());
-vi.mock('@/shared/api/httpClient',()=>({httpClient:client}));
+vi.mock('@/shared/api/httpClient',()=>({httpClient:client,downloadFile:vi.fn()}));
 vi.mock('react-i18next',()=>({useTranslation:()=>({t:(key:string)=>key,i18n:{language:'en'}})}));
 const refs:References={types:[{id:1,name:'Laptop',category:'DEVICE'},{id:2,name:'Package',category:'LICENSE'}],conditions:[{id:1,name:'New'}],models:[],locations:[],departments:[],suppliers:[],software:[{id:1,name:'Office'}],assignments:[{id:1,name:'Per user',code:'PER_USER'}],terms:[{id:1,name:'Subscription',code:'SUBSCRIPTION'}]};
 describe('T14 receiving',()=>{
@@ -25,6 +25,17 @@ describe('T14 receiving',()=>{
   it('uses the restricted purchasing candidate endpoint rather than inventory',async()=>{
     await receivingApi.candidates('TAG & serial',2);
     expect(client.mock.calls[0][0]).toBe('/v1/import-drafts/candidates?keyword=TAG+%26+serial&page=2');
+  });
+  it('previews and confirms Excel within a versioned receiving draft',async()=>{
+    client.mockResolvedValue({success:true,data:{transaction:{expectedVersion:10},batch:{importBatchId:7,importedRows:1,rows:[]}}});
+    const file=new File(['data'],'receiving.xlsx');
+    await receivingApi.previewExcel(file);
+    const previewCall=client.mock.calls[0];
+    expect(previewCall[0]).toBe('/v1/import-drafts/excel/preview');
+    expect(previewCall[1].body.get('file')).toBe(file);
+    const payload={fileName:file.name,validRows:[{rowNumber:2,name:'Laptop',type:'LAPTOP'}],retryBatchId:6};
+    await receivingApi.confirmExcel(5,9,payload);
+    expect(client).toHaveBeenLastCalledWith('/v1/import-drafts/5/excel/confirm?expectedVersion=9',{method:'POST',body:JSON.stringify(payload)});
   });
   it('requires hardware condition while keeping serial optional',()=>{
     const html=renderToStaticMarkup(<ReceivingAssetForm refs={refs} initial={{name:'Laptop',typeId:1}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);

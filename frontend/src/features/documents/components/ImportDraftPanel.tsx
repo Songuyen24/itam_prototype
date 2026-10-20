@@ -7,6 +7,7 @@ import { documentApi } from '../api/documentApi';
 import { receivingApi, Content, Revision, Event, References, Line, LineInput } from '@/features/receiving/api/receivingApi';
 import { ReceivingAssetForm } from '@/features/receiving/components/ReceivingAssetForm';
 import { ReceivingAssetDetails } from '@/features/receiving/components/ReceivingAssetDetails';
+import { AssetImportModal } from '@/features/assets/components/AssetImportModal';
 
 export function ImportDraftPanel({ transaction, onChanged, onCreated }: { transaction: DocumentTransaction; onChanged: () => void; onCreated?: (id:number)=>void }) {
   const { t, i18n } = useTranslation('documents');
@@ -27,6 +28,8 @@ export function ImportDraftPanel({ transaction, onChanged, onCreated }: { transa
   const [conflict,setConflict]=useState(false);
   const [reject,setReject]=useState(false);
   const [reason,setReason]=useState('');
+  const [excelOpen,setExcelOpen]=useState(false);
+  const [excelChanged,setExcelChanged]=useState(false);
   const editor=user?.role==='ADMIN'||(user?.role==='PUR_STAFF' && user.id===transaction.requesterId);
   const reviewer=user?.role==='ADMIN'||user?.role==='IT_STAFF';
   const draft=editor&&transaction.status==='DRAFT';
@@ -70,6 +73,8 @@ export function ImportDraftPanel({ transaction, onChanged, onCreated }: { transa
       <button className="btn btn-secondary" disabled={disabled} onClick={()=>void mutate(()=>receivingApi.notes(id,version,notes))}>{t('draft.saveNotes')}</button>
       <p>{t('receiving.requirements')}</p>
       <button className="btn btn-secondary" disabled={disabled||!refs} onClick={()=>setEdit(null)}>{t('draft.addAsset')}</button>
+      <button className="btn btn-secondary" disabled={disabled} onClick={()=>setExcelOpen(true)}>{t('receiving.importExcel')}</button>
+      <AssetImportModal isOpen={excelOpen} onClose={()=>{setExcelOpen(false);if(excelChanged){setExcelChanged(false);onChanged();}}} receiving={{id,version}} onImportSuccess={()=>setExcelChanged(true)}/>
       {edit!==undefined&&refs&&<ReceivingAssetForm key={edit?.assetId??'new'} initial={edit?.input} refs={refs} busy={disabled} onCancel={()=>setEdit(undefined)} onSave={(input:LineInput)=>mutate(()=>receivingApi.saveLine(id,version,input,edit?.assetId))}/>}
       <details><summary>{t('receiving.reuse')}</summary>
         <form onSubmit={e=>{e.preventDefault();void search(0);}} className="receiving-actions"><label>{t('receiving.search')}<input className="form-input" value={keyword} onChange={e=>setKeyword(e.target.value)} maxLength={100}/></label><button className="btn btn-secondary" disabled={disabled}>{t('receiving.search')}</button></form>
@@ -88,7 +93,7 @@ export function ImportDraftPanel({ transaction, onChanged, onCreated }: { transa
     </div>}
     <div className="receiving-actions">
       {(draft || (user?.role==='ADMIN' && transaction.status==='PENDING')) && <button className="btn btn-secondary" disabled={disabled} onClick={()=>{if(window.confirm(t('draft.cancelConfirm')))void mutate(()=>receivingApi.action(transaction,'cancel'));}}>{t('draft.cancelTransaction')}</button>}
-      {draft&&<button className="btn btn-primary" disabled={disabled||!content?.assets.length||!content.documents.length||notes!==(content.notes??'')} onClick={()=>void mutate(()=>receivingApi.action(transaction,'submit'))}>{t('draft.submit')}</button>}
+      {draft&&<button className="btn btn-primary" disabled={disabled||!content?.assets.length||notes!==(content.notes??'')} onClick={()=>void mutate(()=>receivingApi.action(transaction,'submit'))}>{t('draft.submit')}</button>}
       {editor&&transaction.status==='PENDING'&&<button className="btn btn-secondary" disabled={disabled} onClick={()=>{if(window.confirm(t('receiving.withdrawConfirm')))void mutate(()=>receivingApi.action(transaction,'withdraw'));}}>{t('draft.withdraw')}</button>}
       {reviewer&&transaction.status==='PENDING'&&<>
         <button className="btn btn-primary" disabled={disabled||!content} onClick={()=>{if(window.confirm(t('receiving.approveConfirm')))void mutate(()=>receivingApi.action(transaction,'approve'));}}>{t('receiving.approve')}</button>

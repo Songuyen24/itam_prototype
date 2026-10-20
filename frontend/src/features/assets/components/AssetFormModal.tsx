@@ -342,10 +342,10 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 <select
                   className="form-input"
                   value={statusId}
-                  disabled={isEdit || isLicense}
+                  disabled
                   onChange={(e) => setStatusId(e.target.value ? Number(e.target.value) : '')}
                 >
-                  {statuses.filter(s => s.code !== 'PENDING_IMPORT' && (s.code !== 'IN_USE' || initialData?.statusCode === 'IN_USE')).map((s) => (
+                  {statuses.filter(s => isEdit ? s.statusId === statusId : s.code === 'IN_STOCK').map((s) => (
                     <option key={s.statusId} value={s.statusId}>
                       {t(`common:status.${s.code}`, {defaultValue:s.name})}
                     </option>

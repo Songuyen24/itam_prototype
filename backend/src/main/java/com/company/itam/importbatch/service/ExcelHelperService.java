@@ -41,13 +41,13 @@ public class ExcelHelperService {
             "Actual CPU",
             "Actual RAM",
             "Actual Storage",
-            "Actual GPU"
+            "Actual GPU", "Phần mềm", "Kiểu cấp phép", "Thời hạn license", "Số suất", "Ngày hết hạn license"
     };
 
     public static final String[] EN_HEADERS = {
         "Asset tag (generated if blank)", "Asset name (*)", "Asset type (*)", "Model", "Serial number",
         "Status", "Condition", "Department", "Location", "Supplier", "PO / Invoice", "Purchase date",
-        "Purchase cost", "Warranty expiration", "Actual CPU", "Actual RAM", "Actual Storage", "Actual GPU"
+        "Purchase cost", "Warranty expiration", "Actual CPU", "Actual RAM", "Actual Storage", "Actual GPU", "Software", "License assignment", "License term", "Seat count", "License expiry"
     };
 
     public static final String[] FIELD_KEYS = {
@@ -68,7 +68,7 @@ public class ExcelHelperService {
             "actualCpu",
             "actualRam",
             "actualStorage",
-            "actualGraphicsCard"
+            "actualGraphicsCard", "software", "licenseAssignment", "licenseTerm", "seatCount", "licenseExpiry"
     };
 
     public byte[] generateTemplate() {
