@@ -81,7 +81,7 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated }: { 
   if (!transaction) return null;
 
   const canUpload = transaction.documentsEditable && transaction.type === 'IMPORT' &&
-    (user?.role === 'ADMIN' || user?.role === 'PUR_STAFF');
+    (user?.role === 'ADMIN' || (user?.role === 'PUR_STAFF' && user.id === transaction.requesterId));
   const publicationActions = publicationPermissions(transaction.type, transaction.status, user?.role);
 
   return (

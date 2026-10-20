@@ -43,10 +43,8 @@ public class CustomUserDetailsService implements UserDetailsService {
         return User.withUsername(user.getEmail())
                 .password(user.getPasswordHash() != null ? user.getPasswordHash() : "")
                 .authorities(List.of(new SimpleGrantedAuthority(roleCode)))
-                .accountLocked(user.getAccountStatus() != null
-                        && user.getAccountStatus().name().equals("LOCKED"))
-                .disabled(user.getAccountStatus() != null
-                        && user.getAccountStatus().name().equals("LOCKED"))
+                .accountLocked(user.isLoginBlocked())
+                .disabled(!user.canLogin())
                 .build();
     }
 }

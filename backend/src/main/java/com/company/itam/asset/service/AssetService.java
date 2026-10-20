@@ -167,6 +167,10 @@ public class AssetService {
         }
         var response = assetMapper.toDetailResponse(asset);
         if (asset.getLicenseDetails()!=null) response.setLicense(licenses.response(asset, canReadInventory(authentication)));
+        if (!canReadInventory(authentication)) {
+            response.setCreatedByUserId(null); response.setCreatedByFullName(null);
+            response.setUpdatedByUserId(null); response.setUpdatedByFullName(null);
+        }
         return response;
     }
 

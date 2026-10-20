@@ -87,6 +87,7 @@ class T16RecoveryIntegrationTest {
 
     @Test
     void deviceRecoveryReturnsItsBundleAndAppliesEachPerUserChoice() throws Exception {
+        jdbc.update("UPDATE users SET login_locked=true,password_hash=NULL,access_granted=false WHERE user_id=?",returner());
         Long device = create("DEVICE"), peer = create("DEVICE"), component = create("COMPONENT"), oem = license("OEM", 2), release = license("PER_USER", 2), retain = license("PER_USER", 2);
         relationships.create(device, component, RelationshipType.COMPONENT_OF);
         relationships.create(device, oem, RelationshipType.INSTALLED_ON);

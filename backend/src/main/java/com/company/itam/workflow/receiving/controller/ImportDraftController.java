@@ -43,6 +43,9 @@ public class ImportDraftController {
     @PostMapping("/{id}/withdraw") public Object withdraw(@PathVariable Long id,@Valid @RequestBody Process request) {
         return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),service.withdraw(id,request.expectedVersion(),request.expectedSubmissionRevision()));
     }
+    @PostMapping("/{id}/cancel") public Object cancel(@PathVariable Long id,@Valid @RequestBody Change request) {
+        return ApiResponse.success(messages.getMessage("IMPORT_SAVED"),service.cancel(id,request.expectedVersion()));
+    }
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")
     @PostMapping("/{id}/approve") public Object approve(@PathVariable Long id,@Valid @RequestBody Process request) {
         var result=service.process(id,request.expectedVersion(),request.expectedSubmissionRevision(),true,null);

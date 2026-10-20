@@ -9,8 +9,8 @@ Nội dung do nhóm phản hồi, thay các phương án tạm trái nội dung 
 ### Quyền phiếu
 
 - Nháp: người tạo sửa/hủy; người cùng role chỉ xem trong phạm vi được cấp, không sửa/hủy thay.
-- Chờ xử lý: khóa nội dung; người tạo được rút về nháp để sửa nếu chưa hoàn tất. Người có quyền duyệt được duyệt/từ chối, không sửa thay. Không tiếp tục áp dụng quy tắc tạm mọi người được hủy phiếu chờ; quyền hủy trực tiếp phiếu chờ của người tạo chưa được phản hồi xác nhận, cần đối chiếu khi làm.
-- Admin xử lý ngoại lệ cho nháp/chờ, bắt buộc lý do và audit; không vượt giới hạn phiếu hoàn tất.
+- Chờ xử lý: khóa nội dung; người tạo chỉ được rút về nháp để sửa hoặc hủy ở nháp, không hủy trực tiếp phiếu chờ (người dùng chốt trong chat P0 ngày 19/10/2026). Người có quyền duyệt được duyệt/từ chối, không sửa thay.
+- Admin xử lý ngoại lệ cho nháp/chờ: được sửa, hủy và rút nháp thay người tạo, bắt buộc lý do và audit (người dùng chốt trong chat P0 ngày 19/10/2026). Với phiếu chờ, rút về nháp trước khi sửa nội dung để giữ phiên bản đã gửi; Admin được hủy trực tiếp phiếu chờ có lý do. Không vượt giới hạn phiếu hoàn tất.
 - Kiểm soát riêng xem/sửa/hủy/duyệt theo role, nghiệp vụ, trạng thái và người tạo. PUR không tự có quyền truy cập bàn giao/thu hồi/thanh lý.
 
 ### USER

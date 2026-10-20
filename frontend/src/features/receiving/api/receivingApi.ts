@@ -28,6 +28,6 @@ export const receivingApi = {
   remove:(id:number,version:number,assetId:number)=>httpClient(`${base}/${id}/assets/${assetId}?expectedVersion=${version}`,{method:'DELETE'}),
   reuse:(id:number,version:number,assetId:number)=>httpClient(`${base}/${id}/assets/${assetId}?expectedVersion=${version}`,{method:'POST'}),
   candidates:(keyword:string,page:number)=>httpClient<ApiResponse<Line[]>>(`${base}/candidates?${new URLSearchParams({keyword,page:String(page)})}`),
-  action:(transaction:DocumentTransaction,action:'submit'|'withdraw'|'approve'|'reject',reason?:string)=>httpClient(`${base}/${transaction.transactionId}/${action}`,{
+  action:(transaction:DocumentTransaction,action:'submit'|'withdraw'|'approve'|'reject'|'cancel',reason?:string)=>httpClient(`${base}/${transaction.transactionId}/${action}`,{
     method:'POST',body:JSON.stringify({expectedVersion:transaction.expectedVersion,expectedSubmissionRevision:transaction.submittedRevision,reason})}),
 };

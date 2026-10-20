@@ -145,7 +145,7 @@ class T18DisposalDashboardIntegrationTest {
 
     @Test
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
-    void resolvesEachPerUserLinkInsidePendingDisposalAndRejectsStaleApproval() throws Exception {
+    void withdrawsBeforeResolvingPerUserLinksAndRejectsStaleApproval() throws Exception {
         Long laptop = asset(deviceType, "DAMAGED", LocalDate.now(), "Licensed laptop");
         Long releasedLicense = license("PER_USER", 10);
         Long retainedLicense = license("PER_USER", 10);
@@ -168,8 +168,11 @@ class T18DisposalDashboardIntegrationTest {
                         .contentType("application/json").content("{\"expectedFingerprint\":\"" + before.path("fingerprint").asText() + "\"}"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DISPOSAL_PER_USER_LINKED"));
 
+        JsonNode draft = body(mvc.perform(post("/v1/disposals/{id}/withdraw", transactionId).with(role("IT_STAFF"))
+                .contentType("application/json").content(json.writeValueAsString(java.util.Map.of("expectedFingerprint",before.path("fingerprint").asText()))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("data");
         String decisions = json.writeValueAsString(java.util.Map.of(
-                "expectedFingerprint", before.path("fingerprint").asText(),
+                "expectedFingerprint", draft.path("fingerprint").asText(),
                 "decisions", java.util.List.of(java.util.Map.of("allocationId", released, "release", true),
                         java.util.Map.of("allocationId", retained, "release", false))));
         mvc.perform(post("/v1/disposals/{id}/per-user", transactionId).with(role("USER"))
@@ -178,7 +181,9 @@ class T18DisposalDashboardIntegrationTest {
                         .contentType("application/json").content(decisions))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.perUserLinks.length()").value(0))
                 .andReturn().getResponse().getContentAsString()).path("data");
-
+        resolved = body(mvc.perform(post("/v1/disposals/{id}/submit",transactionId).with(role("IT_STAFF"))
+                .contentType("application/json").content(json.writeValueAsString(java.util.Map.of("expectedFingerprint",resolved.path("fingerprint").asText()))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("data");
         mvc.perform(post("/v1/disposals/{id}/approve", transactionId).with(role("ADMIN"))
                         .contentType("application/json").content("{\"expectedFingerprint\":\"" + before.path("fingerprint").asText() + "\"}"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DISPOSAL_CHANGED"));

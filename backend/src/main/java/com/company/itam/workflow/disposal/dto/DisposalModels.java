@@ -14,7 +14,7 @@ public final class DisposalModels {
 
     public record SmartCheckRequest(@NotEmpty List<@NotNull @Positive Long> assetIds) {}
     public record CreateRequest(@NotEmpty List<@NotNull @Positive Long> assetIds, @NotBlank String reason,
-            @NotNull LocalDate disposalDate, @NotBlank String expectedFingerprint) {}
+            @NotNull LocalDate disposalDate, @NotBlank String expectedFingerprint, String expectedTransactionFingerprint) {}
     public record ApproveRequest(@NotBlank String expectedFingerprint) {}
     public record PerUserDecision(@NotNull @Positive Long allocationId, @NotNull Boolean release) {}
     public record PerUserRequest(@NotBlank String expectedFingerprint,
@@ -30,5 +30,5 @@ public final class DisposalModels {
     public record DisposalResponse(Long transactionId, String transactionCode, String status, String reason,
             LocalDate disposalDate, Instant createdAt, String actorName, List<AssetLine> assets,
             List<OemAllocation> oemAllocations, List<PerUserLink> perUserLinks,
-            List<String> warnings, String fingerprint) {}
+            List<String> warnings, String fingerprint, Long requesterId) {}
 }

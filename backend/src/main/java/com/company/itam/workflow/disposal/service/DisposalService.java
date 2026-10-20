@@ -50,6 +50,7 @@ import java.util.*;
 @Transactional(readOnly = true)
 @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")
 public class DisposalService {
+    private final com.company.itam.workflow.core.service.WorkflowAccessService workflowAccess;
     private final AssetRepository assets;
     private final AssetRelationshipRepository relationships;
     private final LicenseAllocationRepository allocations;
@@ -67,12 +68,13 @@ public class DisposalService {
             LicenseAllocationRepository allocations, TransactionRepository transactions,
             TransactionAssetRepository lines, TransactionDisposalDetailRepository details,
             AssetStatusRepository statuses, UserRepository users, AuditLogRepository audit,
-            JdbcTemplate jdbc, ObjectMapper mapper,
+            JdbcTemplate jdbc, ObjectMapper mapper, com.company.itam.workflow.core.service.WorkflowAccessService workflowAccess,
             @Value("${itam.disposal.minimum-age-years:5}") int minimumAgeYears) {
         this.assets = assets; this.relationships = relationships; this.allocations = allocations;
         this.transactions = transactions; this.lines = lines; this.details = details;
         this.statuses = statuses; this.users = users; this.audit = audit;
         this.jdbc = jdbc; this.mapper = mapper; this.minimumAgeYears = minimumAgeYears;
+        this.workflowAccess = workflowAccess;
     }
 
     public PageResponse<AssetLine> candidates(String keyword, int page, int size) {
@@ -131,7 +133,7 @@ public class DisposalService {
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")
     public DisposalResponse resolvePerUser(Long id, PerUserRequest request) {
-        TransactionEntity tx = pending(id);
+        TransactionEntity tx = editable(id);
         var detail = details.findById(id).orElseThrow(() -> new ResourceNotFoundException("DISPOSAL_NOT_FOUND"));
         var stored = lines.findByTransactionTransactionId(id);
         Prepared current = prepareStored(stored, true);
@@ -166,9 +168,58 @@ public class DisposalService {
                             before, allocationData(allocation, null));
                 });
         relationships.flush(); allocations.flush(); audit.flush();
+        tx.setContentVersion(tx.getContentVersion()+1);
         recordTransaction(tx, actor, "DISPOSAL_PER_USER_RESOLVED",
                 Map.of("allocationIds", new ArrayList<>(decisions.keySet())));
         return response(tx, detail, prepareStored(stored, false));
+    }
+
+    @Transactional
+    public DisposalResponse edit(Long id, CreateRequest request) {
+        var tx = editable(id);
+        var detail = details.findById(id).orElseThrow();
+        var before = prepareStored(lines.findByTransactionTransactionId(id),true);
+        if (!fingerprint(tx,detail,before).equals(request.expectedTransactionFingerprint())) conflict("DISPOSAL_CHANGED");
+        Prepared checked = prepareSelection(request.assetIds(), true);
+        if (!fingerprint(null, null, checked).equals(request.expectedFingerprint())) conflict("DISPOSAL_CHANGED");
+        detail.setReason(request.reason().trim()); detail.setDisposalDate(request.disposalDate());
+        tx.setNotes(request.reason().trim()); tx.setUpdatedAt(Instant.now());
+        tx.setContentVersion(tx.getContentVersion()+1);
+        lines.deleteAll(lines.findByTransactionTransactionId(id)); lines.flush();
+        int number = 0;
+        for (AssetLine selected : checked.assetLines()) {
+            var item = new TransactionAssetEntity(); item.setTransaction(tx);
+            item.setAsset(assets.getReferenceById(selected.assetId())); item.setLineNumber(++number);
+            item.setNotes(selected.autoAdded() ? "AUTO_ADDED" : null); lines.save(item);
+        }
+        recordTransaction(tx, actor(), "EDIT_DRAFT", Map.of("status","DRAFT"));
+        return response(tx,detail,checked);
+    }
+
+    @Transactional
+    public DisposalResponse transition(Long id, String action, String expectedFingerprint) {
+        var tx = transactions.findForUpdate(id).orElseThrow(() -> new ResourceNotFoundException("DISPOSAL_NOT_FOUND"));
+        if (tx.getType() != TransactionType.DISPOSAL) throw new ResourceNotFoundException("DISPOSAL_NOT_FOUND");
+        var detail = details.findById(id).orElseThrow();
+        var prepared = prepareStored(lines.findByTransactionTransactionId(id), true);
+        if (!fingerprint(tx,detail,prepared).equals(expectedFingerprint)) conflict("DISPOSAL_CHANGED");
+        workflowAccess.requireCreator(tx,"cancel".equals(action) && tx.getStatus() == TransactionStatus.PENDING);
+        TransactionStatus next;
+        if ("withdraw".equals(action) && tx.getStatus() == TransactionStatus.PENDING) next = TransactionStatus.DRAFT;
+        else if ("submit".equals(action) && tx.getStatus() == TransactionStatus.DRAFT) next = TransactionStatus.PENDING;
+        else if ("cancel".equals(action) && (tx.getStatus() == TransactionStatus.DRAFT || tx.getStatus() == TransactionStatus.PENDING)) next = TransactionStatus.CANCELLED;
+        else { conflict("DOCUMENT_LOCKED"); return null; }
+        tx.setStatus(next); tx.setUpdatedAt(Instant.now());
+        tx.setContentVersion(tx.getContentVersion()+1);
+        recordTransaction(tx,actor(),action.toUpperCase(Locale.ROOT),Map.of("status",next.name()));
+        return response(tx,detail,prepared);
+    }
+
+    private TransactionEntity editable(Long id) {
+        var tx = transactions.findForUpdate(id).orElseThrow(() -> new ResourceNotFoundException("DISPOSAL_NOT_FOUND"));
+        if (tx.getType() != TransactionType.DISPOSAL || tx.getStatus() != TransactionStatus.DRAFT) conflict("DOCUMENT_LOCKED");
+        workflowAccess.requireCreator(tx,false);
+        return tx;
     }
 
     @Transactional
@@ -454,7 +505,7 @@ public class DisposalService {
         UserEntity displayActor = tx.getProcessedBy() == null ? tx.getRequester() : tx.getProcessedBy();
         return new DisposalResponse(tx.getTransactionId(), tx.getTransactionCode(), tx.getStatus().name(), detail.getReason(),
                 detail.getDisposalDate(), tx.getCreatedAt(), displayActor.getFullName(), prepared.assetLines(),
-                prepared.oemAllocations(), prepared.perUserLinks(), prepared.warnings(), fingerprint(tx, detail, prepared));
+                prepared.oemAllocations(), prepared.perUserLinks(), prepared.warnings(), fingerprint(tx, detail, prepared), tx.getRequester().getUserId());
     }
 
     private String fingerprint(TransactionEntity tx, TransactionDisposalDetailEntity detail, Prepared prepared) {

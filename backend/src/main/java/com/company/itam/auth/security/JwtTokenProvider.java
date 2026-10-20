@@ -66,6 +66,10 @@ public class JwtTokenProvider {
      * @return chuỗi JWT đã ký
      */
     public String generateToken(String email, String role) {
+        return generateToken(email, role, 0);
+    }
+
+    public String generateToken(String email, String role, long accessVersion) {
         long now = System.currentTimeMillis();
         Date issuedAt = new Date(now);
         Date expiration = new Date(now + accessTokenTtlMillis);
@@ -74,6 +78,7 @@ public class JwtTokenProvider {
                 .id(UUID.randomUUID().toString())
                 .subject(email)
                 .claim(ROLE_CLAIM, role)
+                .claim("accessVersion", accessVersion)
                 .issuedAt(issuedAt)
                 .expiration(expiration)
                 .signWith(signingKey, Jwts.SIG.HS256)
@@ -88,6 +93,11 @@ public class JwtTokenProvider {
      */
     public String extractEmail(String token) {
         return extractClaims(token).getSubject();
+    }
+
+    public long extractAccessVersion(String token) {
+        Number version = extractClaims(token).get("accessVersion", Number.class);
+        return version == null ? 0 : version.longValue();
     }
 
     /**

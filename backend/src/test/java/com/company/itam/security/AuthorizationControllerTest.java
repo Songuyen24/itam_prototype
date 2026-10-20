@@ -342,8 +342,8 @@ class AuthorizationControllerTest {
     private void createUser(String key, String role) {
         String email = fixturePrefix.toLowerCase() + "-" + key.toLowerCase() + "@example.test";
         Long id = jdbc.queryForObject("""
-                insert into users(email, full_name, role_id, password_hash, account_status)
-                select ?, ?, role_id, ?, 'ACTIVE' from roles where code = ? returning user_id
+                insert into users(email, full_name, role_id, password_hash, account_status, access_granted)
+                select ?, ?, role_id, ?, 'ACTIVE', true from roles where code = ? returning user_id
                 """, Long.class, email, "Authorization " + key, PASSWORD_HASH, role);
         users.put(key, id);
         emails.put(key, email);

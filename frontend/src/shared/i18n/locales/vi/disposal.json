@@ -53,5 +53,13 @@
     "COMPONENT": "Linh kiện",
     "LICENSE": "Giấy phép"
   },
-  "error": "Không thể tải dữ liệu thanh lý."
+  "error": "Không thể tải dữ liệu thanh lý.",
+  "state": "Trạng thái",
+  "submitDraft": "Gửi nháp",
+  "cancelTransaction": "Hủy phiếu",
+  "cancelTransactionConfirm": "Hủy phiếu này? Lịch sử vẫn được giữ.",
+  "withdraw": "Rút về nháp",
+  "editDraft": "Sửa nháp",
+  "saveDraft": "Lưu nháp",
+  "savedDraft": "Đã lưu nháp."
 }

@@ -69,6 +69,7 @@ class T15HandoverIntegrationTest {
     String state(Long id) { return jdbc.queryForObject("SELECT s.code FROM assets a JOIN asset_statuses s USING(status_id) WHERE asset_id=?",String.class,id); }
 
     @Test void completesBundleAndActivatesOnlyReservedOemSeats() throws Exception {
+        jdbc.update("UPDATE users SET login_locked=true,password_hash=NULL,access_granted=false WHERE user_id=?",recipient());
         Long a=create("DEVICE"),b=create("DEVICE"),ram=create("COMPONENT"),pkg=license("OEM",2);
         relationships.create(a,ram,RelationshipType.COMPONENT_OF); relationships.create(a,pkg,RelationshipType.INSTALLED_ON);relationships.create(b,pkg,RelationshipType.INSTALLED_ON);
         var req=confirmed(request(List.of(a,b),List.of()));

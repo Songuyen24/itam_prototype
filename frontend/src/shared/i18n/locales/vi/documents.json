@@ -27,7 +27,8 @@
     "PENDING": "Chờ xử lý",
     "COMPLETED": "Hoàn tất",
     "REJECTED": "Đã từ chối",
-    "DRAFT": "Nháp"
+    "DRAFT": "Nháp",
+    "CANCELLED": "Đã hủy"
   },
   "documentTypes": {
     "INVOICE": "Hóa đơn",
@@ -94,7 +95,9 @@
     "revision": "Phiên bản {{number}}",
     "detach": "Gỡ khỏi nháp",
     "detachConfirm": "Gỡ liên kết khỏi bản nháp? Chứng từ trong phiên bản cũ vẫn được giữ.",
-    "copyRejected": "Lập nháp mới từ phiếu bị từ chối"
+    "copyRejected": "Lập nháp mới từ phiếu bị từ chối",
+    "cancelTransaction": "Hủy phiếu",
+    "cancelConfirm": "Hủy phiếu này? Lịch sử vẫn được giữ."
   },
   "receiving": {
     "title": "Nhập kho",
@@ -200,8 +203,16 @@
     "loadError": "Không thể tải trạng thái phát hành.",
     "actionError": "Không thể thực hiện thao tác phát hành.",
     "independentHint": "Lỗi PDF hoặc email không thay đổi trạng thái nghiệp vụ đã hoàn tất.",
-    "pdfStatus": { "READY": "Sẵn sàng", "NOT_GENERATED": "Chưa tạo", "FAILED": "Tạo PDF thất bại" },
-    "emailStatus": { "PENDING": "Đang xử lý", "SENT": "Đã gửi", "FAILED": "Gửi thất bại" },
+    "pdfStatus": {
+      "READY": "Sẵn sàng",
+      "NOT_GENERATED": "Chưa tạo",
+      "FAILED": "Tạo PDF thất bại"
+    },
+    "emailStatus": {
+      "PENDING": "Đang xử lý",
+      "SENT": "Đã gửi",
+      "FAILED": "Gửi thất bại"
+    },
     "events": {
       "IMPORT_SUBMITTED": "Nhập kho chờ IT kiểm tra",
       "IMPORT_REJECTED": "Nhập kho bị từ chối",

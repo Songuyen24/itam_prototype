@@ -16,6 +16,9 @@ export function DisposalsPage() {
   const [selected, setSelected] = useState<number[]>([]);
   const [pending, setPending] = useState<TransactionSummary[]>([]);
   const [pendingPage, setPendingPage] = useState(0);
+  const [listStatus,setListStatus] = useState('PENDING');
+  const [editingId,setEditingId] = useState<number|null>(null);
+  const [editingFingerprint,setEditingFingerprint] = useState('');
   const [pendingPages, setPendingPages] = useState(0);
   const [reload, setReload] = useState(0);
   const [reason, setReason] = useState('');
@@ -52,7 +55,7 @@ export function DisposalsPage() {
   useEffect(() => {
     let active = true;
     setPendingLoading(true);
-    disposalApi.listPending(pendingPage).then(result => {
+    disposalApi.list(pendingPage,listStatus).then(result => {
       if (!active) return;
       const lastPage = Math.max(0, result.data.totalPages - 1);
       setPendingPages(result.data.totalPages);
@@ -61,7 +64,7 @@ export function DisposalsPage() {
     }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : t('error')); })
       .finally(() => { if (active) setPendingLoading(false); });
     return () => { active = false; };
-  }, [pendingPage, reload, t]);
+  }, [pendingPage, listStatus, reload, t]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -76,8 +79,10 @@ export function DisposalsPage() {
     if (!createReview) return;
     setSaving(true); setError('');
     try {
-      await disposalApi.create({ assetIds: selected, reason, disposalDate: date, expectedFingerprint: createReview.fingerprint });
-      setNotice(t('created')); setCreateReview(null); setSelected([]); setReason(''); setReload(value => value + 1);
+      const body={ assetIds: selected, reason, disposalDate: date, expectedFingerprint: createReview.fingerprint, expectedTransactionFingerprint: editingFingerprint };
+      if(editingId) await disposalApi.edit(editingId,body); else await disposalApi.create(body);
+      setEditingId(null);
+      setNotice(t(editingId?'savedDraft':'created')); setCreateReview(null); setSelected([]); setReason(''); setReload(value => value + 1);
     } catch (cause) { setError(cause instanceof Error ? cause.message : t('error')); }
     finally { setSaving(false); }
   };
@@ -89,7 +94,7 @@ export function DisposalsPage() {
     try {
       const next = (await disposalApi.detail(id)).data;
       if (request === detailRequest.current) {
-        if (next.status === 'PENDING') {
+        if (next.status === 'PENDING' || next.status === 'DRAFT') {
           setDetail(next);
           setDecisions(Object.fromEntries(next.perUserLinks.map(link => [link.allocationId, true])));
         } else {
@@ -103,14 +108,15 @@ export function DisposalsPage() {
   };
 
   const mutateDetail = async (mutation: (value: Disposal) => Promise<Disposal>) => {
-    if (!detail || detail.status !== 'PENDING') return;
+    if (!detail || !['PENDING','DRAFT'].includes(detail.status)) return;
     setSaving(true); setError('');
     try {
       const next = await mutation(detail);
-      if (next.status === 'PENDING') {
+      if (next.status === 'PENDING' || next.status === 'DRAFT') {
         setDetail(next);
         setDecisions(Object.fromEntries(next.perUserLinks.map(link => [link.allocationId, true])));
         setAction(null); setRejectReason('');
+        setReload(count=>count+1);
       } else {
         setDetail(null);
         if (pending.length === 1 && pendingPage > 0) setPendingPage(page => page - 1);
@@ -141,6 +147,7 @@ export function DisposalsPage() {
     <div className="t18-columns">
       <section className="content-card t18-section">
         <h2>{t('createTitle')}</h2>
+        {editingId&&<p>{t('editDraft')} #{editingId} <button className="btn btn-secondary" onClick={()=>{setEditingId(null);setSelected([]);setReason('');}}>{t('cancel')}</button></p>}
         <form onSubmit={submit}>
           <label className="form-group"><span className="form-label">{t('searchAssets')}</span><input className="form-input" type="search" value={assetKeyword} onChange={event => { setAssetKeyword(event.target.value); setAssetPage(0); }} /></label>
           <div className="candidate-list" aria-label={t('assets')} aria-busy={assetLoading}>
@@ -159,6 +166,7 @@ export function DisposalsPage() {
       </section>
       <section className="content-card t18-section">
         <h2>{t('pendingTitle')}</h2>
+        <label>{t('state')}<select className="form-input" value={listStatus} onChange={e=>{setListStatus(e.target.value);setPendingPage(0);}}><option value="PENDING">{t('common:status.PENDING')}</option><option value="DRAFT">{t('common:status.DRAFT')}</option></select></label>
         {!pendingLoading && pending.length === 0 && <p className="empty-state">{t('noPending')}</p>}
         {pending.map(item => <div className="pending-row" key={item.transactionId}><div><strong>{item.transactionCode}</strong><small>{item.requesterName} · {item.createdAt}</small></div>
           <button className="btn btn-secondary btn-sm" disabled={detailLoading} onClick={event => void showDetail(item.transactionId, false, event.currentTarget)}>{t('review')}</button>
@@ -166,8 +174,10 @@ export function DisposalsPage() {
         <Pagination page={pendingPage} pages={pendingPages} loading={pendingLoading} previous={t('previous')} next={t('next')} onPage={setPendingPage} />
       </section>
     </div>
-    {createReview && <DisposalReview value={createReview} saving={saving} error={error} restoreFocusRef={createTrigger} onCancel={() => setCreateReview(null)} onConfirm={create} />}
-    {detail && <DisposalDetail value={detail} role={user?.role} decisions={decisions} saving={saving} error={error} restoreFocusRef={detailTrigger} action={action} rejectReason={rejectReason}
+    {createReview && <DisposalReview value={createReview} editing={!!editingId} saving={saving} error={error} restoreFocusRef={createTrigger} onCancel={() => setCreateReview(null)} onConfirm={create} />}
+    {detail && <DisposalDetail value={detail} role={user?.role} userId={user?.id} decisions={decisions} saving={saving} error={error} restoreFocusRef={detailTrigger} action={action} rejectReason={rejectReason}
+      onTransition={action=>void mutateDetail(async value=>(await disposalApi.transition(value,action)).data)}
+      onEdit={()=>{setEditingId(detail.transactionId);setEditingFingerprint(detail.fingerprint);setSelected(detail.assets.filter(a=>!a.autoAdded).map(a=>a.assetId));setReason(detail.reason);setDate(detail.disposalDate);closeDetail();}}
       onDecision={(id, release) => setDecisions(current => ({ ...current, [id]: release }))} onResolve={() => void resolvePerUser()}
       onChooseAction={setAction} onRejectReason={setRejectReason} onApprove={() => void approve()} onReject={() => void reject()} onClose={closeDetail} />}
   </div>;

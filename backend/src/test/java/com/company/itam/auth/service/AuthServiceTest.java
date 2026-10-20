@@ -69,7 +69,7 @@ class AuthServiceTest {
 
         when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
         when(passwordEncoder.matches("Password@123", adminUser.getPasswordHash())).thenReturn(true);
-        when(jwtTokenProvider.generateToken(adminUser.getEmail(), "ADMIN")).thenReturn("jwt.token.value");
+        when(jwtTokenProvider.generateToken(adminUser.getEmail(), "ADMIN", 0L)).thenReturn("jwt.token.value");
 
         LoginResponse res = authService.login(req);
 
@@ -89,7 +89,7 @@ class AuthServiceTest {
 
         when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
         when(passwordEncoder.matches("Password@123", adminUser.getPasswordHash())).thenReturn(true);
-        when(jwtTokenProvider.generateToken(any(), any())).thenReturn("tkn");
+        when(jwtTokenProvider.generateToken(any(), any(), org.mockito.ArgumentMatchers.anyLong())).thenReturn("tkn");
 
         LoginResponse res = authService.login(req);
         assertEquals("admin@itam.example", res.getUser().getEmail());

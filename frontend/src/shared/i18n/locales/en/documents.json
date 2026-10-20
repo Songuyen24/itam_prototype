@@ -27,7 +27,8 @@
     "PENDING": "Pending",
     "COMPLETED": "Completed",
     "REJECTED": "Rejected",
-    "DRAFT": "Draft"
+    "DRAFT": "Draft",
+    "CANCELLED": "Cancelled"
   },
   "documentTypes": {
     "INVOICE": "Invoice",
@@ -94,7 +95,9 @@
     "revision": "Revision {{number}}",
     "detach": "Detach from draft",
     "detachConfirm": "Remove this draft link? Documents in earlier revisions will be preserved.",
-    "copyRejected": "Create a new draft from this rejected transaction"
+    "copyRejected": "Create a new draft from this rejected transaction",
+    "cancelTransaction": "Cancel transaction",
+    "cancelConfirm": "Cancel this transaction? History will be retained."
   },
   "receiving": {
     "title": "Receiving",
@@ -200,8 +203,16 @@
     "loadError": "Unable to load publication status.",
     "actionError": "Unable to complete the publication action.",
     "independentHint": "A PDF or email failure does not change the completed business transaction.",
-    "pdfStatus": { "READY": "Ready", "NOT_GENERATED": "Not generated", "FAILED": "PDF generation failed" },
-    "emailStatus": { "PENDING": "Processing", "SENT": "Sent", "FAILED": "Failed" },
+    "pdfStatus": {
+      "READY": "Ready",
+      "NOT_GENERATED": "Not generated",
+      "FAILED": "PDF generation failed"
+    },
+    "emailStatus": {
+      "PENDING": "Processing",
+      "SENT": "Sent",
+      "FAILED": "Failed"
+    },
     "events": {
       "IMPORT_SUBMITTED": "Receiving pending IT review",
       "IMPORT_REJECTED": "Receiving rejected",

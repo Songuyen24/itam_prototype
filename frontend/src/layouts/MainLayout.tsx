@@ -5,6 +5,7 @@ import { RoleSwitcher } from '@/shared/components/RoleSwitcher/RoleSwitcher';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { canManageInventory } from '@/features/auth/permissions';
 import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
+import { OverrideReasonDialog } from '@/features/auth/components/OverrideReasonDialog';
 
 function MainLayout() {
   const { t } = useTranslation('common');
@@ -13,6 +14,7 @@ function MainLayout() {
 
   return (
     <div className="app-container">
+      <OverrideReasonDialog />
       {/* Sidebar */}
       <aside className="app-sidebar">
         <div className="sidebar-header">
@@ -24,6 +26,7 @@ function MainLayout() {
         </div>
 
         <nav className="sidebar-nav">
+          {user?.role==='ADMIN'&&<NavLink to="/user-access" className={({isActive})=>`nav-link ${isActive?'active':''}`}>{t('auth:access.title')}</NavLink>}
           {canViewInventory && (
             <NavLink
               to="/catalogs"

@@ -45,6 +45,17 @@ public class DisposalController {
         return ApiResponse.success(messages.getMessage("DISPOSAL_READ"), service.get(id));
     }
 
+    @PutMapping("/{id}")
+    public ApiResponse<DisposalResponse> edit(@PathVariable Long id, @Valid @RequestBody CreateRequest request) {
+        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"),service.edit(id,request));
+    }
+
+    @PostMapping("/{id}/{action:withdraw|submit|cancel}")
+    public ApiResponse<DisposalResponse> transition(@PathVariable Long id, @PathVariable String action,
+                                                  @Valid @RequestBody ApproveRequest request) {
+        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"),service.transition(id,action,request.expectedFingerprint()));
+    }
+
     @PostMapping("/{id}/per-user")
     public ApiResponse<DisposalResponse> resolvePerUser(@PathVariable Long id,
             @Valid @RequestBody PerUserRequest request) {

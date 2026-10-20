@@ -30,6 +30,33 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class T14ReceivingIntegrationTest {
+    @Test @Transactional void administratorCanCancelPendingOnlyWithAuditedReason() throws Exception {
+        var draft=ready(1);var pending=drafts.submit(draft.transactionId(),draft.expectedVersion());
+        String body="{\"expectedVersion\":"+pending.expectedVersion()+"}";
+        String path="/v1/import-drafts/"+pending.transactionId()+"/cancel";
+        mvc.perform(post(path).with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN")))
+                .contentType("application/json").content(body)).andExpect(status().isBadRequest());
+        mvc.perform(post(path).with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN")))
+                .header("X-Override-Reason",java.net.URLEncoder.encode("Hủy phiếu trùng",java.nio.charset.StandardCharsets.UTF_8))
+                .contentType("application/json").content(body)).andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("SELECT old_data->>'status' FROM audit_logs WHERE transaction_id=? AND action='CANCEL'",String.class,pending.transactionId())).isEqualTo("PENDING");
+        assertThat(jdbc.queryForObject("SELECT details FROM audit_logs WHERE transaction_id=? AND action='ADMIN_OVERRIDE'",String.class,pending.transactionId())).isEqualTo("Hủy phiếu trùng");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM import_asset_reservations WHERE transaction_id=?",Integer.class,pending.transactionId())).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_revisions WHERE transaction_id=?",Integer.class,pending.transactionId())).isEqualTo(1);
+    }
+    @Test @Transactional void ownDraftCanDetachRejectedSourceDocumentWithoutChangingHistory() throws Exception {
+        var source=ready(1);source=drafts.submit(source.transactionId(),source.expectedVersion());
+        login("IT_STAFF");source=drafts.process(source.transactionId(),source.expectedVersion(),source.submittedRevision(),false,"Correction needed");
+        login("PUR_STAFF");var copy=drafts.create(null,source.transactionId());
+        Long doc=jdbc.queryForObject("SELECT document_id FROM transaction_document_links WHERE transaction_id=?",Long.class,source.transactionId());
+        mvc.perform(delete("/v1/documents/"+doc).param("transactionId",copy.transactionId().toString()).param("expectedVersion",Long.toString(copy.expectedVersion()))
+            .with(user("other-purchaser@example.test").authorities(new SimpleGrantedAuthority("PUR_STAFF")))).andExpect(status().isForbidden());
+        login("PUR_STAFF");documents.delete(doc,copy.transactionId(),copy.expectedVersion());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_document_links WHERE transaction_id=?",Integer.class,copy.transactionId())).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_document_links WHERE transaction_id=? AND document_id=?",Integer.class,source.transactionId(),doc)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT is_locked FROM documents WHERE document_id=?",Boolean.class,doc)).isTrue();
+        assertThat(documents.download(doc).content()).isNotEmpty();
+    }
     @Autowired ImportDraftService drafts;
     @Autowired ReceivingLineService lines;
     @Autowired DocumentService documents;

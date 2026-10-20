@@ -27,7 +27,7 @@ export function ImportDraftPanel({ transaction, onChanged, onCreated }: { transa
   const [conflict,setConflict]=useState(false);
   const [reject,setReject]=useState(false);
   const [reason,setReason]=useState('');
-  const editor=user?.role==='ADMIN'||user?.role==='PUR_STAFF';
+  const editor=user?.role==='ADMIN'||(user?.role==='PUR_STAFF' && user.id===transaction.requesterId);
   const reviewer=user?.role==='ADMIN'||user?.role==='IT_STAFF';
   const draft=editor&&transaction.status==='DRAFT';
   const id=transaction.transactionId;
@@ -87,6 +87,7 @@ export function ImportDraftPanel({ transaction, onChanged, onCreated }: { transa
       </div>}</div>)}
     </div>}
     <div className="receiving-actions">
+      {(draft || (user?.role==='ADMIN' && transaction.status==='PENDING')) && <button className="btn btn-secondary" disabled={disabled} onClick={()=>{if(window.confirm(t('draft.cancelConfirm')))void mutate(()=>receivingApi.action(transaction,'cancel'));}}>{t('draft.cancelTransaction')}</button>}
       {draft&&<button className="btn btn-primary" disabled={disabled||!content?.assets.length||!content.documents.length||notes!==(content.notes??'')} onClick={()=>void mutate(()=>receivingApi.action(transaction,'submit'))}>{t('draft.submit')}</button>}
       {editor&&transaction.status==='PENDING'&&<button className="btn btn-secondary" disabled={disabled} onClick={()=>{if(window.confirm(t('receiving.withdrawConfirm')))void mutate(()=>receivingApi.action(transaction,'withdraw'));}}>{t('draft.withdraw')}</button>}
       {reviewer&&transaction.status==='PENDING'&&<>

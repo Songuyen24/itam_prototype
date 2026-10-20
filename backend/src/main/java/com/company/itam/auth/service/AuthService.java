@@ -74,7 +74,7 @@ public class AuthService {
             );
         }
 
-        if (user.getAccountStatus() != null && user.getAccountStatus().name().equals("LOCKED")) {
+        if (user.isLoginBlocked()) {
             log.debug("Từ chối đăng nhập: tài khoản '{}' đã bị khóa", email);
             throw new AppException(
                     HttpStatus.UNAUTHORIZED,
@@ -83,9 +83,12 @@ public class AuthService {
             );
         }
 
+        if (!user.canLogin()) {
+            throw new AppException(HttpStatus.UNAUTHORIZED, "LOGIN_ACCESS_NOT_GRANTED", "LOGIN_ACCESS_NOT_GRANTED");
+        }
         RoleEntity role = user.getRole();
         String roleCode = role != null && role.getCode() != null ? role.getCode().name() : "USER";
-        String token = jwtTokenProvider.generateToken(user.getEmail(), roleCode);
+        String token = jwtTokenProvider.generateToken(user.getEmail(), roleCode, user.getAccessVersion());
 
         LoginUserInfo info = new LoginUserInfo(
                 user.getUserId(),

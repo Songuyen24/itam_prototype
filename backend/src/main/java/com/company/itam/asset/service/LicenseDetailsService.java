@@ -45,7 +45,7 @@ public class LicenseDetailsService {
         long used=allocations.usedSeats(asset.getAssetId());
         return new LicenseDetailsResponse(d.getSoftwareCatalog().getSoftwareCatalogId(),d.getSoftwareCatalog().getName(),
                 d.getAssignmentType().getId(),d.getAssignmentType().getCode(),d.getTermType().getId(),d.getTermType().getCode(),
-                d.getSeatCount(),used,d.getSeatCount()-used,revealKey?d.getLicenseKey():null,d.getExpiryDate());
+                revealKey?d.getSeatCount():null,revealKey?used:null,revealKey?d.getSeatCount()-used:null,revealKey?d.getLicenseKey():null,d.getExpiryDate());
     }
     private void fail(String code) { throw new AppException(HttpStatus.CONFLICT,code,code); }
 }

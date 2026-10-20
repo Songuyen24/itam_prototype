@@ -13,12 +13,21 @@ public class UserResponse {
     private String roleName;
     private String departmentName;
     private String accountStatus;
+    private boolean accessGranted;
+    private boolean hasAccount;
+    private boolean loginLocked;
+    public boolean isLoginLocked() { return loginLocked; }
+    public boolean isAccessGranted() { return accessGranted; }
+    public boolean isHasAccount() { return hasAccount; }
 
     public UserResponse() {}
 
     public static UserResponse fromEntity(UserEntity user) {
         UserResponse dto = new UserResponse();
         dto.id = user.getUserId();
+        dto.accessGranted = user.isAccessGranted();
+        dto.hasAccount = user.getPasswordHash() != null;
+        dto.loginLocked = user.isLoginLocked();
         dto.email = user.getEmail();
         dto.fullName = user.getFullName();
         RoleEntity role = user.getRole();
