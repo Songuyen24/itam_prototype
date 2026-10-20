@@ -49,6 +49,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AssetServiceTest {
+    @Mock private org.springframework.jdbc.core.JdbcTemplate jdbc;
     @org.mockito.Mock private LicenseDetailsService licenses;
     @org.mockito.Mock private AssetAuditService audit;
 
@@ -356,7 +357,7 @@ class AssetServiceTest {
                 assetService.createHardwareAsset(request)
         );
 
-        assertEquals("ASSIGNMENT_REQUIRED", exception.getCode());
+        assertEquals("ASSET_WORKFLOW_REQUIRED", exception.getCode());
     }
 
     private CreateHardwareAssetRequest baselineRequest() {

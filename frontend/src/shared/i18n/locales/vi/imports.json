@@ -1,5 +1,5 @@
 {
-  "title": "Import tài sản phần cứng từ file Excel",
+  "title": "Thêm tài sản từ file Excel",
   "subtitle": "Hỗ trợ định dạng .xlsx, .xls tối đa 1,000 dòng",
   "steps": {
     "upload": "1. Chọn file Excel",
@@ -14,7 +14,10 @@
     "downloadTemplate": "Tải file Excel mẫu chuẩn",
     "downloadHelp": "File mẫu đã có sẵn cấu trúc cột và hướng dẫn định dạng",
     "btnPreview": "Tiếp tục: Kiểm tra dữ liệu",
-    "analyzing": "Đang phân tích và kiểm tra file Excel..."
+    "analyzing": "Đang phân tích và kiểm tra file Excel...",
+    "retryBatchId": "Mã đợt nhập trước (nếu đang gửi lại file đã sửa)",
+    "retryBatchPlaceholder": "Để trống khi nhập lần đầu",
+    "keepRowOrder": "Chỉ dùng mã đợt trước để sửa dòng lỗi; giữ nguyên nội dung các dòng đã nhập thành công. Tài sản mua mới cần tạo đợt nhập mới."
   },
   "preview": {
     "summary": "Kết quả kiểm tra dữ liệu:",
@@ -34,20 +37,28 @@
     "colStatus": "Trạng thái",
     "colValidation": "Trạng thái kiểm tra",
     "colError": "Chi tiết lỗi",
+    "generatedTag": "Tự sinh mã",
+    "missing": "[Thiếu]",
     "btnBack": "Chọn lại file khác",
     "btnConfirm": "Xác nhận Import ({{count}} dòng)",
-    "importing": "Đang thực hiện import vào hệ thống..."
+    "importing": "Đang thực hiện import vào hệ thống...",
+    "previous": "Trang trước", "next": "Trang sau", "page": "Trang {{page}} / {{pages}}"
   },
   "completed": {
+    "resultTitle": "Kết quả nhập từng dòng",
+    "receivingMessage": "Đã thêm {{count}} tài sản vào phiếu nháp.",
+    "retryFile": "Chọn file đã sửa để thử lại",
+    "batchId": "Mã đợt nhập: {{id}}",
     "successTitle": "Import dữ liệu thành công!",
-    "successMessage": "Hệ thống đã tạo thành công {{count}} tài sản phần cứng mới.",
+    "successMessage": "Đã thêm {{count}} tài sản vào kho.",
     "batchCode": "Mã đợt import:",
     "btnFinish": "Hoàn tất & Đóng"
   },
   "statusBadges": {
     "VALID": "HỢP LỆ",
     "INVALID": "LỖI",
-    "DUPLICATE": "TRÙNG LẶP"
+    "DUPLICATE": "TRÙNG LẶP",
+    "IMPORTED": "ĐÃ NHẬP"
   },
   "errors": {
     "fileRequired": "Vui lòng chọn một file Excel",
@@ -58,5 +69,7 @@
     "importFailed": "Không thể import tài sản."
   },
   "openingInventory": "Import dữ liệu nền / tồn đầu kỳ mẫu. Mã trống được tự sinh khi xác nhận; mua mới phải qua phiếu nhập kho.",
-  "guide": { "title": "Quy tắc nhập liệu", "required": "Tên tài sản và Loại tài sản là bắt buộc; Mã tài sản có thể để trống và sẽ được tự sinh khi xác nhận.", "unique": "Mã tài sản và Số Serial phải duy nhất, không trùng trong file hoặc cơ sở dữ liệu.", "status": "Nếu để trống Trạng thái, hệ thống sẽ tự động gán IN_STOCK (Đang lưu kho).", "preview": "Preview không ghi vào database cho đến khi bạn xác nhận." }
+  "receivingTitle": "Nhập tài sản từ Excel vào phiếu nhập kho",
+  "receivingHint": "Các dòng hợp lệ được thêm vào phiếu nháp. IT xác nhận phiếu trước khi tài sản vào kho.",
+  "guide": { "title": "Quy tắc nhập liệu", "required": "Tên tài sản và Loại tài sản là bắt buộc; Mã tài sản có thể để trống và sẽ được tự sinh khi xác nhận.", "unique": "Mã tài sản và Số Serial phải duy nhất, không trùng trong file hoặc cơ sở dữ liệu.", "status": "Tài sản thêm trực tiếp được đưa vào IN_STOCK (Đang lưu kho).", "license": "Với license, điền phần mềm, kiểu gán, thời hạn và số suất; thuê bao cần ngày hết hạn.", "preview": "Xem trước không ghi vào cơ sở dữ liệu cho đến khi xác nhận." }
 }

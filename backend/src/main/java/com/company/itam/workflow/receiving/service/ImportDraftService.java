@@ -237,7 +237,7 @@ public class ImportDraftService {
 
     private void requireDocuments(Long id) {
         var ids=jdbc.queryForList("SELECT document_id FROM transaction_document_links WHERE transaction_id=?",Long.class,id);
-        if(ids.isEmpty()) throw error("IMPORT_DOCUMENT_REQUIRED");
+        // Attachments are optional; existing files must still be readable.
         for(var document:documentRepository.findAllById(ids)) storage.read(document);
     }
 

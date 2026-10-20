@@ -1,6 +1,7 @@
 import { ApiResponse } from '@/features/catalogs/types/catalog.types';
 import { DocumentItem, DocumentTransaction } from '@/features/documents/types/document.types';
-import { httpClient } from '@/shared/api/httpClient';
+import { httpClient, downloadFile } from '@/shared/api/httpClient';
+import { ImportBatch, ImportConfirmPayload, ImportPreviewData } from '@/features/assets/types/import.types';
 export type Option = { id: number; name: string; code?: string; category?: string; typeId?: number; default_cpu?: string; default_ram?: string; default_storage?: string; default_graphics_card?: string };
 export type References = Record<'types'|'conditions'|'locations'|'departments'|'suppliers'|'models'|'software'|'assignments'|'terms', Option[]>;
 export type LineInput = {
@@ -18,6 +19,9 @@ export type Revision = { revision: number; submittedAt: string; submittedBy?: st
 export type Event = { revision: number; action: string; time: string; actor: string; reason?: string };
 const base='/v1/import-drafts';
 export const receivingApi = {
+  downloadTemplate:()=>downloadFile(`${base}/excel/template`,'itam_receiving_template.xlsx'),
+  previewExcel:(file:File)=>{const body=new FormData();body.append('file',file);return httpClient<ApiResponse<ImportPreviewData>>(`${base}/excel/preview`,{method:'POST',body});},
+  confirmExcel:(id:number,version:number,payload:ImportConfirmPayload)=>httpClient<ApiResponse<{transaction:DocumentTransaction;batch:ImportBatch}>>(`${base}/${id}/excel/confirm?expectedVersion=${version}`,{method:'POST',body:JSON.stringify(payload)}),
   content:(id:number)=>httpClient<ApiResponse<Content>>(`${base}/${id}/content`),
   revisions:(id:number)=>httpClient<ApiResponse<Revision[]>>(`${base}/${id}/revisions`),
   events:(id:number)=>httpClient<ApiResponse<Event[]>>(`${base}/${id}/events`),

@@ -140,11 +140,10 @@ class T14ReceivingIntegrationTest {
         assertThat(drafts.content(source.transactionId()).path("assets").get(0).path("name").asText()).isNotEqualTo("Independent draft");
     }
 
-    @Test @Transactional void requiresSampleDocumentAndHardwareCondition() {
+    @Test @Transactional void requiresHardwareConditionEvenWithoutDocuments() {
         var t=drafts.create(null,null);var request=hardware();request.setConditionId(null);
         t=drafts.addHardware(t.transactionId(),t.expectedVersion(),request);var noDocument=t;
-        assertThatThrownBy(()->drafts.submit(noDocument.transactionId(),noDocument.expectedVersion())).isInstanceOf(AppException.class).hasMessage("IMPORT_DOCUMENT_REQUIRED");
-        t=document(t);var noCondition=t;
+        var noCondition=t;
         assertThatThrownBy(()->drafts.submit(noCondition.transactionId(),noCondition.expectedVersion())).isInstanceOf(AppException.class).hasMessage("IMPORT_CONDITION_REQUIRED");
         login("PUR_STAFF");
         assertThat(drafts.events(t.transactionId())).isEmpty();

@@ -30,6 +30,8 @@ export interface ImportPreviewData {
 export interface ImportConfirmPayload {
   fileName: string;
   validRows: Record<string, any>[];
+  retryBatchId?: number;
+  requestId?: string;
 }
 
 export interface ImportBatch {
@@ -45,6 +47,7 @@ export interface ImportBatch {
   uploadedByFullName?: string;
   createdAt: string;
   completedAt?: string;
+  rows?: ImportRowDetail[];
 }
 
 export interface ImportBatchDetail extends ImportBatch {

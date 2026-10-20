@@ -13,6 +13,7 @@ import java.util.Optional;
 
 @Repository
 public interface ImportBatchRepository extends JpaRepository<ImportBatchEntity, Long> {
+    Optional<ImportBatchEntity> findByRequestId(java.util.UUID requestId);
 
     /**
      * List all batches with uploadedBy eagerly loaded.

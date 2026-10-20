@@ -7,13 +7,15 @@ export class ApiError extends Error {
   status: number;
   code?: string;
   errors?: string[];
+  rows?: unknown[];
 
-  constructor(message: string, status: number, code?: string, errors?: string[]) {
+  constructor(message: string, status: number, code?: string, errors?: string[], rows?: unknown[]) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.errors = errors;
+    this.rows = rows;
   }
 }
 
@@ -133,7 +135,8 @@ async function httpClient<T>(
       errorData.message || (currentLang === 'en' ? 'An error occurred' : 'Có lỗi xảy ra'),
       response.status,
       errorData.code,
-      errorData.errors
+      errorData.errors,
+      errorData.rows
     );
   }
 

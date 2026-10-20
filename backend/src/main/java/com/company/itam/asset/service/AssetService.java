@@ -192,6 +192,7 @@ public class AssetService {
     }
 
     private AssetDetailResponse createHardware(CreateHardwareAssetRequest request, boolean draft, String auditAction) {
+        jdbc.queryForList("SELECT pg_advisory_xact_lock(74101301)");
         String assetTag = normalizeString(request.getAssetTag());
         if (assetTag == null) assetTag = assetRepository.nextGeneratedAssetTag();
         if (assetRepository.existsByAssetTag(assetTag)) {
@@ -221,6 +222,8 @@ public class AssetService {
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy trạng thái mặc định IN_STOCK"));
         }
 
+        if (!draft && status.getCode() != AssetStatus.IN_STOCK)
+            throw new AppException(HttpStatus.CONFLICT, "ASSET_WORKFLOW_REQUIRED", "ASSET_WORKFLOW_REQUIRED");
         if ((status.getCode() == AssetStatus.PENDING_IMPORT) != draft) {
             throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
         }

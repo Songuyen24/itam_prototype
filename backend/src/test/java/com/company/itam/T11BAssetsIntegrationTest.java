@@ -30,6 +30,7 @@ class T11BAssetsIntegrationTest {
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
     @Autowired AssetService assets;
+    @Autowired com.company.itam.workflow.handover.service.HandoverService handovers;
     @Autowired AssetRelationshipService relationships;
     @Autowired LicenseAllocationService allocations;
     @Autowired UserRepository users;
@@ -57,6 +58,14 @@ class T11BAssetsIntegrationTest {
         else jdbc.update("INSERT INTO transaction_recovery_details VALUES (?,?,CURRENT_DATE,?,'Demo recovery')",tx,recipient.getUserId(),location);
         jdbc.update("INSERT INTO transaction_assets(transaction_id,asset_id,line_number) VALUES (?,?,1)",tx,licenseId);
         return tx;
+    }
+    void assignThroughHandover(Long assetId) {
+        var request = new com.company.itam.workflow.handover.dto.HandoverRequest(
+                users.findByEmail("user01@itam.example").orElseThrow().getUserId(),
+                lookup("locations","location_id","T11B_TEST"),LocalDate.now(),List.of(assetId),List.of(),"Fixture handover",null);
+        handovers.complete(new com.company.itam.workflow.handover.dto.HandoverRequest(request.recipientUserId(),
+                request.destinationLocationId(),request.handoverDate(),request.assetIds(),request.licenses(),request.notes(),
+                handovers.preview(request).fingerprint()));
     }
     @Test void createReadUpdateAllTypesAndRejectTypeConversion() throws Exception {
         for(String category:List.of("DEVICE","COMPONENT","LICENSE")) {
@@ -184,9 +193,8 @@ class T11BAssetsIntegrationTest {
     @Test void perUserRecoveryUnlinksOnlyItsAllocationAndRejectsRepeats() {
         Long pkg=createLicense("PER_USER",10);Long handover=transaction("HANDOVER",pkg);
         var actor=users.findByEmail("admin@itam.example").orElseThrow();var recipient=users.findByEmail("user01@itam.example").orElseThrow();
-        var deviceRequest=request("DEVICE");deviceRequest.setAssignedToUserId(recipient.getUserId());
-        deviceRequest.setStatusId(lookup("asset_statuses","status_id","IN_USE"));
-        Long device=assets.createHardwareAsset(deviceRequest).getAssetId();
+        Long device=assets.createHardwareAsset(request("DEVICE")).getAssetId();
+        assignThroughHandover(device);
         var first=allocations.allocatePerUser(pkg,recipient,1,handover,actor);
         allocations.allocatePerUser(pkg,recipient,2,handover,actor);
         allocations.attachPerUser(first.getAllocationId(),device,actor);
@@ -199,9 +207,8 @@ class T11BAssetsIntegrationTest {
     }
     @Test void inUseComponentCannotBeLinkedThroughInventoryApi() throws Exception {
         Long device=assets.createHardwareAsset(request("DEVICE")).getAssetId();
-        var r=request("COMPONENT");r.setAssignedToUserId(users.findByEmail("user01@itam.example").orElseThrow().getUserId());
-        r.setStatusId(lookup("asset_statuses","status_id","IN_USE"));
-        Long component=assets.createHardwareAsset(r).getAssetId();
+        Long component=assets.createHardwareAsset(request("COMPONENT")).getAssetId();
+        assignThroughHandover(component);
         mvc.perform(post("/v1/assets/"+device+"/relationships").contentType("application/json").content(json.writeValueAsString(Map.of("childAssetId",component,"type","COMPONENT_OF"))))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ASSET_WORKFLOW_REQUIRED"));
     }

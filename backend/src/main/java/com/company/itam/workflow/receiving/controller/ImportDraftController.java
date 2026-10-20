@@ -13,12 +13,27 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/v1/import-drafts")
 @PreAuthorize("hasAnyAuthority('ADMIN','PUR_STAFF')")
 public class ImportDraftController {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.company.itam.importbatch.service.AssetImportService excel;
     private final ImportDraftService service;
     private final com.company.itam.common.util.MessageHelper messages;
     private final com.company.itam.publication.service.TransactionPublicationService publications;
     public ImportDraftController(ImportDraftService service, com.company.itam.common.util.MessageHelper messages,
             com.company.itam.publication.service.TransactionPublicationService publications) {
         this.service=service; this.messages=messages; this.publications=publications;
+    }
+    @GetMapping("/excel/template") public org.springframework.http.ResponseEntity<byte[]> template() {
+        return org.springframework.http.ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=itam_receiving.xlsx")
+            .header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            .body(excel.getTemplate());
+    }
+    @PostMapping(value="/excel/preview", consumes="multipart/form-data") public Object preview(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return ApiResponse.success(excel.preview(file));
+    }
+    @PostMapping("/{id}/excel/confirm") public Object importExcel(@PathVariable Long id, @RequestParam Long expectedVersion,
+            @Valid @RequestBody com.company.itam.importbatch.dto.request.ImportConfirmRequest request) {
+        return ApiResponse.success(excel.confirmReceiving(id, expectedVersion, request));
     }
     public record Create(@Size(max=4000) String notes, Long sourceId) {}
     public record Change(@NotNull(message="{validation.required}") Long expectedVersion, @Size(max=4000, message="{validation.size}") String notes) {}
