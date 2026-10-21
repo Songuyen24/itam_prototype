@@ -12,5 +12,5 @@ public record SmartCheckRequest(
     @NotNull(message = "{VALIDATION_REQUIRED}") List<Long> assetIds,
     @NotNull(message = "{VALIDATION_REQUIRED}") @Positive(message = "{validation.positive}") Long returnerUserId,
     List<Long> allocationIds,
-    @NotBlank(message = "{VALIDATION_REQUIRED}") String reason
+    @Size(max = 4000, message = "{VALIDATION_MAX_LENGTH}") String reason
 ) {}

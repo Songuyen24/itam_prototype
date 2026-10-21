@@ -8,7 +8,7 @@
   "colDate": "Ngày thu hồi",
   "colLocation": "Vị trí nhận",
   "colAssets": "Số tài sản",
-  "hint": "Thu hồi tài sản từ người dùng. Hệ thống sẽ kiểm tra các quan hệ linh kiện và license trước khi hoàn tất.",
+  "hint": "Lập phiếu thu hồi cho một người trả; kiểm tra quan hệ tài sản trước khi gửi chờ nhận.",
   "searchAssets": "Tìm kiếm người trả",
   "searchLocations": "Tìm kiếm vị trí nhận",
   "selectDevices": "Chọn thiết bị thu hồi",
@@ -34,7 +34,7 @@
   "selectedStandalone": "đã chọn riêng",
   "keepAttached": "Giữ nguyên",
   "detach": "Tách riêng",
-  "complete": "Hoàn tất thu hồi",
+  "complete": "Lưu nháp",
   "back": "Quay lại",
   "success": "Thu hồi thành công!",
   "emptySelection": "Chưa chọn tài sản nào",
@@ -65,4 +65,16 @@
   "retry": "Thử lại",
   "allocation": "Lượt cấp phát #{{id}}",
   "requiredComponents": "Linh kiện phải thu hồi"
+  ,"searchHistory": "Tìm phiếu thu hồi"
+  ,"filterStatus": "Trạng thái"
+  ,"allStatuses": "Tất cả"
+  ,"details": "Chi tiết"
+  ,"edit": "Sửa nháp"
+  ,"submit": "Gửi chờ nhận"
+  ,"withdraw": "Rút về nháp"
+  ,"cancel": "Hủy phiếu"
+  ,"cancelConfirm": "Xác nhận hủy phiếu thu hồi?"
+  ,"confirmPhysical": "Xác nhận đã nhận tài sản"
+  ,"confirmPhysicalHint": "Kiểm tra tài sản đã nhận thực tế trước khi hoàn tất thu hồi."
+  ,"status": { "DRAFT": "Nháp", "PENDING": "Chờ xử lý", "COMPLETED": "Hoàn tất", "CANCELLED": "Đã hủy" }
 }

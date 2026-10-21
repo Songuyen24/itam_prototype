@@ -1,5 +1,6 @@
 {
   "pendingHandover": "Awaiting handover",
+  "pendingRecovery": "Awaiting recovery",
   "title": "Assets",
   "myAssetsTitle": "My Assets",
   "subtitle": "Manage devices, components, license packages and relationships",

@@ -33,6 +33,7 @@ export interface Asset {
   statusCode?: string;
   statusName?: string;
   pendingHandover?: boolean;
+  pendingRecovery?: boolean;
 
   conditionId?: number;
   conditionCode?: string;

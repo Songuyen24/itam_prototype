@@ -257,20 +257,20 @@ class T16RecoveryIntegrationTest {
         login();
         Long device = create("DEVICE"); handovers.complete(confirmed(List.of(device), List.of()));
         JsonNode check = smart(List.of(device), List.of());
-        String payload = json.writeValueAsString(Map.of("returnerUserId", returner(), "receivingLocationId", location(), "recoveryDate", "2026-09-17", "reason", "T16 race",
-                "assetIds", List.of(device), "allocationIds", List.of(), "componentActions", Map.of(), "perUserActions", Map.of(), "expectedFingerprint", check.path("fingerprint").asText()));
+        Map<String, Object> request = Map.of("returnerUserId", returner(), "receivingLocationId", location(), "recoveryDate", "2026-09-17", "reason", "T16 race",
+                "assetIds", List.of(device), "allocationIds", List.of(), "componentActions", Map.of(), "perUserActions", Map.of(), "expectedFingerprint", check.path("fingerprint").asText());
         CountDownLatch gate = new CountDownLatch(1);
         var pool = Executors.newFixedThreadPool(2);
         Callable<Boolean> recover = () -> {
             login(); gate.await();
-            try { return mvc.perform(post("/v1/recoveries").contentType("application/json").content(payload)).andReturn().getResponse().getStatus() == 201; }
+            try { complete(request); return true; } catch (AssertionError e) { return false; }
             finally { org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
         };
         try {
             var first = pool.submit(recover); var second = pool.submit(recover); gate.countDown();
             assertThat(List.of(first.get(20, TimeUnit.SECONDS), second.get(20, TimeUnit.SECONDS))).containsExactlyInAnyOrder(true, false);
         } finally { pool.shutdownNow(); }
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_assets ta JOIN transactions t USING(transaction_id) WHERE t.type='RECOVERY' AND ta.asset_id=?", Integer.class, device)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_assets ta JOIN transactions t USING(transaction_id) WHERE t.type='RECOVERY' AND t.status='COMPLETED' AND ta.asset_id=?", Integer.class, device)).isEqualTo(1);
         assertThat(state(device)).isEqualTo("IN_STOCK");
     }
 
@@ -279,19 +279,23 @@ class T16RecoveryIntegrationTest {
     void snapshotWriteFailureRollsBackRecoveryStateAndTransaction() throws Exception {
         Long device = create("DEVICE"); handovers.complete(confirmed(List.of(device), List.of()));
         JsonNode check = smart(List.of(device), List.of());
-        Long before = jdbc.queryForObject("SELECT count(*) FROM transactions WHERE type='RECOVERY'", Long.class);
+        Long before = jdbc.queryForObject("SELECT count(*) FROM transactions WHERE type='RECOVERY' AND status='COMPLETED'", Long.class);
         jdbc.execute("CREATE FUNCTION t16_block_snapshot() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'T16 forced snapshot failure'; END; $$");
         jdbc.execute("CREATE TRIGGER t16_block_snapshot BEFORE INSERT ON transaction_publication_snapshots FOR EACH ROW EXECUTE FUNCTION t16_block_snapshot()");
         Map<String, Object> request = Map.of("returnerUserId", returner(), "receivingLocationId", location(), "recoveryDate", "2026-09-17", "reason", "T16 rollback",
                 "assetIds", List.of(device), "allocationIds", List.of(), "componentActions", Map.of(), "perUserActions", Map.of(), "expectedFingerprint", check.path("fingerprint").asText());
         try {
-            mvc.perform(post("/v1/recoveries").contentType("application/json").content(json.writeValueAsString(request))).andExpect(status().is5xxServerError());
+            String body = mvc.perform(post("/v1/recoveries").contentType("application/json").content(json.writeValueAsString(request)))
+                    .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+            long id = json.readTree(body).at("/data/transactionId").asLong();
+            mvc.perform(post("/v1/recoveries/{id}/submit", id)).andExpect(status().isOk());
+            mvc.perform(post("/v1/recoveries/{id}/confirm", id)).andExpect(status().is5xxServerError());
         } finally {
             jdbc.execute("DROP TRIGGER t16_block_snapshot ON transaction_publication_snapshots");
             jdbc.execute("DROP FUNCTION t16_block_snapshot()");
         }
         assertThat(state(device)).isEqualTo("IN_USE");
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM transactions WHERE type='RECOVERY'", Long.class)).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM transactions WHERE type='RECOVERY' AND status='COMPLETED'", Long.class)).isEqualTo(before);
     }
 
     @Test
@@ -316,6 +320,10 @@ class T16RecoveryIntegrationTest {
     private JsonNode complete(Map<String, Object> request) throws Exception {
         String body = mvc.perform(post("/v1/recoveries").contentType("application/json").content(json.writeValueAsString(request)))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long id = json.readTree(body).at("/data/transactionId").asLong();
+        mvc.perform(post("/v1/recoveries/{id}/submit", id)).andExpect(status().isOk());
+        body = mvc.perform(post("/v1/recoveries/{id}/confirm", id)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
         return json.readTree(body);
     }
 
