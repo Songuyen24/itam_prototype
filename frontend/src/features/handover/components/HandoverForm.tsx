@@ -91,7 +91,7 @@ export function HandoverForm({ onCompleted, onBusyChange, initialRecipient, init
         <HandoverPicker title={t('searchUsers')} load={loadRecipients} identify={u => u.id}
           label={u => `${u.fullName} · ${u.employeeCode || u.email || ''} · ${t('deviceCount', { count: u.deviceCount })}, ${t('componentCount', { count: u.componentCount })}, ${t('licenseSeatCount', { count: u.licenseSeats })}`}
           selected={recipient ? [recipient.id] : []} choose={u => { setRecipient(u); setRecipientPage(0); setRecipientDetail(null); }} disabled={frozen} unavailable={u => u.accountStatus !== 'ACTIVE'} />
-        {recipient && <p>{t('recipient')}: <strong>{recipient.fullName}</strong></p>}
+        {recipient && <p>{t('recipient')}: <strong>{recipient.fullName}</strong>{recipient.employeeCode && <> · {recipient.employeeCode}</>}</p>}
         {recipientLoading ? <p role="status">{t('loading')}</p> : recipientError ? <p role="alert">{recipientError} <button type="button" onClick={() => setRecipientReload(v => v + 1)}>{t('retry')}</button></p>
           : recipientDetail && <div className="handover-recipient-detail">
             <p>{t('deviceCount', { count: recipientDetail.holder.deviceCount })} · {t('componentCount', { count: recipientDetail.holder.componentCount })} · {t('licenseSeatCount', { count: recipientDetail.holder.licenseSeats })}</p>

@@ -5,7 +5,7 @@
   "holderFilter": "Lọc nhân viên",
   "heldOnly": "Đang giữ",
   "allEmployees": "Tất cả nhân viên",
-  "searchHolders": "Tìm tên hoặc email nhân viên",
+  "searchHolders": "Tìm mã nhân viên, tên hoặc email",
   "selectHolder": "Chọn nhân viên để xem tài sản đang giữ.",
   "noHoldings": "Không có tài sản đang được cấp.",
   "deviceCount": "{{count}} thiết bị",
@@ -28,7 +28,7 @@
   "list": "Danh sách phiếu",
   "hint": "Chọn tài sản trong kho và một người nhận. Linh kiện đang gắn và suất OEM sẽ được thêm vào bước xem trước.",
   "searchAssets": "Tìm theo mã hoặc tên tài sản",
-  "searchUsers": "Tìm tên người nhận",
+  "searchUsers": "Tìm người nhận theo mã nhân viên, tên hoặc email",
   "searchLocations": "Tìm vị trí nhận",
   "recipient": "Người nhận",
   "location": "Vị trí nhận",
@@ -72,5 +72,6 @@
     "Ram": "RAM",
     "Storage": "Ổ lưu trữ",
     "GraphicsCard": "Đồ họa"
-  }
+  },
+  "employeeCode": "Mã nhân viên"
 }
