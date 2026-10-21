@@ -44,6 +44,8 @@ public class AssetRelationshipService {
         var locked=new HashMap<Long,AssetEntity>();
         for (Long id:new TreeSet<>(List.of(parentId,childId))) locked.put(id,assets.lockById(id).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND")));
         var parent=locked.get(parentId); var child=locked.get(childId);
+        if (assets.hasPendingHandover(parentId)
+                || (category(child)!=AssetCategory.LICENSE && assets.hasPendingHandover(childId))) fail("HANDOVER_ASSET_RESERVED");
         if (category(parent)!=AssetCategory.DEVICE || (type==RelationshipType.COMPONENT_OF?category(child)!=AssetCategory.COMPONENT:category(child)!=AssetCategory.LICENSE)) fail("RELATIONSHIP_INVALID");
         if (!stock(parent) || !stock(child)) fail("ASSET_WORKFLOW_REQUIRED");
         if (relationships.existsByParentAssetAssetIdAndChildAssetAssetIdAndRelationshipType(parentId,childId,type)
@@ -73,6 +75,9 @@ public class AssetRelationshipService {
                 r.getAllocation()==null?null:r.getAllocation().getAllocationId(),reason==null,reason);
     }
     private String blocked(AssetRelationshipEntity r) {
+        if (assets.hasPendingHandover(r.getParentAsset().getAssetId())
+                || (category(r.getChildAsset())!=AssetCategory.LICENSE && assets.hasPendingHandover(r.getChildAsset().getAssetId())))
+            return "HANDOVER_ASSET_RESERVED";
         if (r.getRelationshipType()==RelationshipType.INSTALLED_ON)
             return LicenseCodes.OEM.equals(r.getChildAsset().getLicenseDetails().getAssignmentType().getCode())?"OEM_CANNOT_DETACH":"LICENSE_WORKFLOW_REQUIRED";
         return stock(r.getParentAsset()) && stock(r.getChildAsset())?null:"ASSET_WORKFLOW_REQUIRED";

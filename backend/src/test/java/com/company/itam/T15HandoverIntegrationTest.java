@@ -73,9 +73,13 @@ class T15HandoverIntegrationTest {
         Long a=create("DEVICE"),b=create("DEVICE"),ram=create("COMPONENT"),pkg=license("OEM",2);
         relationships.create(a,ram,RelationshipType.COMPONENT_OF); relationships.create(a,pkg,RelationshipType.INSTALLED_ON);relationships.create(b,pkg,RelationshipType.INSTALLED_ON);
         var req=confirmed(request(List.of(a,b),List.of()));
-        String body=mvc.perform(post("/v1/handovers").contentType("application/json").content(json.writeValueAsString(req)).header("Accept-Language","en"))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.message").value("Handover completed.")).andExpect(jsonPath("$.data.lines.length()").value(4)).andReturn().getResponse().getContentAsString();
-        Long tx=json.readTree(body).path("data").path("transactionId").asLong();
+        String draft=mvc.perform(post("/v1/handovers").contentType("application/json").content(json.writeValueAsString(req)).header("Accept-Language","en"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.data.status").value("DRAFT")).andReturn().getResponse().getContentAsString();
+        Long tx=json.readTree(draft).path("data").path("transactionId").asLong();
+        mvc.perform(post("/v1/handovers/"+tx+"/submit")).andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("PENDING"));
+        for(Long asset:List.of(a,b,ram)) assertThat(state(asset)).isEqualTo("IN_STOCK");
+        String body=mvc.perform(post("/v1/handovers/"+tx+"/confirm").header("Accept-Language","en"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.message").value("Handover completed.")).andExpect(jsonPath("$.data.lines.length()").value(4)).andReturn().getResponse().getContentAsString();
         for(Long asset:List.of(a,b,ram)) { assertThat(state(asset)).isEqualTo("IN_USE"); assertThat(jdbc.queryForObject("SELECT assigned_to FROM assets WHERE asset_id=?",Long.class,asset)).isEqualTo(recipient()); }
         assertThat(state(pkg)).isEqualTo("IN_STOCK");
         assertThat(jdbc.queryForObject("SELECT sum(seat_count) FROM license_allocations WHERE license_asset_id=? AND status='ACTIVE'",Integer.class,pkg)).isEqualTo(2);

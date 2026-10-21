@@ -75,7 +75,7 @@ describe('Role-specific routes and navigation', () => {
     expect(menu).toContain('href="/handovers"');
     expect(menu).toContain('href="/disposals"');
     expect(menu).toContain('href="/dashboard"');
-    expect(renderRoute('/handovers')).toContain('handover-form');
+    expect(renderRoute('/handovers')).toContain('handover-page');
     expect(menu).not.toContain('href="/users"');
   });
 

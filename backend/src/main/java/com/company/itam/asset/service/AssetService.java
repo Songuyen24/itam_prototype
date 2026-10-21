@@ -96,7 +96,14 @@ public class AssetService {
             throw new AccessDeniedException("Access denied");
         }
         Page<AssetEntity> page = assetRepository.findAll(new AssetSpecification(criteria), pageable);
-        return PageResponse.of(page.map(assetMapper::toResponse));
+        var ids = page.getContent().stream().map(AssetEntity::getAssetId).toList();
+        var pending = ids.isEmpty() ? java.util.Set.<Long>of()
+                : new java.util.HashSet<>(assetRepository.pendingHandoverAssetIds(ids));
+        return PageResponse.of(page.map(asset -> {
+            var response = assetMapper.toResponse(asset);
+            response.setPendingHandover(pending.contains(asset.getAssetId()));
+            return response;
+        }));
     }
 
     public record RecoveryCandidate(Long assetId, String assetTag, String name, String categoryCode,
@@ -166,6 +173,7 @@ public class AssetService {
             }
         }
         var response = assetMapper.toDetailResponse(asset);
+        if (canReadInventory(authentication)) response.setPendingHandover(assetRepository.hasPendingHandover(id));
         if (asset.getLicenseDetails()!=null) response.setLicense(licenses.response(asset, canReadInventory(authentication)));
         if (!canReadInventory(authentication)) {
             response.setCreatedByUserId(null); response.setCreatedByFullName(null);
@@ -329,6 +337,9 @@ public class AssetService {
         AssetEntity asset = assetRepository.lockById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id));
 
+        if (assetRepository.hasPendingHandover(id)) {
+            throw new AppException(HttpStatus.CONFLICT, "HANDOVER_ASSET_RESERVED", "HANDOVER_ASSET_RESERVED");
+        }
         if (receiving ? asset.getStatus().getCode() != AssetStatus.PENDING_IMPORT
                 : (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT || assetRepository.hasActiveReceiving(id))) {
             throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");

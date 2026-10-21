@@ -330,6 +330,7 @@ public class DisposalService {
         var targetAssets = new ArrayList<AssetEntity>();
         var assetLines = new ArrayList<AssetLine>();
         for (var entry : targets.entrySet()) {
+            if (assets.hasPendingHandover(entry.getKey())) conflict("HANDOVER_ASSET_RESERVED");
             AssetEntity asset = asset(entry.getKey());
             targetAssets.add(asset); assetLines.add(line(asset, entry.getValue()));
         }

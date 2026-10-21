@@ -534,7 +534,8 @@ public class RecoveryService {
     }
 
     private boolean physicalValid(AssetEntity asset, Long returnerId) {
-        return asset.getStatus().getCode() == AssetStatus.IN_USE && asset.getAssignedTo() != null && returnerId.equals(asset.getAssignedTo().getUserId());
+        return asset.getStatus().getCode() == AssetStatus.IN_USE && asset.getAssignedTo() != null
+                && returnerId.equals(asset.getAssignedTo().getUserId()) && !assets.hasPendingHandover(asset.getAssetId());
     }
     private boolean validPerUser(LicenseAllocationEntity allocation, Long returnerId) {
         if (allocation.getStatus() != LicenseAllocationStatus.ACTIVE || allocation.getUser() == null

@@ -138,7 +138,7 @@ class T16RecoveryIntegrationTest {
         Long device = create("DEVICE"), component = create("COMPONENT"), packageId = license("PER_USER", 1);
         relationships.create(device, component, RelationshipType.COMPONENT_OF);
         handovers.complete(confirmed(List.of(device), List.of(new HandoverRequest.LicenseLine(packageId, 1, null))));
-        Long allocation = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=?", Long.class, packageId);
+        Long allocation = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=? AND status='ACTIVE'", Long.class, packageId);
 
         JsonNode perUserCheck = smart(List.of(), List.of(allocation));
         assertThat(perUserCheck.path("blockedAssets").size()).isZero();
@@ -158,7 +158,7 @@ class T16RecoveryIntegrationTest {
     void rejectsStandaloneAllocationOwnedByAnotherUserOrAlreadyReleased() throws Exception {
         Long other = otherUser(), foreignPackage = license("PER_USER", 1);
         handovers.complete(confirmed(other, List.of(), List.of(new HandoverRequest.LicenseLine(foreignPackage, 1, null))));
-        Long foreign = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=?", Long.class, foreignPackage);
+        Long foreign = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=? AND status='ACTIVE'", Long.class, foreignPackage);
         JsonNode foreignCheck = smart(List.of(), List.of(foreign));
         rejectComplete(Map.of("returnerUserId", returner(), "receivingLocationId", location(), "recoveryDate", "2026-09-17", "reason", "T16 foreign allocation",
                 "assetIds", List.of(), "allocationIds", List.of(foreign), "componentActions", Map.of(), "perUserActions", Map.of(foreign.toString(), true), "expectedFingerprint", foreignCheck.path("fingerprint").asText()));
@@ -166,7 +166,7 @@ class T16RecoveryIntegrationTest {
 
         Long releasedPackage = license("PER_USER", 1);
         handovers.complete(confirmed(List.of(), List.of(new HandoverRequest.LicenseLine(releasedPackage, 1, null))));
-        Long released = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=?", Long.class, releasedPackage);
+        Long released = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=? AND status='ACTIVE'", Long.class, releasedPackage);
         jdbc.update("UPDATE license_allocations SET status='RELEASED', released_at=current_timestamp WHERE allocation_id=?", released);
         em.clear();
         JsonNode releasedCheck = smart(List.of(), List.of(released));

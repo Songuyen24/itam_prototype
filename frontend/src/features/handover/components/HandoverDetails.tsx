@@ -27,6 +27,6 @@ export function HandoverDetails({ value }: { value: Handover }) {
         </td>
       </tr>)}</tbody>
     </table></div>
-    {value.transactionId != null && <PublicationPanel transactionId={value.transactionId} canManage />}
+    {value.transactionId != null && value.status === 'COMPLETED' && <PublicationPanel transactionId={value.transactionId} canManage />}
   </section>;
 }

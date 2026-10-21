@@ -421,7 +421,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     </td>
 
                     {/* Status */}
-                    <td>{getStatusBadge(asset.statusCode, asset.statusName)}</td>
+                    <td>{getStatusBadge(asset.statusCode, asset.statusName)} {asset.pendingHandover && <span className="badge badge-warning">{t('assets:pendingHandover')}</span>}</td>
 
                     {/* Assignment / Location */}
                     <td style={{ fontSize: '12px' }}>
@@ -449,7 +449,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                         >
                           👁️
                         </button>
-                        {canManageAssets && asset.statusCode !== 'PENDING_IMPORT' && (
+                        {canManageAssets && asset.statusCode !== 'PENDING_IMPORT' && !asset.pendingHandover && (
                           <button
                             type="button"
                             className="btn btn-secondary"
@@ -547,7 +547,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         asset={selectedAssetDetail}
-        onEdit={canManageAssets && selectedAssetDetail?.statusCode !== 'PENDING_IMPORT' ? (asset) => {
+        onEdit={canManageAssets && selectedAssetDetail?.statusCode !== 'PENDING_IMPORT' && !selectedAssetDetail?.pendingHandover ? (asset) => {
           setSelectedAssetDetail(asset);
           setIsFormModalOpen(true);
         } : undefined}

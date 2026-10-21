@@ -2,33 +2,50 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { locationApi } from '@/features/catalogs/api/catalogApi';
 import { LocationItem } from '@/features/catalogs/types/catalog.types';
-import { Candidate, Handover, HandoverRequest, Recipient, handoverApi } from '../api/handoverApi';
+import { Candidate, HolderDetail, Handover, HandoverRequest, Recipient, handoverApi } from '../api/handoverApi';
 import { HandoverPicker } from './HandoverPicker';
 import { HandoverDetails } from './HandoverDetails';
 
 const loadLocations = (keyword: string, page: number) => locationApi.getAll(keyword, true, page, 10);
+const loadRecipients = (keyword: string, page: number) => handoverApi.holders(keyword, page, false);
 function localDate() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 
-export function HandoverForm({ onCompleted }: { onCompleted: (value: Handover) => void }) {
+export function HandoverForm({ onCompleted, onBusyChange, initialRecipient, initialValue }: { onCompleted: (value: Handover) => void; onBusyChange?: (busy: boolean) => void; initialRecipient?: Recipient; initialValue?: Handover }) {
   const { t } = useTranslation('handover');
-  const [selected, setSelected] = useState<Candidate[]>([]);
-  const [recipient, setRecipient] = useState<Recipient | null>(null);
-  const [location, setLocation] = useState<LocationItem | null>(null);
-  const [licenses, setLicenses] = useState<Record<number, { seats: number; deviceId: number | null }>>({});
-  const [date, setDate] = useState(localDate);
-  const [notes, setNotes] = useState('');
+  const [selected, setSelected] = useState<Candidate[]>(() => initialValue?.lines.filter(line => initialValue.request?.assetIds.includes(line.assetId) || initialValue.request?.licenses.some(l => l.assetId === line.assetId))
+    .map(line => ({ assetId: line.assetId, assetTag: line.assetTag, name: line.name, category: line.category, assignmentType: null, availableSeats: null })) ?? []);
+  const [recipient, setRecipient] = useState<Recipient | null>(initialRecipient ?? null);
+  const [recipientDetail, setRecipientDetail] = useState<HolderDetail | null>(null);
+  const [recipientPage, setRecipientPage] = useState(0);
+  const [recipientError, setRecipientError] = useState('');
+  const [recipientLoading, setRecipientLoading] = useState(false);
+  const [recipientReload, setRecipientReload] = useState(0);
+  const [location, setLocation] = useState<LocationItem | null>(initialValue ? { locationId: initialValue.destinationLocationId, name: initialValue.destinationLocationName } as LocationItem : null);
+  const [licenses, setLicenses] = useState<Record<number, { seats: number; deviceId: number | null }>>(() => Object.fromEntries(initialValue?.request?.licenses.map(l => [l.assetId, { seats: l.seats, deviceId: l.deviceId }]) ?? []));
+  const [date, setDate] = useState(initialValue?.handoverDate ?? localDate);
+  const [notes, setNotes] = useState(initialValue?.notes ?? '');
   const [preview, setPreview] = useState<{ data: Handover; request: HandoverRequest } | null>(null);
   const [busy, setBusy] = useState(false);
+  useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
   const [error, setError] = useState('');
   const [generation, setGeneration] = useState(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
+    if (!recipient) { setRecipientDetail(null); return; }
+    let active = true; setRecipientLoading(true); setRecipientError('');
+    handoverApi.holder(recipient.id, recipientPage).then(r => { if (active) setRecipientDetail(r.data); })
+      .catch((e: unknown) => { if (active) setRecipientError(e instanceof Error ? e.message : t('error')); })
+      .finally(() => { if (active) setRecipientLoading(false); });
+    return () => { active = false; };
+  }, [recipient, recipientPage, recipientReload, t]);
+  useEffect(() => {
     const dialog = dialogRef.current;
     if (!preview || !dialog) return;
+    const opener = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     dialog.showModal();
-    return () => { dialog.close(); document.body.style.overflow = previousOverflow; };
+    return () => { dialog.close(); document.body.style.overflow = previousOverflow; if (opener instanceof HTMLElement && opener.isConnected) opener.focus(); };
   }, [preview]);
   const devices = selected.filter(a => a.category === 'DEVICE');
   const frozen = busy || preview !== null;
@@ -57,7 +74,8 @@ export function HandoverForm({ onCompleted }: { onCompleted: (value: Handover) =
     if (!preview || busy) return;
     setBusy(true); setError('');
     try {
-      const r = await handoverApi.complete({ ...preview.request, expectedFingerprint: preview.data.fingerprint });
+      const body = { ...preview.request, expectedFingerprint: preview.data.fingerprint };
+      const r = initialValue?.transactionId ? await handoverApi.edit(initialValue.transactionId, body) : await handoverApi.create(body);
       setPreview(null); setSelected([]); setLicenses({}); setGeneration(v => v + 1); onCompleted(r.data);
     } catch (e) { setError(e instanceof Error ? e.message : t('error')); setPreview(null); setGeneration(v => v + 1); }
     finally { setBusy(false); }
@@ -70,9 +88,19 @@ export function HandoverForm({ onCompleted }: { onCompleted: (value: Handover) =
         label={a => `${a.assetTag} · ${a.name}${a.availableSeats != null ? ` · ${t('available', { count: a.availableSeats })}` : ''}`}
         selected={selected.map(a => a.assetId)} choose={toggle} disabled={frozen} unavailable={a => a.availableSeats === 0} />
       <div>
-        <HandoverPicker title={t('searchUsers')} load={handoverApi.users} identify={u => u.id} label={u => `${u.fullName} · ${u.email}`}
-          selected={recipient ? [recipient.id] : []} choose={setRecipient} disabled={frozen} unavailable={u => u.accountStatus !== 'ACTIVE'} />
+        <HandoverPicker title={t('searchUsers')} load={loadRecipients} identify={u => u.id}
+          label={u => `${u.fullName} · ${u.employeeCode || u.email || ''} · ${t('deviceCount', { count: u.deviceCount })}, ${t('componentCount', { count: u.componentCount })}, ${t('licenseSeatCount', { count: u.licenseSeats })}`}
+          selected={recipient ? [recipient.id] : []} choose={u => { setRecipient(u); setRecipientPage(0); setRecipientDetail(null); }} disabled={frozen} unavailable={u => u.accountStatus !== 'ACTIVE'} />
         {recipient && <p>{t('recipient')}: <strong>{recipient.fullName}</strong></p>}
+        {recipientLoading ? <p role="status">{t('loading')}</p> : recipientError ? <p role="alert">{recipientError} <button type="button" onClick={() => setRecipientReload(v => v + 1)}>{t('retry')}</button></p>
+          : recipientDetail && <div className="handover-recipient-detail">
+            <p>{t('deviceCount', { count: recipientDetail.holder.deviceCount })} · {t('componentCount', { count: recipientDetail.holder.componentCount })} · {t('licenseSeatCount', { count: recipientDetail.holder.licenseSeats })}</p>
+            {recipientDetail.assets.content.length === 0 ? <p>{t('noHoldings')}</p> : <ul>{recipientDetail.assets.content.map(item => <li key={`${item.assetId}-${item.allocationId ?? ''}`}>
+              {item.assetTag} · {item.name}{item.serialNumber ? ` · ${t('serial')}: ${item.serialNumber}` : ''}{item.category === 'LICENSE' ? ` · ${t('licenseSeatCount', { count: item.seats })}` : ''}{item.deviceTag ? ` · ${t('withParent', { id: item.deviceTag })}` : ''}
+            </li>)}</ul>}
+            <div className="handover-pagination"><button type="button" className="btn btn-secondary" disabled={recipientPage === 0} onClick={() => setRecipientPage(p => p - 1)}>{t('previous')}</button>
+              <span>{recipientPage + 1} / {Math.max(1, recipientDetail.assets.totalPages)}</span><button type="button" className="btn btn-secondary" disabled={recipientPage + 1 >= recipientDetail.assets.totalPages} onClick={() => setRecipientPage(p => p + 1)}>{t('next')}</button></div>
+          </div>}
         <HandoverPicker title={t('searchLocations')} load={loadLocations} identify={l => l.locationId} label={l => l.name}
           selected={location ? [location.locationId] : []} choose={setLocation} disabled={frozen} />
         {location && <p>{t('location')}: <strong>{location.name}</strong></p>}
@@ -99,11 +127,11 @@ export function HandoverForm({ onCompleted }: { onCompleted: (value: Handover) =
     <button className="btn btn-primary" type="submit" disabled={frozen}>{busy ? t('loading') : t('preview')}</button>
     {preview && <dialog ref={dialogRef} className="handover-confirm" aria-labelledby="handover-confirm-title"
       onCancel={event => { if (busy) event.preventDefault(); else setPreview(null); }}>
-      <h2 id="handover-confirm-title">{t('confirmTitle')}</h2><p>{t('confirmHint')}</p>
+      <h2 id="handover-confirm-title">{t('draftConfirmTitle')}</h2><p>{t('draftConfirmHint')}</p>
       <HandoverDetails value={preview.data} />
       <div className="handover-pagination">
         <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setPreview(null)}>{t('back')}</button>
-        <button type="button" className="btn btn-primary" disabled={busy} onClick={complete}>{busy ? t('loading') : t('complete')}</button>
+        <button type="button" className="btn btn-primary" disabled={busy} onClick={complete}>{busy ? t('loading') : t('saveDraft')}</button>
       </div>
     </dialog>}
   </form>;
