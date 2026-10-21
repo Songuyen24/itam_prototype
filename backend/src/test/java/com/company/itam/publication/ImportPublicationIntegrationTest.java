@@ -378,9 +378,9 @@ class ImportPublicationIntegrationTest {
     private String createUser(String role, String name) {
         String email = role.toLowerCase() + "-" + UUID.randomUUID() + "@itam.example";
         jdbc.update("""
-                INSERT INTO users(email,full_name,role_id,account_status)
-                SELECT ?,?,role_id,'ACTIVE' FROM roles WHERE code=?
-                """, email, name, role);
+                INSERT INTO users(email,full_name,employee_code,role_id,account_status)
+                SELECT ?,?,?,role_id,'ACTIVE' FROM roles WHERE code=?
+                """, email, name, "TEST-" + UUID.randomUUID(), role);
         return email;
     }
 

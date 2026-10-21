@@ -47,6 +47,7 @@ class MigrationAndConcurrencyIntegrationTest {
             assertThat(jdbc.queryForObject("SELECT count(*) FROM "+schema+".users",Integer.class)).isEqualTo(count);
             assertThat(jdbc.queryForObject("SELECT assigned_to FROM "+schema+".assets WHERE asset_id=?",Long.class,asset)).isEqualTo(recipient);
             assertThat(jdbc.queryForObject("SELECT login_locked FROM "+schema+".users WHERE user_id=?",Boolean.class,recipient)).isTrue();
+            assertThat(jdbc.queryForObject("SELECT employee_code FROM "+schema+".users WHERE user_id=?",String.class,recipient)).isNull();
             assertThat(jdbc.queryForObject("SELECT count(*) FROM "+schema+".users WHERE access_granted",Integer.class)).isZero();
         } finally { latest.clean(); }
     }

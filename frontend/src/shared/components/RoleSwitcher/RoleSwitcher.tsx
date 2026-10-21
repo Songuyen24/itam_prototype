@@ -17,16 +17,9 @@ const QUICK_PRESETS: Preset[] = [
   { email: 'user01@itam.example', role: 'USER', label: 'End User' },
 ];
 
-function initials(name?: string): string {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 export const RoleSwitcher: React.FC = () => {
   const { t } = useTranslation(['auth', 'common']);
-  const { user, switchRole, logout } = useAuth();
+  const { user, switchRole } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -57,17 +50,6 @@ export const RoleSwitcher: React.FC = () => {
     }
   }
 
-  async function handleLogout() {
-    setBusy(true);
-    try {
-      await logout();
-      setOpen(false);
-      navigate('/login', { replace: true });
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (!user) return null;
 
   const role = user.role || 'USER';
@@ -84,15 +66,9 @@ export const RoleSwitcher: React.FC = () => {
         className="role-switcher-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
-        title={t('auth:switchRoleTooltip', 'Chuyển vai trò / đăng xuất')}
+        title={t('auth:switchRoleTooltip', 'Chuyển vai trò test')}
       >
-        <span className="user-avatar" aria-hidden>
-          {initials(user.fullName)}
-        </span>
-        <span className="role-switcher-info">
-          <span className="role-switcher-name">{user.fullName}</span>
-          <span className={`role-badge role-${role}`}>{role}</span>
-        </span>
+        <span className="role-switcher-info"><span className={`role-badge role-${role}`}>{role}</span></span>
         <span aria-hidden style={{ marginLeft: 6, fontSize: 10 }}>▾</span>
       </button>
 
@@ -126,21 +102,6 @@ export const RoleSwitcher: React.FC = () => {
             );
           })}
 
-          <div className="role-switcher-divider" />
-
-          <button
-            type="button"
-            className="role-switcher-item role-switcher-logout"
-            onClick={handleLogout}
-            disabled={busy}
-            role="menuitem"
-          >
-            <span aria-hidden>🚪</span>
-            <span className="role-switcher-item-info">
-              <strong>{t('auth:logout', 'Đăng xuất')}</strong>
-              <small>{t('auth:logoutHint', 'Xóa phiên hiện tại')}</small>
-            </span>
-          </button>
         </div>
       )}
     </div>

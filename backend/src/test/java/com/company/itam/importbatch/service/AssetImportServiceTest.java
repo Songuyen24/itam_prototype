@@ -309,7 +309,7 @@ class AssetImportServiceTest {
 
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
                 new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(sampleUser.getEmail(), null, List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("IT_STAFF"))));
-        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByPrincipal(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
         when(assetTypeRepository.findAll()).thenReturn(List.of(sampleType));
         when(assetStatusRepository.findAll()).thenReturn(List.of(sampleStatus));
         when(assetStatusRepository.findByCode(AssetStatus.IN_STOCK)).thenReturn(Optional.of(sampleStatus));
@@ -364,7 +364,7 @@ class AssetImportServiceTest {
 
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
                 new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(sampleUser.getEmail(), null, List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("IT_STAFF"))));
-        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByPrincipal(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
         when(assetTypeRepository.findAll()).thenReturn(List.of(sampleType));
         when(assetStatusRepository.findAll()).thenReturn(List.of(sampleStatus));
         when(assetConditionRepository.findAll()).thenReturn(Collections.emptyList());
@@ -397,7 +397,7 @@ class AssetImportServiceTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(sampleUser.getEmail(), null,
                         List.of(new SimpleGrantedAuthority("IT_STAFF"))));
-        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByPrincipal(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
         when(assetTypeRepository.findAll()).thenReturn(List.of(sampleType));
         when(assetStatusRepository.findAll()).thenReturn(List.of(sampleStatus));
         when(assetStatusRepository.findByCode(AssetStatus.IN_STOCK)).thenReturn(Optional.of(sampleStatus));

@@ -56,8 +56,8 @@ class HandoverPublicationIntegrationTest {
                     "T15_PDF_" + category, "Publication " + category, category);
         }
         jdbc.update("INSERT INTO locations(code,name,is_active) VALUES ('T15_PDF','Publication destination',true) ON CONFLICT(code) DO NOTHING");
-        Long recipient = jdbc.queryForObject("INSERT INTO users(email,full_name,role_id,account_status) SELECT ?,'Original recipient',role_id,'ACTIVE' FROM roles WHERE code='USER' RETURNING user_id",
-                Long.class, "handover-" + UUID.randomUUID() + "@itam.example");
+        Long recipient = jdbc.queryForObject("INSERT INTO users(email,full_name,employee_code,role_id,account_status) SELECT ?,'Original recipient',?,role_id,'ACTIVE' FROM roles WHERE code='USER' RETURNING user_id",
+                Long.class, "handover-" + UUID.randomUUID() + "@itam.example", "TEST-" + UUID.randomUUID());
         var device = new CreateHardwareAssetRequest();
         device.setCreationPurpose(AssetCreationPurpose.BASELINE); device.setName("Publication device");
         device.setTypeId(id("asset_types", "type_id", "T15_PDF_DEVICE"));

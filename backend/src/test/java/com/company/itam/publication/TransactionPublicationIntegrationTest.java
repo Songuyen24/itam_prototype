@@ -224,9 +224,9 @@ class TransactionPublicationIntegrationTest {
     private String createUser(String role) {
         String email = role.toLowerCase() + "-publication-" + UUID.randomUUID() + "@itam.example";
         jdbc.update("""
-                INSERT INTO users(email,full_name,role_id,account_status)
-                SELECT ?,?,role_id,'ACTIVE' FROM roles WHERE code=?
-                """, email, "Publication " + role, role);
+                INSERT INTO users(email,full_name,employee_code,role_id,account_status)
+                SELECT ?,?,?,role_id,'ACTIVE' FROM roles WHERE code=?
+                """, email, "Publication " + role, "TEST-" + UUID.randomUUID(), role);
         return email;
     }
 }

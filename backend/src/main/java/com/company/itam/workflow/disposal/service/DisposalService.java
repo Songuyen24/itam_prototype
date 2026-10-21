@@ -574,7 +574,7 @@ public class DisposalService {
     }
 
     private UserEntity actor() {
-        return users.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+        return users.findByPrincipal(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
     }
 

@@ -214,7 +214,8 @@ class T14ReceivingIntegrationTest {
         assertThatThrownBy(()->drafts.submit(t.transactionId(),t.expectedVersion())).isInstanceOf(AppException.class).hasMessage("IMPORT_EMPTY");
         mvc.perform(get("/v1/import-drafts/reference-data").with(user("pur01@itam.example").authorities(new SimpleGrantedAuthority("PUR_STAFF"))))
             .andExpect(status().isOk()).andExpect(jsonPath("data.types").isArray()).andExpect(jsonPath("data.software").isArray()).andExpect(jsonPath("data.users").doesNotExist());
-        for(String path:List.of("/v1/assets","/v1/users","/v1/assets/1/history"))mvc.perform(get(path).with(user("pur01@itam.example").authorities(new SimpleGrantedAuthority("PUR_STAFF")))).andExpect(status().isForbidden());
+        mvc.perform(get("/v1/users").with(user("pur01@itam.example").authorities(new SimpleGrantedAuthority("PUR_STAFF")))).andExpect(status().isOk());
+        for(String path:List.of("/v1/assets","/v1/assets/1/history"))mvc.perform(get(path).with(user("pur01@itam.example").authorities(new SimpleGrantedAuthority("PUR_STAFF")))).andExpect(status().isForbidden());
         login("PUR_STAFF");
         assertThat(drafts.events(t.transactionId())).isEmpty();
     }

@@ -58,9 +58,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && jwtTokenProvider.validateToken(token)) {
             try {
                 String email = jwtTokenProvider.extractEmail(token);
-                if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (email != null && email.startsWith("user:") && SecurityContextHolder.getContext().getAuthentication() == null) {
                     // Dùng query có JOIN FETCH để nạp role ngay trong transaction, tránh lazy-init.
-                    Optional<UserEntity> userOpt = userRepository.findByEmailWithDetails(email);
+                    Optional<UserEntity> userOpt = userRepository.findByPrincipal(email);
                     if (userOpt.isPresent()) {
                         UserEntity user = userOpt.get();
                         // Tài khoản đã khóa thì không cấp quyền truy cập

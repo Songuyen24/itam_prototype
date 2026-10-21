@@ -23,7 +23,7 @@ public class WorkflowAccessService {
                 || transaction.getStatus() == TransactionStatus.REJECTED
                 || transaction.getStatus() == TransactionStatus.CANCELLED)
             throw new AppException(HttpStatus.CONFLICT,"DOCUMENT_LOCKED","DOCUMENT_LOCKED");
-        if (!forceException && transaction.getRequester().getEmail().equals(auth.getName())) return;
+        if (!forceException && (("user:" + transaction.getRequester().getUserId()).equals(auth.getName()) || java.util.Objects.equals(transaction.getRequester().getEmail(), auth.getName()))) return;
         if (auth.getAuthorities().stream().noneMatch(a -> "ADMIN".equals(a.getAuthority())))
             throw new AccessDeniedException("Access denied");
         var attributes = RequestContextHolder.getRequestAttributes();
@@ -39,7 +39,7 @@ public class WorkflowAccessService {
             throw new AppException(HttpStatus.BAD_REQUEST,"OVERRIDE_REASON_REQUIRED","OVERRIDE_REASON_REQUIRED");
         jdbc.update("""
                 INSERT INTO audit_logs(entity_type,entity_id,transaction_id,actor_user_id,action,details)
-                SELECT 'TRANSACTION',?,?,user_id,'ADMIN_OVERRIDE',? FROM users WHERE email=?
-                """,transaction.getTransactionId(),transaction.getTransactionId(),reason.trim(),auth.getName());
+                SELECT 'TRANSACTION',?,?,user_id,'ADMIN_OVERRIDE',? FROM users WHERE ('user:' || user_id)=? OR email=?
+                """,transaction.getTransactionId(),transaction.getTransactionId(),reason.trim(),auth.getName(),auth.getName());
     }
 }

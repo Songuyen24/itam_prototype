@@ -106,7 +106,7 @@ public class HandoverService {
             tx.getStatus().name(),tx.getRequester().getUserId(),tx.getRequester().getFullName(),req);
     }
     private com.company.itam.user.entity.UserEntity actor() {
-        return users.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow();
+        return users.findByPrincipal(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow();
     }
     private TransactionEntity transaction(Long id,boolean lock) {
         var tx=(lock?transactions.findForUpdate(id):transactions.findById(id)).orElseThrow(()->new ResourceNotFoundException("HANDOVER_NOT_FOUND"));

@@ -2,7 +2,7 @@ import { httpClient } from '@/shared/api/httpClient';
 import { ApiResponse, PageResponse } from '@/features/catalogs/types/catalog.types';
 
 export interface Candidate { assetId: number; assetTag: string; name: string; category: string; assignmentType: string | null; availableSeats: number | null }
-export interface Recipient { id: number; fullName: string; email: string; accountStatus: string }
+export interface Recipient { id: number; fullName: string; email: string | null; accountStatus: string }
 export interface Holder extends Recipient { employeeCode: string | null; departmentName: string | null; deviceCount: number; componentCount: number; licenseSeats: number }
 export interface HeldAsset { assetId: number; assetTag: string; name: string; category: string; allocationId: number | null; seats: number; status: string; serialNumber: string | null; deviceTag: string | null; deviceName: string | null }
 export interface HolderDetail { holder: Holder; assets: PageResponse<HeldAsset> }
@@ -18,7 +18,7 @@ export interface HandoverLine {
 export interface Handover {
   transactionId: number | null; transactionCode: string | null; completedAt: string | null;
   status: 'DRAFT' | 'PENDING' | 'COMPLETED' | 'CANCELLED' | null; requesterId: number | null; requesterName: string | null; request: HandoverRequest | null;
-  recipientUserId: number; recipientName: string; recipientEmail: string; destinationLocationId: number;
+  recipientUserId: number; recipientName: string; recipientEmail: string | null; destinationLocationId: number;
   destinationLocationName: string; handoverDate: string; notes: string | null; fingerprint: string; lines: HandoverLine[];
 }
 export const handoverApi = {

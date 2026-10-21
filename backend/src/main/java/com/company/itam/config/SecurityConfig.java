@@ -51,7 +51,7 @@ public class SecurityConfig {
                     .requestMatchers("/v1/auth/login", "/api/v1/auth/login").permitAll()
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                     .requestMatchers("/v1/auth/me", "/api/v1/auth/me",
-                            "/v1/auth/logout", "/api/v1/auth/logout").authenticated()
+                            "/v1/auth/logout", "/api/v1/auth/logout", "/v1/auth/password", "/api/v1/auth/password").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/import-drafts/*/content", "/v1/import-drafts/*/revisions", "/v1/import-drafts/*/events", "/v1/import-drafts/reference-data")
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
                     .requestMatchers(HttpMethod.POST, "/v1/import-drafts/*/approve", "/v1/import-drafts/*/reject").hasAnyAuthority("ADMIN", "IT_STAFF")
@@ -76,6 +76,9 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/v1/users/me/assets", "/api/v1/users/me/assets",
                             "/v1/assets/*", "/api/v1/assets/*")
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "USER")
+                    .requestMatchers(HttpMethod.GET, "/v1/users", "/v1/users/*", "/v1/users/*/holdings",
+                            "/api/v1/users", "/api/v1/users/*", "/api/v1/users/*/holdings").hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                    .requestMatchers("/v1/accounts/**", "/api/v1/accounts/**").hasAuthority("ADMIN")
                     .requestMatchers("/v1/**", "/api/v1/**").hasAnyAuthority("ADMIN", "IT_STAFF")
                     .anyRequest().permitAll()
             )

@@ -10,7 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 @Service
 @Transactional(readOnly=true)
-@PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")
+@PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF','PUR_STAFF')")
 public class HandoverHolderService {
     private final JdbcTemplate jdbc;
     public HandoverHolderService(JdbcTemplate jdbc) { this.jdbc=jdbc; }
@@ -31,7 +31,7 @@ public class HandoverHolderService {
         WHERE l.status='ACTIVE' AND l.user_id IS NOT NULL
         """;
     private static final String HOLDERS="""
-        SELECT u.user_id,u.full_name,u.email,d.name AS department_name,u.account_status,
+        SELECT u.user_id,u.full_name,u.email,u.employee_code,d.name AS department_name,u.account_status,
           COALESCE(h.devices,0) AS devices,COALESCE(h.components,0) AS components,COALESCE(h.seats,0) AS seats
         FROM users u LEFT JOIN departments d USING(department_id)
         LEFT JOIN (SELECT user_id,COUNT(*) FILTER(WHERE category='DEVICE') AS devices,
@@ -42,7 +42,7 @@ public class HandoverHolderService {
            ) held GROUP BY user_id) h USING(user_id)
         """;
     private Holder holder(java.sql.ResultSet r,int n) throws java.sql.SQLException {
-        return new Holder(r.getLong("user_id"),r.getString("full_name"),r.getString("email"),null,r.getString("department_name"),
+        return new Holder(r.getLong("user_id"),r.getString("full_name"),r.getString("email"),r.getString("employee_code"),r.getString("department_name"),
             r.getString("account_status"),r.getLong("devices"),r.getLong("components"),r.getLong("seats"));
     }
     private void validate(int page,int size) {
@@ -52,11 +52,16 @@ public class HandoverHolderService {
         validate(page,size);
         if(keyword.length()>100) throw new AppException(org.springframework.http.HttpStatus.BAD_REQUEST,"TRANSACTION_REQUEST_INVALID","TRANSACTION_REQUEST_INVALID");
         String search="%"+keyword.trim().toLowerCase(java.util.Locale.ROOT).replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%";
-        String where=" WHERE (lower(u.full_name) LIKE ? OR lower(u.email) LIKE ?)"+
+        String where=" WHERE (lower(u.full_name) LIKE ? OR lower(u.email) LIKE ? OR lower(u.employee_code) LIKE ?)"+
             (heldOnly?" AND COALESCE(h.devices,0)+COALESCE(h.components,0)+COALESCE(h.seats,0)>0":"");
-        long count=jdbc.queryForObject("SELECT count(*) FROM ("+HOLDERS+where+") x",Long.class,search,search);
-        var rows=jdbc.query(HOLDERS+where+" ORDER BY lower(u.full_name),u.user_id LIMIT ? OFFSET ?",this::holder,search,search,size,(long)page*size);
+        long count=jdbc.queryForObject("SELECT count(*) FROM ("+HOLDERS+where+") x",Long.class,search,search,search);
+        var rows=jdbc.query(HOLDERS+where+" ORDER BY lower(u.full_name),u.user_id LIMIT ? OFFSET ?",this::holder,search,search,search,size,(long)page*size);
         return PageResponse.of(new PageImpl<>(rows,PageRequest.of(page,size),count));
+    }
+    public java.util.List<Holder> summaries(java.util.Collection<Long> ids) {
+        if(ids.isEmpty()) return java.util.List.of();
+        String placeholders=String.join(",",java.util.Collections.nCopies(ids.size(),"?"));
+        return jdbc.query(HOLDERS+" WHERE u.user_id IN ("+placeholders+")",this::holder,ids.toArray());
     }
     public Detail detail(Long id,int page,int size) {
         validate(page,size);

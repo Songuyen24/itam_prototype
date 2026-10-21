@@ -85,6 +85,6 @@ public class AssetRelationshipService {
     private AssetRef ref(AssetEntity a) { return new AssetRef(a.getAssetId(),a.getAssetTag(),a.getName(),category(a).name(),a.getStatus().getCode().name(),a.getAssignedTo()==null?null:a.getAssignedTo().getUserId(),a.getAssignedTo()==null?null:a.getAssignedTo().getFullName()); }
     private AssetCategory category(AssetEntity a) { return a.getType().getCategory().getCode(); }
     private boolean stock(AssetEntity a) { return a.getStatus().getCode()==AssetStatus.IN_STOCK && a.getAssignedTo()==null; }
-    private UserEntity actor() { return users.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND")); }
+    private UserEntity actor() { return users.findByPrincipal(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND")); }
     private void fail(String code) { throw new AppException(HttpStatus.CONFLICT,code,code); }
 }

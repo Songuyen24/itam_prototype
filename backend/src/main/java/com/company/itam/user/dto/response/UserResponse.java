@@ -7,7 +7,20 @@ import com.company.itam.user.entity.UserEntity;
 public class UserResponse {
 
     private Long id;
+    private Long deviceCount;
+    private Long componentCount;
+    private Long licenseSeats;
+    public Long getDeviceCount() { return deviceCount; }
+    public Long getComponentCount() { return componentCount; }
+    public Long getLicenseSeats() { return licenseSeats; }
+    public void setHoldingCounts(long devices,long components,long seats) { deviceCount=devices; componentCount=components; licenseSeats=seats; }
     private String email;
+    private String employeeCode;
+    private String username;
+    private Long departmentId;
+    public String getEmployeeCode() { return employeeCode; }
+    public String getUsername() { return username; }
+    public Long getDepartmentId() { return departmentId; }
     private String fullName;
     private String roleCode;
     private String roleName;
@@ -29,6 +42,9 @@ public class UserResponse {
         dto.hasAccount = user.getPasswordHash() != null;
         dto.loginLocked = user.isLoginLocked();
         dto.email = user.getEmail();
+        dto.employeeCode = user.getEmployeeCode();
+        dto.username = user.getUsername();
+        dto.departmentId = user.getDepartment() == null ? null : user.getDepartment().getDepartmentId();
         dto.fullName = user.getFullName();
         RoleEntity role = user.getRole();
         if (role != null) {

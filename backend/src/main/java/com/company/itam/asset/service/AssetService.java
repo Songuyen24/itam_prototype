@@ -528,7 +528,7 @@ public class AssetService {
     }
 
     private UserEntity resolveCurrentUser(Authentication authentication) {
-        return userRepository.findByEmail(authentication.getName())
+        return userRepository.findByPrincipal(authentication.getName())
                 .orElseThrow(() -> new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required"));
     }
 

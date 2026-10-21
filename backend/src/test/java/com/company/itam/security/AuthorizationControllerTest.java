@@ -166,9 +166,12 @@ class AuthorizationControllerTest {
     void restrictedRoles_cannotReadWarehouseUsersOrProbeAssetUniqueness(String role) throws Exception {
         String token = login(role);
         for (String path : List.of("/v1/assets", "/v1/assets?assignedTo=" + users.get(role),
-                "/v1/assets?userId=" + users.get("ADMIN") + "&role=ADMIN",
-                "/v1/users", "/v1/users/" + users.get("ADMIN"))) {
+                "/v1/assets?userId=" + users.get("ADMIN") + "&role=ADMIN")) {
             api(HttpMethod.GET, path, token, null).andExpect(status().isForbidden());
+        }
+        for (String path : List.of("/v1/users", "/v1/users/" + users.get("ADMIN"))) {
+            api(HttpMethod.GET, path, token, null)
+                    .andExpect(role.equals("PUR_STAFF") ? status().isOk() : status().isForbidden());
         }
         Map<String, Object> asset = Map.of("assetTag", fixturePrefix + "-FORBIDDEN",
                 "name", "Forbidden", "typeId", typeId);
@@ -287,7 +290,7 @@ class AuthorizationControllerTest {
 
     @Test
     void authorityComesFromAuthenticatedAccount_evenWhenTokenRoleClaimsAdmin() throws Exception {
-        String token = jwtTokenProvider.generateToken(emails.get("USER"), "ADMIN");
+        String token = jwtTokenProvider.generateToken("user:" + users.get("USER"), "ADMIN");
         api(HttpMethod.GET, "/v1/assets", token, null).andExpect(status().isForbidden());
         api(HttpMethod.GET, "/v1/users/me/assets", token, null)
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.content[0].assetId").value(ownAssetId));
@@ -342,9 +345,9 @@ class AuthorizationControllerTest {
     private void createUser(String key, String role) {
         String email = fixturePrefix.toLowerCase() + "-" + key.toLowerCase() + "@example.test";
         Long id = jdbc.queryForObject("""
-                insert into users(email, full_name, role_id, password_hash, account_status, access_granted)
-                select ?, ?, role_id, ?, 'ACTIVE', true from roles where code = ? returning user_id
-                """, Long.class, email, "Authorization " + key, PASSWORD_HASH, role);
+                insert into users(email, full_name, employee_code, role_id, password_hash, account_status, access_granted)
+                select ?, ?, ?, role_id, ?, 'ACTIVE', true from roles where code = ? returning user_id
+                """, Long.class, email, "Authorization " + key, "TEST-" + java.util.UUID.randomUUID(), PASSWORD_HASH, role);
         users.put(key, id);
         emails.put(key, email);
     }

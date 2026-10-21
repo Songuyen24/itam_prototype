@@ -191,9 +191,10 @@ class DocumentControllerIntegrationTest {
                 "/v1/documents?transactionId=" + handoverId,
                 "/v1/documents/" + handoverReportId,
                 "/v1/documents/" + handoverReportId + "/download",
-                "/v1/assets", "/v1/users", "/v1/assets/1/history")) {
+                "/v1/assets", "/v1/assets/1/history")) {
             mockMvc.perform(as("PUR2", get(path))).andExpect(status().isForbidden());
         }
+        mockMvc.perform(as("PUR2", get("/v1/users"))).andExpect(status().isOk());
         mockMvc.perform(as("PUR2", get("/v1/transactions").param("type", "HANDOVER")))
                 .andExpect(status().isForbidden());
     }
@@ -224,7 +225,7 @@ class DocumentControllerIntegrationTest {
 
     @Test
     void databaseRoleOverridesClaimedAdministratorRoleInToken() throws Exception {
-        String forgedRole = jwtTokenProvider.generateToken(emails.get("USER"), "ADMIN");
+        String forgedRole = jwtTokenProvider.generateToken("user:" + userIds.get("USER"), "ADMIN");
         mockMvc.perform(get("/v1/documents").param("transactionId", Long.toString(importId))
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + forgedRole))
                 .andExpect(status().isForbidden());
@@ -448,12 +449,12 @@ class DocumentControllerIntegrationTest {
     private void createUser(String key, String role) {
         String email = fixturePrefix + "-" + key + "@example.test";
         long id = jdbc.queryForObject("""
-                insert into users(email, full_name, role_id, account_status, password_hash, access_granted)
-                select ?, ?, role_id, 'ACTIVE', 'fixture-token-only', true from roles where code = ? returning user_id
-                """, Long.class, email, "Document test " + key, role);
+                insert into users(email, full_name, employee_code, role_id, account_status, password_hash, access_granted)
+                select ?, ?, ?, role_id, 'ACTIVE', 'fixture-token-only', true from roles where code = ? returning user_id
+                """, Long.class, email, "Document test " + key, "TEST-" + java.util.UUID.randomUUID(), role);
         userIds.put(key, id);
         emails.put(key, email);
-        tokens.put(key, jwtTokenProvider.generateToken(email, role));
+        tokens.put(key, jwtTokenProvider.generateToken("user:" + id, role));
     }
 
     private long createTransaction(String type, String requester, String relatedUser, String suffix) {

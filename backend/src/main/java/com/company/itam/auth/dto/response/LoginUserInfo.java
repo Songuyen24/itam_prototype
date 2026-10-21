@@ -4,6 +4,12 @@ public class LoginUserInfo {
 
     private Long id;
     private String email;
+    private String username;
+    private String employeeCode;
+    public String getUsername() { return username; }
+    public void setUsername(String value) { username=value; }
+    public String getEmployeeCode() { return employeeCode; }
+    public void setEmployeeCode(String value) { employeeCode=value; }
     private String fullName;
     private String role;
 

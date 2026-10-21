@@ -47,7 +47,7 @@ public class ImportDraftService {
     public UserEntity actor() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) throw error("UNAUTHORIZED");
-        return users.findByEmail(authentication.getName()).orElseThrow(() -> error("UNAUTHORIZED"));
+        return users.findByPrincipal(authentication.getName()).orElseThrow(() -> error("UNAUTHORIZED"));
     }
 
     public TransactionEntity lockDraft(Long id, Long version) {

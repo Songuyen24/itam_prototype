@@ -54,6 +54,7 @@ class T16RecoveryIntegrationTest {
 
     @BeforeEach
     void fixtures() {
+        jdbc.update("UPDATE users SET employee_code='TEST-' || user_id WHERE email='user01@itam.example' AND employee_code IS NULL");
         for (String category : List.of("DEVICE", "COMPONENT", "LICENSE")) {
             jdbc.update("INSERT INTO asset_types(code,name,category_id,is_active) SELECT ?,?,category_id,true FROM asset_categories WHERE code=? ON CONFLICT(code) DO NOTHING",
                     "T16_" + category, "T16 " + category, category);
@@ -361,7 +362,7 @@ class T16RecoveryIntegrationTest {
     private Long returner() { return jdbc.queryForObject("SELECT user_id FROM users WHERE email='user01@itam.example'", Long.class); }
     private Long otherUser() {
         Long id = jdbc.queryForObject("SELECT nextval('global_id_seq')", Long.class);
-        jdbc.update("INSERT INTO users(user_id,email,full_name,role_id,account_status,password_hash) VALUES (?,?,'T16 other',(SELECT role_id FROM roles WHERE code='USER'), 'ACTIVE', 'unused')", id, "t16-other-" + id + "@itam.example");
+        jdbc.update("INSERT INTO users(user_id,email,full_name,employee_code,role_id,account_status,password_hash) VALUES (?,?,'T16 other',?,(SELECT role_id FROM roles WHERE code='USER'), 'ACTIVE', 'unused')", id, "t16-other-" + id + "@itam.example", "TEST-" + id);
         return id;
     }
     private Long location() { return id("locations", "location_id", "T16_TEST"); }

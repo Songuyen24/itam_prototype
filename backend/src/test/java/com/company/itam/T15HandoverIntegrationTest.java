@@ -43,6 +43,7 @@ class T15HandoverIntegrationTest {
     @SpyBean HandoverSnapshotRepository snapshots;
 
     @BeforeEach void fixtures() {
+        jdbc.update("UPDATE users SET employee_code='TEST-' || user_id WHERE email='user01@itam.example' AND employee_code IS NULL");
         for(String category:List.of("DEVICE","COMPONENT","LICENSE")) jdbc.update("INSERT INTO asset_types(code,name,category_id,is_active) SELECT ?,?,category_id,true FROM asset_categories WHERE code=? ON CONFLICT(code) DO NOTHING","T15_"+category,"T15 "+category,category);
         jdbc.update("INSERT INTO locations(code,name,is_active) VALUES ('T15_TEST','T15 destination',true) ON CONFLICT(code) DO NOTHING");
     }
