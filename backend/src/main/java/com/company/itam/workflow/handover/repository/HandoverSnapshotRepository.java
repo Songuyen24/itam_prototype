@@ -22,7 +22,7 @@ public class HandoverSnapshotRepository {
         try { return json.writeValueAsString(value); }
         catch (JsonProcessingException e) { throw new IllegalStateException("Cannot encode handover snapshot",e); }
     }
-    private HandoverResponse decode(String value) {
+    public HandoverResponse decode(String value) {
         try { return json.readValue(value,HandoverResponse.class); }
         catch (JsonProcessingException e) { throw new IllegalStateException("Cannot decode handover snapshot",e); }
     }

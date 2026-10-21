@@ -54,6 +54,7 @@ class T16RecoveryIntegrationTest {
 
     @BeforeEach
     void fixtures() {
+        jdbc.update("UPDATE users SET employee_code='TEST-' || user_id WHERE email='user01@itam.example' AND employee_code IS NULL");
         for (String category : List.of("DEVICE", "COMPONENT", "LICENSE")) {
             jdbc.update("INSERT INTO asset_types(code,name,category_id,is_active) SELECT ?,?,category_id,true FROM asset_categories WHERE code=? ON CONFLICT(code) DO NOTHING",
                     "T16_" + category, "T16 " + category, category);
@@ -138,7 +139,7 @@ class T16RecoveryIntegrationTest {
         Long device = create("DEVICE"), component = create("COMPONENT"), packageId = license("PER_USER", 1);
         relationships.create(device, component, RelationshipType.COMPONENT_OF);
         handovers.complete(confirmed(List.of(device), List.of(new HandoverRequest.LicenseLine(packageId, 1, null))));
-        Long allocation = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=?", Long.class, packageId);
+        Long allocation = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=? AND status='ACTIVE'", Long.class, packageId);
 
         JsonNode perUserCheck = smart(List.of(), List.of(allocation));
         assertThat(perUserCheck.path("blockedAssets").size()).isZero();
@@ -158,7 +159,7 @@ class T16RecoveryIntegrationTest {
     void rejectsStandaloneAllocationOwnedByAnotherUserOrAlreadyReleased() throws Exception {
         Long other = otherUser(), foreignPackage = license("PER_USER", 1);
         handovers.complete(confirmed(other, List.of(), List.of(new HandoverRequest.LicenseLine(foreignPackage, 1, null))));
-        Long foreign = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=?", Long.class, foreignPackage);
+        Long foreign = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=? AND status='ACTIVE'", Long.class, foreignPackage);
         JsonNode foreignCheck = smart(List.of(), List.of(foreign));
         rejectComplete(Map.of("returnerUserId", returner(), "receivingLocationId", location(), "recoveryDate", "2026-09-17", "reason", "T16 foreign allocation",
                 "assetIds", List.of(), "allocationIds", List.of(foreign), "componentActions", Map.of(), "perUserActions", Map.of(foreign.toString(), true), "expectedFingerprint", foreignCheck.path("fingerprint").asText()));
@@ -166,7 +167,7 @@ class T16RecoveryIntegrationTest {
 
         Long releasedPackage = license("PER_USER", 1);
         handovers.complete(confirmed(List.of(), List.of(new HandoverRequest.LicenseLine(releasedPackage, 1, null))));
-        Long released = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=?", Long.class, releasedPackage);
+        Long released = jdbc.queryForObject("SELECT allocation_id FROM license_allocations WHERE license_asset_id=? AND status='ACTIVE'", Long.class, releasedPackage);
         jdbc.update("UPDATE license_allocations SET status='RELEASED', released_at=current_timestamp WHERE allocation_id=?", released);
         em.clear();
         JsonNode releasedCheck = smart(List.of(), List.of(released));
@@ -361,7 +362,7 @@ class T16RecoveryIntegrationTest {
     private Long returner() { return jdbc.queryForObject("SELECT user_id FROM users WHERE email='user01@itam.example'", Long.class); }
     private Long otherUser() {
         Long id = jdbc.queryForObject("SELECT nextval('global_id_seq')", Long.class);
-        jdbc.update("INSERT INTO users(user_id,email,full_name,role_id,account_status,password_hash) VALUES (?,?,'T16 other',(SELECT role_id FROM roles WHERE code='USER'), 'ACTIVE', 'unused')", id, "t16-other-" + id + "@itam.example");
+        jdbc.update("INSERT INTO users(user_id,email,full_name,employee_code,role_id,account_status,password_hash) VALUES (?,?,'T16 other',?,(SELECT role_id FROM roles WHERE code='USER'), 'ACTIVE', 'unused')", id, "t16-other-" + id + "@itam.example", "TEST-" + id);
         return id;
     }
     private Long location() { return id("locations", "location_id", "T16_TEST"); }

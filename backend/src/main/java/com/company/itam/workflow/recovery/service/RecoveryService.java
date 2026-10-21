@@ -129,7 +129,6 @@ public class RecoveryService {
         if (request.assetIds().stream().anyMatch(id -> id == null || id < 1)
                 || request.allocationIds() != null && request.allocationIds().stream().anyMatch(id -> id == null || id < 1)) fail("RECOVERY_DUPLICATE");
         var returner = users.findById(request.returnerUserId()).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
-        if (returner.getAccountStatus() != AccountStatus.ACTIVE) fail("RECOVERY_RETURNER_INACTIVE");
         if (request.assetIds().isEmpty() && (request.allocationIds() == null || request.allocationIds().isEmpty())) fail("EMPTY_TRANSACTION");
         List<Long> idList = new ArrayList<>(new LinkedHashSet<>(request.assetIds())); // keep order, dedup
         if (request.allocationIds() != null) for (Long allocationId : request.allocationIds())
@@ -345,7 +344,6 @@ public class RecoveryService {
 
         var returner = users.findById(request.returnerUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        if (returner.getAccountStatus() != AccountStatus.ACTIVE) fail("RECOVERY_RETURNER_INACTIVE");
 
         var location = locations.findById(request.receivingLocationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Location not found"));
@@ -378,7 +376,7 @@ public class RecoveryService {
         var inStockStatus = statuses.findByCode(AssetStatus.IN_STOCK)
                 .orElseThrow(() -> new ResourceNotFoundException("IN_STOCK status not found"));
 
-        var actor = users.findByEmail(currentUser()).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
+        var actor = users.findByPrincipal(currentUser()).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
         var tx = new TransactionEntity();
         tx.setTransactionCode("RC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         tx.setType(TransactionType.RECOVERY);
@@ -497,7 +495,7 @@ public class RecoveryService {
         txAudit.setEntityType("TRANSACTION");
         txAudit.setEntityId(tx.getTransactionId());
         txAudit.setAction("RECOVERY_COMPLETED");
-        txAudit.setActor(users.findByEmail(currentUser()).orElse(returner));
+        txAudit.setActor(users.findByPrincipal(currentUser()).orElse(returner));
         txAudit.setNewData(Map.of(
                 "status", "COMPLETED",
                 "returnerUserId", returner.getUserId(),
@@ -534,7 +532,8 @@ public class RecoveryService {
     }
 
     private boolean physicalValid(AssetEntity asset, Long returnerId) {
-        return asset.getStatus().getCode() == AssetStatus.IN_USE && asset.getAssignedTo() != null && returnerId.equals(asset.getAssignedTo().getUserId());
+        return asset.getStatus().getCode() == AssetStatus.IN_USE && asset.getAssignedTo() != null
+                && returnerId.equals(asset.getAssignedTo().getUserId()) && !assets.hasPendingHandover(asset.getAssetId());
     }
     private boolean validPerUser(LicenseAllocationEntity allocation, Long returnerId) {
         if (allocation.getStatus() != LicenseAllocationStatus.ACTIVE || allocation.getUser() == null

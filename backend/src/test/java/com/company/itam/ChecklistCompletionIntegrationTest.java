@@ -60,11 +60,14 @@ class ChecklistCompletionIntegrationTest {
         return new MockMultipartFile("file",name,"application/pdf",("%PDF-1.4\n"+text).getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
-    @Test void twoPurchasersCanEditDraftButOldVersionCannotOverwrite() {
+    @Test void creatorCanEditDraftButPeerAndOldVersionCannotOverwrite() {
         var draft=drafts.create("sample",null);
         login("pur-checklist@itam.example","PUR_STAFF");
+        assertThatThrownBy(()->documents.upload(file("peer.pdf","blocked"),draft.transactionId(),DocumentType.INVOICE,null,draft.expectedVersion()))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        login("pur01@itam.example","PUR_STAFF");
         var doc=documents.upload(file("sample.pdf","v1"),draft.transactionId(),DocumentType.INVOICE,null,draft.expectedVersion());
-        assertThat(doc.uploadedByName()).isEqualTo("PUR checklist");
+        assertThat(doc.uploadedByName()).isEqualTo(jdbc.queryForObject("SELECT full_name FROM users WHERE email='pur01@itam.example'",String.class));
         assertThatThrownBy(()->documents.upload(file("stale.pdf","stale"),draft.transactionId(),DocumentType.INVOICE,null,draft.expectedVersion()))
                 .isInstanceOf(AppException.class).hasMessage("TRANSACTION_VERSION_CONFLICT");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=?",Integer.class,draft.transactionId())).isEqualTo(1);
@@ -82,6 +85,8 @@ class ChecklistCompletionIntegrationTest {
         assertThatThrownBy(()->documents.delete(first.documentId(),id,pendingVersion)).isInstanceOf(AppException.class);
         var oldSnapshot=drafts.revisions(id).getFirst().get("snapshot").toString();
         login("pur-checklist@itam.example","PUR_STAFF");
+        assertThatThrownBy(()->drafts.withdraw(id,pendingVersion)).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        login("pur01@itam.example","PUR_STAFF");
         t=drafts.withdraw(id,pendingVersion);
         documents.delete(first.documentId(),id,t.expectedVersion());
         var second=documents.upload(file("replacement.pdf","new bytes"),id,DocumentType.CONTRACT,null,t.expectedVersion()+1);

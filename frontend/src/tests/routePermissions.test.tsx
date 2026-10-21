@@ -40,13 +40,14 @@ function renderRoute(path: string) {
 }
 
 describe('Role-specific routes and navigation', () => {
-  it('allows only Admin to manage USER access', () => {
+  it('allows only Admin to manage accounts, including USER access', () => {
     signIn('ADMIN');
-    expect(renderRoute('/user-access')).toContain('access.description');
+    expect(renderRoute('/user-access')).toContain('data-redirect="/accounts"');
+    expect(renderRoute('/accounts')).toContain('management.accounts');
     for (const role of ['IT_STAFF','PUR_STAFF','USER']) {
       signIn(role);
-      expect(renderRoute('/user-access')).toContain('data-redirect=');
-      expect(renderRoute('/account')).not.toContain('href="/user-access"');
+      expect(renderRoute('/accounts')).toContain('data-redirect=');
+      expect(renderRoute('/employee-profiles')).not.toContain('href="/accounts"');
     }
   });
   beforeEach(() => {
@@ -75,13 +76,13 @@ describe('Role-specific routes and navigation', () => {
     expect(menu).toContain('href="/handovers"');
     expect(menu).toContain('href="/disposals"');
     expect(menu).toContain('href="/dashboard"');
-    expect(renderRoute('/handovers')).toContain('handover-form');
+    expect(renderRoute('/handovers')).toContain('handover-page');
     expect(menu).not.toContain('href="/users"');
   });
 
   it.each(['PUR_STAFF', 'USER'])('%s cannot open shared inventory or catalogs directly', (role) => {
     signIn(role);
-    const destination = role === 'USER' ? '/my-assets' : '/account';
+    const destination = role === 'USER' ? '/my-assets' : '/employee-profiles';
     for (const path of ['/assets?assignedTo=1', '/catalogs', '/handovers', '/disposals', '/dashboard']) {
       const html = renderRoute(path);
       expect(html).toContain(`data-redirect="${destination}"`);
@@ -100,20 +101,21 @@ describe('Role-specific routes and navigation', () => {
     expect(html).toContain('href="/my-assets"');
   });
 
-  it('PUR has an account destination without opening an unimplemented workflow', () => {
+  it('PUR can read profiles without account management', () => {
     signIn('PUR_STAFF');
-    expect(renderRoute('/')).toContain('data-redirect="/account"');
-    expect(renderRoute('/my-assets')).toContain('data-redirect="/account"');
-    const html = renderRoute('/account');
-    expect(html).toContain('current@itam.example');
+    expect(renderRoute('/')).toContain('data-redirect="/employee-profiles"');
+    expect(renderRoute('/my-assets')).toContain('data-redirect="/employee-profiles"');
+    const html = renderRoute('/employee-profiles');
+    expect(html).toContain('management.profiles');
+    expect(html).not.toContain('management.addProfile');
     expect(html).not.toContain('data-redirect=');
   });
 
-  it('unknown roles land on an allowed account page without redirect loops', () => {
+  it('unknown roles are sent to login without opening management routes', () => {
     signIn('UNKNOWN');
-    expect(renderRoute('/catalogs')).toContain('data-redirect="/account"');
-    expect(renderRoute('/')).toContain('data-redirect="/account"');
-    expect(renderRoute('/account')).not.toContain('data-redirect=');
+    expect(renderRoute('/catalogs')).toContain('data-redirect="/login"');
+    expect(renderRoute('/')).toContain('data-redirect="/login"');
+    expect(renderRoute('/account')).toContain('data-redirect="/login"');
   });
 
   it('hides the previous account layout during authentication or switching', () => {

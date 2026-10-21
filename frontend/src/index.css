@@ -116,6 +116,38 @@ body {
   font-weight: 600;
 }
 
+.sidebar-account { display: flex; align-items: stretch; gap: 4px; padding: 12px; border-top: 1px solid rgba(255,255,255,.12); }
+.sidebar-account-button, .sidebar-logout { border: 0; background: transparent; color: var(--text-white); cursor: pointer; border-radius: 6px; }
+.sidebar-account-button { min-width: 0; flex: 1; display: flex; align-items: center; gap: 10px; text-align: left; padding: 6px; }
+.sidebar-account-button:hover, .sidebar-logout:hover { background: rgba(255,255,255,.1); }
+.sidebar-account-name { min-width: 0; display: flex; flex-direction: column; }
+.sidebar-account-name strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-account-name small { font-size: 11px; color: #cbd5e1; }
+.sidebar-logout { flex: 0 0 32px; font-size: 20px; }
+.sidebar-demo-switch { padding: 0 18px 10px; }
+
+.management-page { min-width: 0; }
+.management-heading, .management-actions, .management-pagination, .management-row-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.management-heading { justify-content: space-between; }
+.management-search { display: block; max-width: 400px; margin-bottom: 16px; font-size: 13px; font-weight: 600; }
+.management-search input { display: block; margin-top: 4px; }
+.management-editor, .management-details { padding: 20px 0; border-block: 1px solid var(--border-color); margin-bottom: 20px; }
+.management-editor h2, .management-details h2 { font-size: 18px; }
+.management-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 16px 0; }
+.management-fields label { min-width: 0; font-size: 13px; font-weight: 600; }
+.management-fields .form-input { display: block; width: 100%; margin-top: 4px; }
+.management-check { display: flex; align-items: center; gap: 8px; }
+.management-pagination { justify-content: flex-end; margin: 14px 0; font-size: 13px; }
+.management-pagination span:first-child { margin-right: auto; }
+.management-row-actions { white-space: nowrap; }
+.management-empty { padding: 16px; }
+.management-asset-meta { display: block; color: var(--text-muted); }
+.management-choices { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.management-subtitle { font-size: 16px; margin-top: 20px; }
+.account-info { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; overflow-wrap: anywhere; }
+.account-info dd { margin: 0; font-weight: 600; }
+@media (max-width: 680px) { .management-fields { grid-template-columns: 1fr; } }
+
 .app-content-wrapper {
   flex-grow: 1;
   display: flex;

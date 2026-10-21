@@ -1,4 +1,5 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { RoleSwitcher } from '@/shared/components/RoleSwitcher/RoleSwitcher';
@@ -6,15 +7,20 @@ import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { canManageInventory } from '@/features/auth/permissions';
 import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
 import { OverrideReasonDialog } from '@/features/auth/components/OverrideReasonDialog';
+import { AccountModal } from '@/features/auth/pages/AccountPage';
+import { demoLoginEnabled } from '@/features/auth/demo';
 
 function MainLayout() {
   const { t } = useTranslation('common');
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [accountOpen, setAccountOpen] = useState(false);
   const canViewInventory = canManageInventory(user?.role);
 
   return (
     <div className="app-container">
       <OverrideReasonDialog />
+      <AccountModal open={accountOpen} onClose={() => setAccountOpen(false)} />
       {/* Sidebar */}
       <aside className="app-sidebar">
         <div className="sidebar-header">
@@ -26,7 +32,8 @@ function MainLayout() {
         </div>
 
         <nav className="sidebar-nav">
-          {user?.role==='ADMIN'&&<NavLink to="/user-access" className={({isActive})=>`nav-link ${isActive?'active':''}`}>{t('auth:access.title')}</NavLink>}
+          {['ADMIN', 'IT_STAFF', 'PUR_STAFF'].includes(user?.role || '') && <NavLink to="/employee-profiles" className={({isActive})=>`nav-link ${isActive?'active':''}`}>{t('auth:management.profiles')}</NavLink>}
+          {user?.role === 'ADMIN' && <NavLink to="/accounts" className={({isActive})=>`nav-link ${isActive?'active':''}`}>{t('auth:management.accounts')}</NavLink>}
           {canViewInventory && (
             <NavLink
               to="/catalogs"
@@ -62,11 +69,10 @@ function MainLayout() {
           {canViewInventory && <NavLink to="/recoveries" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}><span>{t('nav.recovery')}</span></NavLink>}
           {canViewInventory && <NavLink to="/disposals" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}><span>{t('nav.disposal')}</span></NavLink>}
           {canViewInventory && <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}><span>{t('nav.overview')}</span></NavLink>}
-          <NavLink to="/account" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <span>{t('nav.account')}</span>
-          </NavLink>
         </nav>
 
+        <div className="sidebar-account"><button className="sidebar-account-button" type="button" onClick={() => setAccountOpen(true)}><span className="user-avatar" aria-hidden="true">{user?.fullName?.trim().slice(0, 1).toUpperCase() || '?'}</span><span className="sidebar-account-name"><strong>{user?.fullName}</strong><small>{t(`auth:roles.${user?.role}`, user?.role || '')}</small></span></button><button className="sidebar-logout" type="button" title={t('auth:logout')} aria-label={t('auth:logout')} onClick={() => { void logout().then(() => navigate('/login', { replace: true })); }}>↪</button></div>
+        {demoLoginEnabled && <div className="sidebar-demo-switch"><RoleSwitcher /></div>}
         <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '12px', color: '#94a3b8' }}>
           {t('version', 'Phiên bản: 1.0.0 (ITAM Bilingual)')}
         </div>
@@ -81,7 +87,6 @@ function MainLayout() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <LanguageSwitcher />
-            <RoleSwitcher />
           </div>
         </header>
 

@@ -6,14 +6,14 @@ import { AssetsPage } from '@/features/assets/pages/AssetsPage';
 import LoginPage from '@/features/auth/pages/LoginPage';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
-import { AccountPage } from '@/features/auth/pages/AccountPage';
+import { EmployeeProfilesPage } from '@/features/auth/pages/EmployeeProfilesPage';
+import { AccountsPage } from '@/features/auth/pages/AccountsPage';
 import { RecoveriesPage } from '@/features/recovery/pages/RecoveriesPage';
 import { getHomePath, INVENTORY_ROLES } from '@/features/auth/permissions';
 import { DocumentsPage } from '@/features/documents/pages/DocumentsPage';
 import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
 import { DisposalsPage } from '@/features/disposal/pages/DisposalsPage';
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
-import { UserAccessPage } from '@/features/auth/pages/UserAccessPage';
 
 function AppRoutes() {
   const { user, token } = useAuth();
@@ -68,8 +68,10 @@ function AppRoutes() {
         <Route path="recoveries" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><RecoveriesPage /></ProtectedRoute>} />
         <Route path="disposals" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><DisposalsPage /></ProtectedRoute>} />
         <Route path="dashboard" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><DashboardPage /></ProtectedRoute>} />
-        <Route path="account" element={<AccountPage />} />
-        <Route path="user-access" element={<ProtectedRoute allowedRoles={['ADMIN']}><UserAccessPage /></ProtectedRoute>} />
+        <Route path="account" element={<Navigate to={homePath} replace />} />
+        <Route path="employee-profiles" element={<ProtectedRoute allowedRoles={['ADMIN', 'IT_STAFF', 'PUR_STAFF']}><EmployeeProfilesPage /></ProtectedRoute>} />
+        <Route path="accounts" element={<ProtectedRoute allowedRoles={['ADMIN']}><AccountsPage /></ProtectedRoute>} />
+        <Route path="user-access" element={<ProtectedRoute allowedRoles={['ADMIN']}><Navigate to="/accounts" replace /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to={homePath} replace />} />
       </Route>
     </Routes>

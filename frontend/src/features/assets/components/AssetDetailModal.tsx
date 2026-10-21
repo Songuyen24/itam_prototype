@@ -66,6 +66,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
               <span className={`badge ${getStatusBadgeClass(asset.statusCode)}`}>
                 {asset.statusCode ? t(`common:status.${asset.statusCode}`, { defaultValue: asset.statusName || asset.statusCode }) : '—'}
               </span>
+              {asset.pendingHandover && <span className="badge badge-warning">{t('pendingHandover')}</span>}
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
               {asset.name}

@@ -30,6 +30,10 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long>, JpaSp
     Optional<AssetEntity> findByAssetTag(String assetTag);
     @Query(value="SELECT EXISTS(SELECT 1 FROM transaction_assets a JOIN transactions t USING(transaction_id) WHERE a.asset_id=:id AND t.type='IMPORT' AND t.status IN ('DRAFT','PENDING'))",nativeQuery=true)
     boolean hasActiveReceiving(@Param("id") Long id);
+    @Query(value="SELECT EXISTS(SELECT 1 FROM handover_asset_reservations WHERE asset_id=:id) OR EXISTS(SELECT 1 FROM transaction_assets ta JOIN transactions t USING(transaction_id) WHERE ta.asset_id=:id AND t.type='HANDOVER' AND t.status='PENDING')",nativeQuery=true)
+    boolean hasPendingHandover(@Param("id") Long id);
+    @Query(value="SELECT DISTINCT ta.asset_id FROM transaction_assets ta JOIN transactions t USING(transaction_id) WHERE ta.asset_id IN (:ids) AND t.type='HANDOVER' AND t.status='PENDING'",nativeQuery=true)
+    java.util.List<Long> pendingHandoverAssetIds(@Param("ids") java.util.Collection<Long> ids);
     boolean existsByAssetTag(String assetTag);
     boolean existsByAssetTagIgnoreCase(String assetTag);
 

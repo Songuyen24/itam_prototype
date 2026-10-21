@@ -15,11 +15,20 @@ public class UserEntity {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "email", nullable = false, unique = true)
+    @Column(name = "email", unique = true)
     private String email;
 
     @Column(name = "full_name", nullable = false)
     private String fullName;
+
+    @Column(name = "employee_code", length = 100)
+    private String employeeCode;
+    @Column(name = "username", length = 255)
+    private String username;
+    public String getEmployeeCode() { return employeeCode; }
+    public void setEmployeeCode(String value) { employeeCode = value; }
+    public String getUsername() { return username; }
+    public void setUsername(String value) { username = value; }
 
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
@@ -35,8 +44,7 @@ public class UserEntity {
     public boolean isLoginLocked() { return loginLocked; }
     public void setLoginLocked(boolean value) { loginLocked = value; }
     public boolean isLoginBlocked() {
-        return loginLocked || (role != null && role.getCode() != com.company.itam.common.enums.Role.USER
-                && accountStatus != AccountStatus.ACTIVE);
+        return loginLocked;
     }
 
     public boolean isAccessGranted() { return accessGranted; }

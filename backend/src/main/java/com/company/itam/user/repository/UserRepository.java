@@ -16,6 +16,19 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM UserEntity u WHERE u.userId = :id")
     Optional<UserEntity> findForAccessUpdate(@Param("id") Long id);
+    default Optional<UserEntity> findByPrincipal(String principal) {
+        if(principal==null || principal.isBlank()) return Optional.empty();
+        if (principal != null && principal.startsWith("user:")) {
+            try { return findByIdWithDetails(Long.parseLong(principal.substring(5))); }
+            catch (NumberFormatException invalid) { return Optional.empty(); }
+        }
+        return findByEmail(principal);
+    }
+    @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department WHERE LOWER(u.email) = LOWER(:login) OR LOWER(u.username) = LOWER(:login)")
+    Optional<UserEntity> findByLogin(@Param("login") String login);
+    @Query(value = "SELECT u FROM UserEntity u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department WHERE u.passwordHash IS NOT NULL AND (LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.employeeCode) LIKE LOWER(CONCAT('%', :keyword, '%')))",
+           countQuery = "SELECT COUNT(u) FROM UserEntity u WHERE u.passwordHash IS NOT NULL AND (LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.employeeCode) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<UserEntity> findAccounts(@Param("keyword") String keyword, Pageable pageable);
     Optional<UserEntity> findByEmail(String email);
     boolean existsByEmail(String email);
     Page<UserEntity> findByFullNameContainingIgnoreCase(String name, Pageable pageable);
@@ -43,6 +56,6 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     /**
      * Search users by name with role + department eagerly loaded.
      */
-    @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department WHERE LOWER(u.fullName) LIKE LOWER(CONCAT('%', :name, '%'))")
+    @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department WHERE LOWER(u.fullName) LIKE LOWER(CONCAT('%', :name, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :name, '%')) OR LOWER(u.employeeCode) LIKE LOWER(CONCAT('%', :name, '%'))")
     Page<UserEntity> findByFullNameContainingIgnoreCaseWithDetails(@Param("name") String name, Pageable pageable);
 }

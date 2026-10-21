@@ -32,7 +32,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         // Dùng query có JOIN FETCH để nạp role/department ngay trong transaction,
         // tránh LazyInitializationException khi đọc role ngoài session.
-        UserEntity user = userRepository.findByEmailWithDetails(email == null ? "" : email.trim().toLowerCase())
+        UserEntity user = userRepository.findByLogin(email == null ? "" : email.trim().toLowerCase(java.util.Locale.ROOT))
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + email));
 
         RoleEntity role = user.getRole();
@@ -40,7 +40,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 ? role.getCode().name()
                 : "USER";
 
-        return User.withUsername(user.getEmail())
+        return User.withUsername("user:" + user.getUserId())
                 .password(user.getPasswordHash() != null ? user.getPasswordHash() : "")
                 .authorities(List.of(new SimpleGrantedAuthority(roleCode)))
                 .accountLocked(user.isLoginBlocked())

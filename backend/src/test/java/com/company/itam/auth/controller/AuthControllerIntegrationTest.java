@@ -60,7 +60,7 @@ class AuthControllerIntegrationTest {
 
     @Test
     void login_returnsToken() throws Exception {
-        when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
+        when(userRepository.findByLogin("admin@itam.example")).thenReturn(Optional.of(adminUser));
 
         String body = """
                 {
@@ -82,7 +82,7 @@ class AuthControllerIntegrationTest {
 
     @Test
     void login_invalidPassword_returns401() throws Exception {
-        when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
+        when(userRepository.findByLogin("admin@itam.example")).thenReturn(Optional.of(adminUser));
 
         String body = """
                 {
@@ -109,10 +109,9 @@ class AuthControllerIntegrationTest {
 
     @Test
     void me_withValidToken_returnsUser() throws Exception {
-        when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
-        when(userRepository.findByEmailWithDetails("admin@itam.example")).thenReturn(Optional.of(adminUser));
+        when(userRepository.findByPrincipal("user:1")).thenReturn(Optional.of(adminUser));
 
-        String token = jwtTokenProvider.generateToken("admin@itam.example", "ADMIN");
+        String token = jwtTokenProvider.generateToken("user:1", "ADMIN");
         mockMvc.perform(get("/v1/auth/me")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
@@ -127,6 +126,15 @@ class AuthControllerIntegrationTest {
                         .header("Authorization", "Bearer invalid-token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void me_withLegacyEmailSubject_returns401() throws Exception {
+        String legacyToken = jwtTokenProvider.generateToken("admin@itam.example", "ADMIN");
+        mockMvc.perform(get("/v1/auth/me")
+                        .header("Authorization", "Bearer " + legacyToken))
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 

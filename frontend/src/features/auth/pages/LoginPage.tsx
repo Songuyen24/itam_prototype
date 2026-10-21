@@ -101,13 +101,13 @@ const LoginPage: React.FC = () => {
 
         <form className="login-form" onSubmit={handleSubmit}>
           <label className="form-label">
-            <span>{t('auth:email', 'Email')}</span>
+            <span>{t('auth:loginIdentifier')}</span>
             <input
-              type="email"
+              type="text"
               className="form-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@itam.example"
+              placeholder={t('auth:loginIdentifier')}
               autoComplete="username"
               disabled={submitting}
               required

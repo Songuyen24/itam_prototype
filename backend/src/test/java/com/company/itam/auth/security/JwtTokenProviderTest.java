@@ -20,18 +20,18 @@ class JwtTokenProviderTest {
 
     @Test
     void generateToken_andExtractClaims_success() {
-        String token = provider.generateToken("admin@itam.example", "ADMIN");
+        String token = provider.generateToken("user:1", "ADMIN");
 
         assertNotNull(token);
         assertTrue(token.split("\\.").length == 3, "JWT phải có 3 phần header.payload.signature");
-        assertEquals("admin@itam.example", provider.extractEmail(token));
+        assertEquals("user:1", provider.extractEmail(token));
         assertEquals("ADMIN", provider.extractRole(token));
         assertTrue(provider.validateToken(token));
     }
 
     @Test
     void validateToken_invalidSignature_returnsFalse() {
-        String validToken = provider.generateToken("user01@itam.example", "USER");
+        String validToken = provider.generateToken("user:2", "USER");
         // Sửa phần signature để gây lỗi xác thực
         String tampered = validToken.substring(0, validToken.length() - 4) + "AAAA";
         assertFalse(provider.validateToken(tampered));
@@ -45,7 +45,7 @@ class JwtTokenProviderTest {
 
     @Test
     void validateToken_corruptedPayload_returnsFalse() {
-        String validToken = provider.generateToken("test@example.com", "USER");
+        String validToken = provider.generateToken("user:3", "USER");
         // Đảo một ký tự trong phần payload
         char[] chars = validToken.toCharArray();
         chars[chars.length / 2] = chars[chars.length / 2] == 'a' ? 'b' : 'a';
@@ -56,7 +56,7 @@ class JwtTokenProviderTest {
     @Test
     void shortSecret_isPaddedToAtLeast32Bytes() throws Exception {
         JwtTokenProvider shortProvider = new JwtTokenProvider("short", TEST_TTL);
-        String token = shortProvider.generateToken("user@example.com", "USER");
+        String token = shortProvider.generateToken("user:4", "USER");
         assertTrue(shortProvider.validateToken(token));
     }
 }

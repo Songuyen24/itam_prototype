@@ -161,7 +161,7 @@ class AssetServiceTest {
                 new UsernamePasswordAuthenticationToken(
                         sampleUser.getEmail(), null,
                         List.of(new SimpleGrantedAuthority("USER"))));
-        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByPrincipal(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
 
         UserEntity anotherUser = new UserEntity();
         anotherUser.setUserId(200L);
@@ -190,7 +190,7 @@ class AssetServiceTest {
         when(assetTypeRepository.findById(1L)).thenReturn(Optional.of(sampleType));
         when(assetStatusRepository.findByCode(AssetStatus.IN_STOCK)).thenReturn(Optional.of(inStockStatus));
         when(modelRepository.findById(10L)).thenReturn(Optional.of(sampleModel));
-        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByPrincipal(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
 
         when(assetRepository.save(any(AssetEntity.class))).thenAnswer(invocation -> {
             AssetEntity entity = invocation.getArgument(0);
@@ -242,7 +242,7 @@ class AssetServiceTest {
         when(assetTypeRepository.findById(1L)).thenReturn(Optional.of(sampleType));
         when(assetStatusRepository.findByCode(AssetStatus.IN_STOCK)).thenReturn(Optional.of(inStockStatus));
         when(modelRepository.findById(10L)).thenReturn(Optional.of(sampleModel));
-        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByPrincipal(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
 
         when(assetRepository.save(any(AssetEntity.class))).thenAnswer(invocation -> {
             AssetEntity entity = invocation.getArgument(0);
@@ -386,7 +386,7 @@ class AssetServiceTest {
         when(assetRepository.findByAssetTag("AST-10")).thenReturn(Optional.empty());
         when(assetTypeRepository.findById(1L)).thenReturn(Optional.of(sampleType));
         when(modelRepository.findById(10L)).thenReturn(Optional.of(sampleModel));
-        when(userRepository.findByEmail(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByPrincipal(sampleUser.getEmail())).thenReturn(Optional.of(sampleUser));
         when(assetHardwareDetailsRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         UpdateHardwareAssetRequest updateReq = new UpdateHardwareAssetRequest();

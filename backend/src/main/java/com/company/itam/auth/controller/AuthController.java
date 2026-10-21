@@ -24,7 +24,7 @@ public class AuthController {
     }
 
     /**
-     * POST /api/v1/auth/login — công khai. Đăng nhập bằng email + password,
+     * POST /api/v1/auth/login — công khai. Đăng nhập bằng username hoặc email + password,
      * trả JWT và thông tin người dùng.
      */
     @PostMapping("/login")

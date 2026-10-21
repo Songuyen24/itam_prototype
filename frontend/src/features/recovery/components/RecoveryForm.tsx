@@ -9,7 +9,7 @@ import { handoverApi } from '@/features/handover/api/handoverApi';
 const loadLocations = (keyword: string, page: number) => locationApi.getAll(keyword, true, page, 10);
 function localDate() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 
-interface Recipient { id: number; fullName: string; email: string; accountStatus: string }
+interface Recipient { id: number; fullName: string; email: string | null; accountStatus: string }
 
 const CATEGORY_ICON: Record<string, string> = { DEVICE: '💻', COMPONENT: '🔧', LICENSE: '🪪' };
 const categoryLabel = (t: (key: string, options?: Record<string, unknown>) => string, category: string) =>
@@ -43,7 +43,7 @@ function UserPicker({ onSelect, disabled }: { onSelect: (r: Recipient) => void; 
       {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}
       {items.map(item => (
         <button type="button" key={item.id} disabled={disabled} style={{ display: 'block', padding: 4, cursor: 'pointer' }} onClick={() => onSelect(item)}>
-          <strong>{item.fullName}</strong> · {item.email}
+          <strong>{item.fullName}</strong>{item.email && <> · {item.email}</>}
         </button>
       ))}
       {pages > 1 && (

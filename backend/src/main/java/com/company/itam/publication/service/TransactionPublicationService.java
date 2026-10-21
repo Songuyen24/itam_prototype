@@ -313,7 +313,7 @@ public class TransactionPublicationService {
 
     private UserEntity currentUserOr(UserEntity fallback) {
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth == null ? fallback : users.findByEmail(auth.getName()).orElse(fallback);
+        return auth == null ? fallback : users.findByPrincipal(auth.getName()).orElse(fallback);
     }
 
     private TransactionEntity transaction(Long id) {

@@ -18,7 +18,7 @@ import java.util.UUID;
  *
  * <p>Token payload bao gồm:
  * <ul>
- *     <li>{@code sub} = email người dùng</li>
+ *     <li>{@code sub} = định danh ổn định user:&lt;id&gt;</li>
  *     <li>claim {@code role} = mã role (ADMIN / IT_STAFF / PUR_STAFF / USER)</li>
  *     <li>{@code jti} = mã định danh duy nhất của token</li>
  * </ul>
@@ -59,9 +59,9 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Sinh JWT token cho người dùng với email và role tương ứng.
+     * Sinh JWT token với định danh ổn định và role tương ứng.
      *
-     * @param email email người dùng (làm JWT subject)
+     * @param email định danh principal (user:&lt;id&gt;) làm JWT subject
      * @param role  mã role (làm claim phụ)
      * @return chuỗi JWT đã ký
      */
@@ -86,10 +86,10 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Trích email từ JWT token.
+     * Trích principal từ JWT token (tên hàm giữ để tương thích caller).
      *
      * @param token JWT đã ký
-     * @return email được lưu trong subject
+     * @return principal được lưu trong subject
      */
     public String extractEmail(String token) {
         return extractClaims(token).getSubject();

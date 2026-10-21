@@ -488,7 +488,7 @@ public class AssetImportService {
     private UserEntity resolveCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && auth.getName() != null && !"anonymousUser".equals(auth.getName())) {
-            Optional<UserEntity> user = userRepository.findByEmail(auth.getName());
+            Optional<UserEntity> user = userRepository.findByPrincipal(auth.getName());
             if (user.isPresent()) {
                 return user.get();
             }

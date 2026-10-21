@@ -40,7 +40,7 @@ class P0AccessIntegrationTest {
     @Autowired jakarta.persistence.EntityManager em;
     Long person;
     @BeforeEach void setup() {
-        person=jdbc.queryForObject("INSERT INTO users(email,full_name,role_id,account_status) SELECT ?,'P0 profile',role_id,'ACTIVE' FROM roles WHERE code='USER' RETURNING user_id",Long.class,"p0-"+UUID.randomUUID()+"@example.test");
+        person=jdbc.queryForObject("INSERT INTO users(email,full_name,employee_code,role_id,account_status) SELECT ?,'P0 profile',? ,role_id,'ACTIVE' FROM roles WHERE code='USER' RETURNING user_id",Long.class,"p0-"+UUID.randomUUID()+"@example.test","TEST-"+UUID.randomUUID());
     }
     @AfterEach void cleanup(){SecurityContextHolder.clearContext();}
     org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.UserRequestPostProcessor role(String role) {
@@ -53,7 +53,7 @@ class P0AccessIntegrationTest {
     String email(){return jdbc.queryForObject("SELECT email FROM users WHERE user_id=?",String.class,person);}
     String access(boolean grant,String status,boolean password) throws Exception {
         return mvc.perform(put("/v1/users/"+person+"/access").with(role("ADMIN")).contentType("application/json")
-                .content("{\"granted\":"+grant+",\"status\":\""+status+"\""+(password?",\"password\":\"P0-test-pass\"":"")+"}"))
+                .content("{\"granted\":"+grant+",\"status\":\""+status+"\""+(password?",\"password\":\"P0-test-pass\",\"username\":\"p0-user-"+person+"\"":"")+"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
     }
     String token() throws Exception {
@@ -70,7 +70,7 @@ class P0AccessIntegrationTest {
                 .andExpect(status().isBadRequest());
         assertThat(jdbc.queryForObject("SELECT access_granted FROM users WHERE user_id=?",Boolean.class,person)).isFalse();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE entity_type='USER' AND entity_id=?",Integer.class,person)).isZero();
-        String ungranted=tokens.generateToken(email(),"USER");
+        String ungranted=tokens.generateToken("user:"+person,"USER");
         mvc.perform(get("/v1/users/me/assets").header("Authorization","Bearer "+ungranted)).andExpect(status().isUnauthorized());
         access(true,"ACTIVE",true); String first=token();
         mvc.perform(get("/v1/users/me/assets").header("Authorization","Bearer "+first)).andExpect(status().isOk());

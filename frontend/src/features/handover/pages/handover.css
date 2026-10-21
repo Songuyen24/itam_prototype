@@ -10,6 +10,14 @@
 .handover-selected input { max-width: 110px; }
 .handover-history { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr); gap: 24px; margin-top: 24px; }
 .handover-history > section { min-width: 0; }
+.handover-page-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; }
+.handover-recipient-detail { margin: 12px 0; padding: 12px; border-top: 1px solid var(--border-color, #ddd); }
+.handover-recipient-detail ul { padding-left: 20px; max-height: 160px; overflow: auto; }
+.handover-holder-row { width: 100%; display: grid; gap: 4px; padding: 12px; border: 0; border-bottom: 1px solid var(--border-color, #ddd); background: transparent; text-align: left; cursor: pointer; }
+.handover-holder-row[aria-pressed=true] { background: #eef7f5; box-shadow: inset 3px 0 #087e70; }
+.handover-holder-row span { overflow-wrap: anywhere; }
+.handover-holder-detail ul { padding-left: 20px; line-height: 1.8; }
+.handover-modal-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .handover-confirm { width: min(1100px, 94vw); max-width: 94vw; max-height: 90vh; overflow: auto; padding: 24px; background: white; border: 0; border-radius: 10px; margin: auto; }
 .handover-confirm::backdrop { background: rgba(15, 23, 42, .6); backdrop-filter: blur(4px); }
 .handover-details { min-width: 0; overflow-wrap: anywhere; }

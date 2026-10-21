@@ -67,9 +67,9 @@ class AuthServiceTest {
         req.setEmail("admin@itam.example");
         req.setPassword("Password@123");
 
-        when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
+        when(userRepository.findByLogin("admin@itam.example")).thenReturn(Optional.of(adminUser));
         when(passwordEncoder.matches("Password@123", adminUser.getPasswordHash())).thenReturn(true);
-        when(jwtTokenProvider.generateToken(adminUser.getEmail(), "ADMIN", 0L)).thenReturn("jwt.token.value");
+        when(jwtTokenProvider.generateToken("user:1", "ADMIN", 0L)).thenReturn("jwt.token.value");
 
         LoginResponse res = authService.login(req);
 
@@ -87,7 +87,7 @@ class AuthServiceTest {
         req.setEmail("  Admin@ITAM.example  ");
         req.setPassword("Password@123");
 
-        when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
+        when(userRepository.findByLogin("admin@itam.example")).thenReturn(Optional.of(adminUser));
         when(passwordEncoder.matches("Password@123", adminUser.getPasswordHash())).thenReturn(true);
         when(jwtTokenProvider.generateToken(any(), any(), org.mockito.ArgumentMatchers.anyLong())).thenReturn("tkn");
 
@@ -96,12 +96,26 @@ class AuthServiceTest {
     }
 
     @Test
+    void login_username_isAccepted() {
+        adminUser.setUsername("admin.test");
+        LoginRequest req = new LoginRequest();
+        req.setEmail("  ADMIN.TEST  ");
+        req.setPassword("Password@123");
+
+        when(userRepository.findByLogin("admin.test")).thenReturn(Optional.of(adminUser));
+        when(passwordEncoder.matches("Password@123", adminUser.getPasswordHash())).thenReturn(true);
+        when(jwtTokenProvider.generateToken("user:1", "ADMIN", 0L)).thenReturn("jwt.token.value");
+
+        assertEquals("jwt.token.value", authService.login(req).getToken());
+    }
+
+    @Test
     void login_userNotFound_throws401() {
         LoginRequest req = new LoginRequest();
         req.setEmail("ghost@example.com");
         req.setPassword("anything");
 
-        when(userRepository.findByEmail("ghost@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByLogin("ghost@example.com")).thenReturn(Optional.empty());
 
         AppException ex = assertThrows(AppException.class, () -> authService.login(req));
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatus());
@@ -114,7 +128,7 @@ class AuthServiceTest {
         req.setEmail("admin@itam.example");
         req.setPassword("WrongPass");
 
-        when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
+        when(userRepository.findByLogin("admin@itam.example")).thenReturn(Optional.of(adminUser));
         when(passwordEncoder.matches("WrongPass", adminUser.getPasswordHash())).thenReturn(false);
 
         AppException ex = assertThrows(AppException.class, () -> authService.login(req));
@@ -124,17 +138,31 @@ class AuthServiceTest {
 
     @Test
     void login_lockedAccount_throws401WithLockedCode() {
-        adminUser.setAccountStatus(AccountStatus.LOCKED);
+        adminUser.setLoginLocked(true);
         LoginRequest req = new LoginRequest();
         req.setEmail("admin@itam.example");
         req.setPassword("Password@123");
 
-        when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
+        when(userRepository.findByLogin("admin@itam.example")).thenReturn(Optional.of(adminUser));
         when(passwordEncoder.matches("Password@123", adminUser.getPasswordHash())).thenReturn(true);
 
         AppException ex = assertThrows(AppException.class, () -> authService.login(req));
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatus());
         assertEquals("LOGIN_ACCOUNT_LOCKED", ex.getCode());
+    }
+
+    @Test
+    void login_lockedProfileWithActiveAccount_succeeds() {
+        adminUser.setAccountStatus(AccountStatus.LOCKED);
+        LoginRequest req = new LoginRequest();
+        req.setEmail("admin@itam.example");
+        req.setPassword("Password@123");
+
+        when(userRepository.findByLogin("admin@itam.example")).thenReturn(Optional.of(adminUser));
+        when(passwordEncoder.matches("Password@123", adminUser.getPasswordHash())).thenReturn(true);
+        when(jwtTokenProvider.generateToken("user:1", "ADMIN", 0L)).thenReturn("jwt.token.value");
+
+        assertEquals("jwt.token.value", authService.login(req).getToken());
     }
 
     @Test
@@ -147,13 +175,13 @@ class AuthServiceTest {
     @Test
     void getCurrentUser_authenticated_returnsCurrentUser() {
         Authentication auth = new UsernamePasswordAuthenticationToken(
-                "admin@itam.example",
+                "user:1",
                 null,
                 List.of(new SimpleGrantedAuthority("ADMIN"))
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        when(userRepository.findByEmail("admin@itam.example")).thenReturn(Optional.of(adminUser));
+        when(userRepository.findByPrincipal("user:1")).thenReturn(Optional.of(adminUser));
 
         CurrentUserResponse res = authService.getCurrentUser();
         assertNotNull(res);

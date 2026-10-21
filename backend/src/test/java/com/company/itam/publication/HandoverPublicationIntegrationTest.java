@@ -56,8 +56,8 @@ class HandoverPublicationIntegrationTest {
                     "T15_PDF_" + category, "Publication " + category, category);
         }
         jdbc.update("INSERT INTO locations(code,name,is_active) VALUES ('T15_PDF','Publication destination',true) ON CONFLICT(code) DO NOTHING");
-        Long recipient = jdbc.queryForObject("INSERT INTO users(email,full_name,role_id,account_status) SELECT ?,'Original recipient',role_id,'ACTIVE' FROM roles WHERE code='USER' RETURNING user_id",
-                Long.class, "handover-" + UUID.randomUUID() + "@itam.example");
+        Long recipient = jdbc.queryForObject("INSERT INTO users(email,full_name,employee_code,role_id,account_status) SELECT ?,'Original recipient',?,role_id,'ACTIVE' FROM roles WHERE code='USER' RETURNING user_id",
+                Long.class, "handover-" + UUID.randomUUID() + "@itam.example", "TEST-" + UUID.randomUUID());
         var device = new CreateHardwareAssetRequest();
         device.setCreationPurpose(AssetCreationPurpose.BASELINE); device.setName("Publication device");
         device.setTypeId(id("asset_types", "type_id", "T15_PDF_DEVICE"));
@@ -85,8 +85,19 @@ class HandoverPublicationIntegrationTest {
                 .with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN")))
                 .contentType("application/json").content(json.writeValueAsString(request)))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Long transactionId = json.readTree(response).path("data").path("transactionId").asLong();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=?", Long.class, transactionId)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM email_logs WHERE transaction_id=?", Long.class, transactionId)).isZero();
+        mvc.perform(post("/v1/handovers/" + transactionId + "/submit")
+                .with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN"))))
+                .andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=?", Long.class, transactionId)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM email_logs WHERE transaction_id=?", Long.class, transactionId)).isZero();
+        mvc.perform(post("/v1/handovers/" + transactionId + "/confirm")
+                .with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN"))))
+                .andExpect(status().isOk());
         authenticate();
-        return json.readTree(response).path("data").path("transactionId").asLong();
+        return transactionId;
     }
 
     @ParameterizedTest @ValueSource(strings = {"regenerate", "resend"})
@@ -102,6 +113,7 @@ class HandoverPublicationIntegrationTest {
         String frozen = jdbc.queryForObject("SELECT snapshot::text FROM handover_snapshots WHERE transaction_id=?", String.class, transactionId);
         String originalEmail = json.readTree(frozen).path("recipientEmail").asText();
         Long auditCount = jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE new_data->>'transactionId'=? OR (entity_type='TRANSACTION' AND entity_id=?)", Long.class, transactionId.toString(), transactionId);
+        Long allocationCount = jdbc.queryForObject("SELECT count(*) FROM license_allocations WHERE handover_transaction_id=?", Long.class, transactionId);
 
         jdbc.update("UPDATE users SET full_name='Changed after handover' WHERE email='admin@itam.example'");
         try {
@@ -117,7 +129,8 @@ class HandoverPublicationIntegrationTest {
                 assertThat(email.status()).isEqualTo("SENT");
             });
             assertThat(jdbc.queryForObject("SELECT snapshot::text FROM handover_snapshots WHERE transaction_id=?", String.class, transactionId)).isEqualTo(frozen);
-            assertThat(jdbc.queryForObject("SELECT count(*) FROM license_allocations WHERE handover_transaction_id=?", Long.class, transactionId)).isEqualTo(2);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM license_allocations WHERE handover_transaction_id=?", Long.class, transactionId)).isEqualTo(allocationCount);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM license_allocations WHERE handover_transaction_id=? AND status='ACTIVE'", Long.class, transactionId)).isEqualTo(2);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_assets WHERE transaction_id=?", Long.class, transactionId)).isEqualTo(2);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE new_data->>'transactionId'=? OR (entity_type='TRANSACTION' AND entity_id=?)", Long.class, transactionId.toString(), transactionId)).isEqualTo(auditCount);
             assertThat(jdbc.queryForObject("SELECT status FROM transactions WHERE transaction_id=?", String.class, transactionId)).isEqualTo("COMPLETED");

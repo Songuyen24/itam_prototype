@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
-        log.error("Data integrity violation: ", ex);
+        log.warn("Data integrity constraint rejected the write");
         String rootMsg = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
         if (rootMsg != null && (rootMsg.contains("foreign key") || rootMsg.contains("violates foreign key constraint") || rootMsg.contains("is still referenced"))) {
             String localizedMsg = messageHelper.getMessageWithDefault("CATALOG_IN_USE", "Danh mục đang được sử dụng trong hệ thống, không thể xóa");

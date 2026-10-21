@@ -5,6 +5,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 public class AssetResponse {
+    private boolean pendingHandover;
+    public boolean isPendingHandover() { return pendingHandover; }
+    public void setPendingHandover(boolean value) { pendingHandover = value; }
     private String licenseAssignmentTypeCode;
     public String getLicenseAssignmentTypeCode() { return licenseAssignmentTypeCode; }
     public void setLicenseAssignmentTypeCode(String value) { licenseAssignmentTypeCode = value; }

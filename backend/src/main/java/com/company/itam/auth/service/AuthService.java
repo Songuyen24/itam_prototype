@@ -45,7 +45,7 @@ public class AuthService {
     }
 
     /**
-     * Xác thực email/password, sinh JWT và trả về thông tin người dùng.
+     * Xác thực username hoặc email/password, sinh JWT và trả về thông tin người dùng.
      *
      * @param request yêu cầu đăng nhập
      * @return JWT kèm thông tin user
@@ -53,8 +53,8 @@ public class AuthService {
      */
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
-        String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
-        UserEntity user = userRepository.findByEmail(email)
+        String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase(java.util.Locale.ROOT);
+        UserEntity user = userRepository.findByLogin(email)
                 .orElseThrow(() -> {
                     log.debug("Đăng nhập thất bại: email '{}' không tồn tại", email);
                     return new AppException(
@@ -88,7 +88,7 @@ public class AuthService {
         }
         RoleEntity role = user.getRole();
         String roleCode = role != null && role.getCode() != null ? role.getCode().name() : "USER";
-        String token = jwtTokenProvider.generateToken(user.getEmail(), roleCode, user.getAccessVersion());
+        String token = jwtTokenProvider.generateToken("user:" + user.getUserId(), roleCode, user.getAccessVersion());
 
         LoginUserInfo info = new LoginUserInfo(
                 user.getUserId(),
@@ -96,6 +96,8 @@ public class AuthService {
                 user.getFullName(),
                 roleCode
         );
+        info.setUsername(user.getUsername());
+        info.setEmployeeCode(user.getEmployeeCode());
         return new LoginResponse(token, info);
     }
 
@@ -119,7 +121,7 @@ public class AuthService {
             );
         }
         String email = authentication.getName();
-        UserEntity user = userRepository.findByEmail(email)
+        UserEntity user = userRepository.findByPrincipal(email)
                 .orElseThrow(() -> new AppException(
                         HttpStatus.UNAUTHORIZED,
                         UNAUTHORIZED,

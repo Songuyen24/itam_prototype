@@ -47,28 +47,33 @@ public class HandoverService {
     private final TransactionAssetRepository lines;
     private final TransactionHandoverDetailRepository details;
     private final HandoverSnapshotRepository snapshots;
+    private final com.company.itam.publication.service.TransactionPublicationService publications;
     private final JdbcTemplate jdbc;
+    private final com.company.itam.workflow.core.service.WorkflowAccessService access;
+    private final com.fasterxml.jackson.databind.ObjectMapper json;
 
     public HandoverService(AssetRepository assets, LicenseAllocationRepository allocations, LicenseAllocationService licensing,
             AssetAuditService audit, AuditLogRepository logs, UserRepository users, LocationRepository locations,
             AssetStatusRepository statuses, TransactionRepository transactions, TransactionAssetRepository lines,
-            TransactionHandoverDetailRepository details, HandoverSnapshotRepository snapshots, JdbcTemplate jdbc) {
+            TransactionHandoverDetailRepository details, HandoverSnapshotRepository snapshots, JdbcTemplate jdbc,
+            com.company.itam.workflow.core.service.WorkflowAccessService access, com.fasterxml.jackson.databind.ObjectMapper json, com.company.itam.publication.service.TransactionPublicationService publications) {
         this.assets=assets; this.allocations=allocations; this.licensing=licensing; this.audit=audit; this.logs=logs;
         this.users=users; this.locations=locations; this.statuses=statuses; this.transactions=transactions;
-        this.lines=lines; this.details=details; this.snapshots=snapshots; this.jdbc=jdbc;
+        this.lines=lines; this.details=details; this.snapshots=snapshots; this.jdbc=jdbc; this.access=access; this.json=json; this.publications=publications;
     }
 
     public record Candidate(Long assetId,String assetTag,String name,String category,String assignmentType,Long availableSeats) {}
     public PageResponse<Candidate> candidates(String keyword,int page,int size) {
         if (page<0 || size<1 || size>100 || keyword.length()>100) invalid();
         String search=keyword.trim().toLowerCase(Locale.ROOT).replace("\\","\\\\").replace("%","\\%").replace("_","\\_");
+        var reserved=jdbc.queryForList("SELECT asset_id FROM handover_asset_reservations",Long.class);
         var result=assets.findAll((root,query,b)-> {
             var rel=query.subquery(Long.class); var r=rel.from(AssetRelationshipEntity.class);
             rel.select(r.get("relationshipId")).where(b.equal(r.get("childAsset"),root));
             var category=root.get("type").get("category").get("code");
             var ld=root.join("licenseDetails",jakarta.persistence.criteria.JoinType.LEFT);
             var assignment=ld.join("assignmentType",jakarta.persistence.criteria.JoinType.LEFT);
-            return b.and(b.equal(root.get("status").get("code"),AssetStatus.IN_STOCK),b.isNull(root.get("assignedTo")),
+            return b.and(reserved.isEmpty()?b.conjunction():b.not(root.get("assetId").in(reserved)),b.equal(root.get("status").get("code"),AssetStatus.IN_STOCK),b.isNull(root.get("assignedTo")),
                     b.notEqual(b.trim(root.get("assetTag")),""),
                     b.or(b.equal(category,AssetCategory.DEVICE),b.and(b.equal(category,AssetCategory.COMPONENT),b.not(b.exists(rel))),
                             b.and(b.equal(category,AssetCategory.LICENSE),b.equal(assignment.get("code"),LicenseCodes.PER_USER))),
@@ -84,28 +89,123 @@ public class HandoverService {
 
     public HandoverResponse preview(HandoverRequest request) { return prepare(request,false); }
     public HandoverResponse get(Long id) {
-        return snapshots.find(id).orElseThrow(()->new ResourceNotFoundException("HANDOVER_NOT_FOUND"));
+        var tx=transaction(id,false);
+        var snapshot=snapshots.find(id).orElseGet(()->snapshots.decode(jdbc.queryForObject(
+                "SELECT preview::text FROM handover_workflows WHERE transaction_id=?",String.class,id)));
+        return decorate(tx,snapshot,loadRequest(id));
     }
-
+    private HandoverRequest loadRequest(Long id) {
+        var rows=jdbc.queryForList("SELECT request::text FROM handover_workflows WHERE transaction_id=?",String.class,id);
+        if(rows.isEmpty()) return null;
+        try { return json.readValue(rows.get(0),HandoverRequest.class); }
+        catch(com.fasterxml.jackson.core.JsonProcessingException e) { throw new IllegalStateException(e); }
+    }
+    private HandoverResponse decorate(TransactionEntity tx,HandoverResponse p,HandoverRequest req) {
+        return new HandoverResponse(tx.getTransactionId(),tx.getTransactionCode(),tx.getCompletedAt(),p.recipientUserId(),p.recipientName(),p.recipientEmail(),
+            p.destinationLocationId(),p.destinationLocationName(),p.handoverDate(),p.notes(),p.fingerprint(),p.lines(),
+            tx.getStatus().name(),tx.getRequester().getUserId(),tx.getRequester().getFullName(),req);
+    }
+    private com.company.itam.user.entity.UserEntity actor() {
+        return users.findByPrincipal(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow();
+    }
+    private TransactionEntity transaction(Long id,boolean lock) {
+        var tx=(lock?transactions.findForUpdate(id):transactions.findById(id)).orElseThrow(()->new ResourceNotFoundException("HANDOVER_NOT_FOUND"));
+        if(tx.getType()!=TransactionType.HANDOVER) throw new ResourceNotFoundException("HANDOVER_NOT_FOUND");
+        return tx;
+    }
+    private void record(TransactionEntity tx,String action) {
+        var log=new AuditLogEntity(); log.setEntityType("TRANSACTION"); log.setEntityId(tx.getTransactionId()); log.setAction(action); log.setActor(actor());
+        log.setNewData(Map.of("status",tx.getStatus().name())); logs.save(log);
+    }
+    @Transactional
+    public HandoverResponse create(HandoverRequest req) {
+        var preview=prepare(req,false);
+        if(!Objects.equals(req.expectedFingerprint(),preview.fingerprint())) fail("HANDOVER_CHANGED");
+        var tx=new TransactionEntity(); tx.setTransactionCode("HO-"+UUID.randomUUID());tx.setType(TransactionType.HANDOVER);
+        tx.setStatus(TransactionStatus.DRAFT);tx.setRequester(actor());tx.setNotes(req.notes());transactions.saveAndFlush(tx);
+        store(tx,req,preview);record(tx,"HANDOVER_CREATED");return get(tx.getTransactionId());
+    }
+    private void store(TransactionEntity tx,HandoverRequest req,HandoverResponse preview) {
+        var d=details.findById(tx.getTransactionId()).orElseGet(TransactionHandoverDetailEntity::new);
+        d.setTransaction(tx);d.setRecipient(users.findById(req.recipientUserId()).orElseThrow());
+        d.setDestinationLocation(locations.findById(req.destinationLocationId()).orElseThrow());d.setHandoverDate(req.handoverDate());details.saveAndFlush(d);
+        tx.setNotes(req.notes());
+        jdbc.update("DELETE FROM transaction_assets WHERE transaction_id=?",tx.getTransactionId());
+        int number=0;
+        for(var l:preview.lines()) jdbc.update("INSERT INTO transaction_assets(transaction_id,asset_id,line_number) VALUES (?,?,?)",tx.getTransactionId(),l.assetId(),++number);
+        jdbc.update("INSERT INTO handover_workflows(transaction_id,request,preview) VALUES (?,?::jsonb,?::jsonb) ON CONFLICT(transaction_id) DO UPDATE SET request=EXCLUDED.request,preview=EXCLUDED.preview",
+             tx.getTransactionId(),snapshots.encode(req),snapshots.encode(preview));
+    }
+    @Transactional
+    public HandoverResponse update(Long id,HandoverRequest req) {
+        var tx=transaction(id,true);access.requireCreator(tx,false);
+        if(tx.getStatus()!=TransactionStatus.DRAFT) fail("DOCUMENT_LOCKED");
+        var preview=prepare(req,false);
+        if(!Objects.equals(req.expectedFingerprint(),preview.fingerprint())) fail("HANDOVER_CHANGED");
+        store(tx,req,preview);record(tx,"HANDOVER_UPDATED");return get(id);
+    }
+    @Transactional
+    public HandoverResponse submit(Long id) {
+        var tx=transaction(id,true);access.requireCreator(tx,false);
+        if(tx.getStatus()==TransactionStatus.PENDING) return get(id);
+        if(tx.getStatus()!=TransactionStatus.DRAFT) fail("DOCUMENT_LOCKED");
+        var req=loadRequest(id);var preview=prepare(req,true);
+        var reviewed=snapshots.decode(jdbc.queryForObject("SELECT preview::text FROM handover_workflows WHERE transaction_id=?",String.class,id));
+        if(!Objects.equals(reviewed.fingerprint(),preview.fingerprint())) fail("HANDOVER_CHANGED");
+        var reserved=new TreeSet<Long>();
+        for(var l:preview.lines()) if(!"LICENSE".equals(l.category())) reserved.add(l.assetId());
+        for(var l:req.licenses()) if(l.deviceId()!=null) reserved.add(l.deviceId());
+        for(var assetId:reserved) {
+            if(assets.hasPendingHandover(assetId)) fail("ASSET_NOT_AVAILABLE");
+            jdbc.update("INSERT INTO handover_asset_reservations(asset_id,transaction_id) VALUES (?,?)",assetId,id);
+        }
+        for(var l:req.licenses()) {
+            var a=new LicenseAllocationEntity();a.setLicense(asset(l.assetId()));a.setUser(users.findById(req.recipientUserId()).orElseThrow());
+            a.setSeatCount(l.seats());a.setStatus(LicenseAllocationStatus.RESERVED);a.setHandoverTransactionId(id);a.setCreatedBy(actor());allocations.saveAndFlush(a);
+        }
+        store(tx,req,preview);tx.setStatus(TransactionStatus.PENDING);transactions.flush();record(tx,"HANDOVER_SUBMITTED");return get(id);
+    }
+    private void release(Long id) {
+        jdbc.update("DELETE FROM handover_asset_reservations WHERE transaction_id=?",id);
+        jdbc.update("UPDATE license_allocations SET status='RELEASED',released_at=now() WHERE handover_transaction_id=? AND status='RESERVED'",id);
+    }
+    private void lockRequest(HandoverRequest req) {
+        var ids=new TreeSet<Long>(req.assetIds());for(var l:links(req.assetIds())) {ids.add(l.parent());ids.add(l.child());}
+        for(var l:req.licenses()) {ids.add(l.assetId());if(l.deviceId()!=null)ids.add(l.deviceId());}
+        for(var id:ids) assets.lockById(id).orElseThrow();
+    }
+    @Transactional
+    public HandoverResponse change(Long id,String action) {
+        var tx=transaction(id,true);access.requireCreator(tx,"cancel".equals(action)&&tx.getStatus()==TransactionStatus.PENDING);
+        if("withdraw".equals(action)&&tx.getStatus()==TransactionStatus.PENDING) {
+            lockRequest(loadRequest(id));release(id);tx.setStatus(TransactionStatus.DRAFT);
+        } else if("cancel".equals(action)&&(tx.getStatus()==TransactionStatus.DRAFT||tx.getStatus()==TransactionStatus.PENDING)) {
+            lockRequest(loadRequest(id));release(id);tx.setStatus(TransactionStatus.CANCELLED);
+        } else fail("DOCUMENT_LOCKED");
+        transactions.flush();record(tx,"HANDOVER_"+action.toUpperCase(Locale.ROOT));return get(id);
+    }
+    @Transactional
+    public HandoverResponse confirm(Long id) {
+        var tx=transaction(id,true);
+        if(tx.getStatus()==TransactionStatus.COMPLETED) return get(id);
+        if(tx.getStatus()!=TransactionStatus.PENDING) fail("DOCUMENT_LOCKED");
+        var req=loadRequest(id);lockRequest(req);release(id);
+        var result=finish(req,tx);
+        publications.afterCommit(id,()->publications.onCompleted(id,result));
+        return result;
+    }
+    // Compatibility for internal workflow fixtures; HTTP creation always creates a draft.
     @Transactional
     public HandoverResponse complete(HandoverRequest request) {
         var preview=prepare(request,true);
-        if (!Objects.equals(request.expectedFingerprint(),preview.fingerprint())) fail("HANDOVER_CHANGED");
-        var actor=users.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
-        var recipient=users.findById(request.recipientUserId()).orElseThrow();
-        var location=locations.findById(request.destinationLocationId()).orElseThrow();
-        var tx=new TransactionEntity(); var now=Instant.now();
-        tx.setTransactionCode("HO-"+UUID.randomUUID()); tx.setType(TransactionType.HANDOVER); tx.setStatus(TransactionStatus.COMPLETED);
-        tx.setRequester(actor); tx.setProcessedBy(actor); tx.setProcessedAt(now); tx.setCompletedAt(now); tx.setNotes(request.notes());
-        transactions.saveAndFlush(tx);
-        var detail=new TransactionHandoverDetailEntity(); detail.setTransaction(tx); detail.setRecipient(recipient);
-        detail.setDestinationLocation(location); detail.setHandoverDate(request.handoverDate()); details.saveAndFlush(detail);
-        int index=0;
-        for (var line:preview.lines()) {
-            var asset=assets.findById(line.assetId()).orElseThrow();
-            var item=new TransactionAssetEntity(); item.setTransaction(tx); item.setAsset(asset); item.setLineNumber(++index); lines.save(item);
-        }
-        lines.flush(); // T11B allocation contract validates the persisted transaction and package lines.
+        if(!Objects.equals(request.expectedFingerprint(),preview.fingerprint())) fail("HANDOVER_CHANGED");
+        var draft=create(request);submit(draft.transactionId());return confirm(draft.transactionId());
+    }
+    private HandoverResponse finish(HandoverRequest request,TransactionEntity tx) {
+        var preview=prepare(request,true);
+        var actor=actor();var recipient=users.findById(request.recipientUserId()).orElseThrow();
+        var location=locations.findById(request.destinationLocationId()).orElseThrow();var now=Instant.now();
+        tx.setStatus(TransactionStatus.COMPLETED);tx.setProcessedBy(actor);tx.setProcessedAt(now);tx.setCompletedAt(now);transactions.flush();
         var inUse=statuses.findByCode(AssetStatus.IN_USE).orElseThrow();
         for (var line:preview.lines()) {
             var asset=assets.findById(line.assetId()).orElseThrow();
@@ -153,7 +253,7 @@ public class HandoverService {
         snapshots.save(result);
         var log=new AuditLogEntity(); log.setEntityType("TRANSACTION"); log.setEntityId(tx.getTransactionId()); log.setAction("HANDOVER_COMPLETED"); log.setActor(actor);
         log.setNewData(Map.of("status","COMPLETED","recipientUserId",recipient.getUserId(),"handoverDate",request.handoverDate().toString(),"assetIds",preview.lines().stream().map(Line::assetId).toList())); logs.save(log);
-        return result;
+        return decorate(tx,result,request);
     }
 
     private record Link(Long id,Long parent,Long child,Long allocation) {}
@@ -232,6 +332,8 @@ public class HandoverService {
     }
     private AssetCategory category(AssetEntity a) { return a.getType().getCategory().getCode(); }
     private void stock(AssetEntity a) {
+        if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM transaction_assets ta JOIN transactions t USING(transaction_id) WHERE ta.asset_id=? AND t.type='DISPOSAL' AND t.status='PENDING')",Boolean.class,a.getAssetId()))) fail("ASSET_NOT_AVAILABLE");
+        if(category(a)!=AssetCategory.LICENSE && Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM handover_asset_reservations WHERE asset_id=?)",Boolean.class,a.getAssetId()))) fail("ASSET_NOT_AVAILABLE");
         if(a.getAssetTag()==null || a.getAssetTag().isBlank()) fail("HANDOVER_TAG_REQUIRED");
         if(a.getStatus().getCode()!=AssetStatus.IN_STOCK || a.getAssignedTo()!=null) fail("ASSET_NOT_AVAILABLE");
     }
