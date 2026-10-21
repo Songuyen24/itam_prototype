@@ -6,7 +6,8 @@ export function HandoverDetails({ value }: { value: Handover }) {
   const { t } = useTranslation('handover');
   return <section className="handover-details">
     <h2>{value.transactionCode ?? t('preview')}</h2>
-    <p>{t('recipient')}: <strong>{value.recipientName}</strong> · {value.recipientEmail}</p>
+    <p>{t('recipient')}: <strong>{value.recipientName}</strong>{value.recipientEmail && <> · {value.recipientEmail}</>}</p>
+    {value.recipientEmployeeCode && <p>{t('employeeCode')}: <strong>{value.recipientEmployeeCode}</strong></p>}
     <p>{t('location')}: {value.destinationLocationName} · {t('date')}: {value.handoverDate}</p>
     {value.notes && <p>{t('notes')}: {value.notes}</p>}
     <div className="table-container"><table className="data-table">

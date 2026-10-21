@@ -152,7 +152,7 @@ export function HandoversPage() {
     {(creating || editing && detail) && <dialog ref={dialogRef} className="handover-confirm handover-create-dialog" aria-labelledby="handover-create-title" onCancel={event => { if (formBusy) event.preventDefault(); else { setCreating(false); setEditing(false); } }}>
       <div className="handover-modal-header"><h2 id="handover-create-title">{editing ? t('edit') : holderDetail?.holder.accountStatus === 'ACTIVE' ? t('createFor', { name: holderDetail.holder.fullName }) : t('create')}</h2>
         <button type="button" className="btn btn-secondary" disabled={formBusy} onClick={() => { setCreating(false); setEditing(false); }}>{t('close')}</button></div>
-      <HandoverForm initialRecipient={editing && detail ? { id: detail.recipientUserId, fullName: detail.recipientName, email: detail.recipientEmail, accountStatus: 'ACTIVE' } : holderDetail?.holder.accountStatus === 'ACTIVE' ? holderDetail.holder : undefined}
+      <HandoverForm initialRecipient={editing && detail ? { id: detail.recipientUserId, fullName: detail.recipientName, email: detail.recipientEmail, employeeCode: detail.recipientEmployeeCode, accountStatus: 'ACTIVE' } : holderDetail?.holder.accountStatus === 'ACTIVE' ? holderDetail.holder : undefined}
         initialValue={editing ? detail ?? undefined : undefined} onCompleted={saved} onBusyChange={setFormBusy} />
     </dialog>}
     {confirming && detail && <dialog ref={confirmRef} className="handover-confirm" aria-labelledby="physical-confirm-title" onCancel={event => { if (acting) event.preventDefault(); else setConfirming(false); }}>

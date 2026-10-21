@@ -9,14 +9,16 @@ public record HandoverResponse(Long transactionId, String transactionCode, Insta
         Long recipientUserId, String recipientName, String recipientEmail,
         Long destinationLocationId, String destinationLocationName, LocalDate handoverDate,
         String notes, String fingerprint, List<Line> lines,
-        String status, Long requesterId, String requesterName, HandoverRequest request) {
+        String status, Long requesterId, String requesterName, HandoverRequest request,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        String recipientEmployeeCode) {
     public HandoverResponse(Long transactionId, String transactionCode, Instant completedAt,
             Long recipientUserId, String recipientName, String recipientEmail,
             Long destinationLocationId, String destinationLocationName, LocalDate handoverDate,
             String notes, String fingerprint, List<Line> lines) {
         this(transactionId,transactionCode,completedAt,recipientUserId,recipientName,recipientEmail,
              destinationLocationId,destinationLocationName,handoverDate,notes,fingerprint,lines,
-             completedAt == null ? null : "COMPLETED",null,null,null);
+             completedAt == null ? null : "COMPLETED",null,null,null,null);
     }
 
     public record Allocation(Long allocationId, Long deviceId, int seats, String assignmentType, String deviceTag, String deviceName) {}

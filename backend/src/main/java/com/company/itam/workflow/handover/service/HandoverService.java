@@ -103,7 +103,7 @@ public class HandoverService {
     private HandoverResponse decorate(TransactionEntity tx,HandoverResponse p,HandoverRequest req) {
         return new HandoverResponse(tx.getTransactionId(),tx.getTransactionCode(),tx.getCompletedAt(),p.recipientUserId(),p.recipientName(),p.recipientEmail(),
             p.destinationLocationId(),p.destinationLocationName(),p.handoverDate(),p.notes(),p.fingerprint(),p.lines(),
-            tx.getStatus().name(),tx.getRequester().getUserId(),tx.getRequester().getFullName(),req);
+            tx.getStatus().name(),tx.getRequester().getUserId(),tx.getRequester().getFullName(),req,p.recipientEmployeeCode());
     }
     private com.company.itam.user.entity.UserEntity actor() {
         return users.findByPrincipal(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow();
@@ -248,7 +248,8 @@ public class HandoverService {
             completedLines.add(new Line(line.assetId(),line.assetTag(),line.name(),line.category(),line.parentAssetId(),line.seats(),issued,data));
         }
         var result=new HandoverResponse(tx.getTransactionId(),tx.getTransactionCode(),now,preview.recipientUserId(),preview.recipientName(),preview.recipientEmail(),
-                preview.destinationLocationId(),preview.destinationLocationName(),preview.handoverDate(),preview.notes(),preview.fingerprint(),completedLines);
+                preview.destinationLocationId(),preview.destinationLocationName(),preview.handoverDate(),preview.notes(),preview.fingerprint(),completedLines,
+                "COMPLETED",null,null,null,preview.recipientEmployeeCode());
         allocations.flush();
         snapshots.save(result);
         var log=new AuditLogEntity(); log.setEntityType("TRANSACTION"); log.setEntityId(tx.getTransactionId()); log.setAction("HANDOVER_COMPLETED"); log.setActor(actor);
@@ -323,7 +324,9 @@ public class HandoverService {
             result.add(new Line(id,a.getAssetTag(),a.getName(),category(a).name(),parents.get(id),seats.stream().mapToInt(Allocation::seats).sum(),seats,data));
         }
         var response=new HandoverResponse(null,null,null,recipient.getUserId(),recipient.getFullName(),recipient.getEmail(),location.getLocationId(),location.getName(),req.handoverDate(),req.notes(),null,result);
-        return new HandoverResponse(null,null,null,response.recipientUserId(),response.recipientName(),response.recipientEmail(),response.destinationLocationId(),response.destinationLocationName(),response.handoverDate(),response.notes(),hash(snapshots.encode(response)),result);
+        // Display metadata must not change the fingerprint format of existing drafts.
+        return new HandoverResponse(null,null,null,response.recipientUserId(),response.recipientName(),response.recipientEmail(),response.destinationLocationId(),response.destinationLocationName(),response.handoverDate(),response.notes(),hash(snapshots.encode(response)),result,
+                null,null,null,null,recipient.getEmployeeCode());
     }
     private AssetEntity asset(Long id) { return assets.findById(id).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND")); }
     private Allocation allocation(Long id,Long deviceId,int seats,String assignmentType) {

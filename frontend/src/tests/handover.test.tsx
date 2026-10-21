@@ -53,12 +53,12 @@ describe('T15 handover', () => {
     expect(client).toHaveBeenCalledTimes(1);
   });
   it('renders saved package allocation IDs and frozen hardware values', () => {
-    const value: Handover = { transactionId: 1, transactionCode: 'HO-1', completedAt: '2026-09-10T10:00:00Z', status: 'COMPLETED', requesterId: 1, requesterName: 'ICT', request: req, recipientUserId: 7, recipientName: 'Original recipient', recipientEmail: 'demo@example.com', destinationLocationId: 2, destinationLocationName: 'Original office', handoverDate: '2026-09-10', notes: '', fingerprint: 'frozen', lines: [
+    const value: Handover = { transactionId: 1, transactionCode: 'HO-1', completedAt: '2026-09-10T10:00:00Z', status: 'COMPLETED', requesterId: 1, requesterName: 'ICT', request: req, recipientUserId: 7, recipientName: 'Original recipient', recipientEmployeeCode: 'CTY-EMP-007', recipientEmail: 'demo@example.com', destinationLocationId: 2, destinationLocationName: 'Original office', handoverDate: '2026-09-10', notes: '', fingerprint: 'frozen', lines: [
       { assetId: 8, assetTag: 'LAP-01', name: 'Original laptop', category: 'DEVICE', parentAssetId: null, seats: 0, allocations: [], details: { defaultRam: '16 GB', actualRam: '32 GB', serialNumber: 'SN-01' } },
       { assetId: 9, assetTag: 'LIC-01', name: 'OEM package', category: 'LICENSE', parentAssetId: null, seats: 1, allocations: [{ allocationId: 77, deviceId: 8, seats: 1, assignmentType: 'OEM' }], details: {} },
     ] };
     const html = renderToStaticMarkup(<HandoverDetails value={value} />);
-    expect(html).toContain('Original recipient'); expect(html).toContain('32 GB'); expect(html).toContain('77'); expect(html).toContain('LIC-01');
+    expect(html).toContain('Original recipient'); expect(html).toContain('CTY-EMP-007'); expect(html).toContain('32 GB'); expect(html).toContain('77'); expect(html).toContain('LIC-01');
     expect(html).not.toContain('16 GB'); expect(client).not.toHaveBeenCalled();
   });
   it('requires a date, keeps the form empty and provides loading states before choosing assets', () => {

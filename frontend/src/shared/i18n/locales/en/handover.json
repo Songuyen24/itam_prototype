@@ -5,7 +5,7 @@
   "holderFilter": "Employee filter",
   "heldOnly": "Current holders",
   "allEmployees": "All employees",
-  "searchHolders": "Search employee name or email",
+  "searchHolders": "Search employee code, name or email",
   "selectHolder": "Select an employee to view current holdings.",
   "noHoldings": "No assets currently assigned.",
   "deviceCount": "{{count}} devices",
@@ -28,7 +28,7 @@
   "list": "Handover history",
   "hint": "Select assets in stock and one recipient. Attached components and reserved OEM seats will be included in the preview.",
   "searchAssets": "Search asset tag or name",
-  "searchUsers": "Search recipient name",
+  "searchUsers": "Find recipient by employee code, name or email",
   "searchLocations": "Search destination",
   "recipient": "Recipient",
   "location": "Destination",
@@ -72,5 +72,6 @@
     "Ram": "RAM",
     "Storage": "Storage",
     "GraphicsCard": "Graphics"
-  }
+  },
+  "employeeCode": "Employee code"
 }
