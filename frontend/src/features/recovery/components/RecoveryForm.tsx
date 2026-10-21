@@ -15,7 +15,7 @@ const CATEGORY_ICON: Record<string, string> = { DEVICE: '💻', COMPONENT: '🔧
 const categoryLabel = (t: (key: string, options?: Record<string, unknown>) => string, category: string) =>
   t(`category${category[0]}${category.slice(1).toLowerCase()}`);
 
-function UserPicker({ onSelect, disabled }: { onSelect: (r: Recipient) => void; disabled: boolean }) {
+function UserPicker({ onSelect, disabled, selected }: { onSelect: (r: Recipient) => void; disabled: boolean; selected: Recipient | null }) {
   const { t } = useTranslation('recovery');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(0);
@@ -38,6 +38,7 @@ function UserPicker({ onSelect, disabled }: { onSelect: (r: Recipient) => void; 
   return (
     <fieldset disabled={disabled} style={{ border: '1px solid #ccc', padding: 12, margin: 8 }}>
       <legend>{t('searchAssets')}</legend>
+      {selected && <p><strong>{selected.fullName}</strong>{selected.email ? ` · ${selected.email}` : ''}</p>}
       <input className="form-input" placeholder={t('searchPlaceholder')} value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
       {loading && <span>{t('loading')}</span>}
       {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}
@@ -177,7 +178,7 @@ function UserAssetPicker({
 }
 
 export function SmartCheckDialog({
-  check, selectedAssetIds, selectedAllocationIds, reason, onConfirm, onCancel, busy, t, restoreFocusRef,
+  check, selectedAssetIds, selectedAllocationIds, reason, onConfirm, onCancel, busy, t, restoreFocusRef, initialRequest,
 }: {
   check: SmartCheckResponse;
   selectedAssetIds: number[];
@@ -188,6 +189,7 @@ export function SmartCheckDialog({
   busy: boolean;
   t: (key: string, options?: Record<string, unknown>) => string;
   restoreFocusRef?: RefObject<HTMLElement>;
+  initialRequest?: RecoveryRequest | null;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -203,12 +205,12 @@ export function SmartCheckDialog({
   }, [restoreFocusRef]);
   const [componentActions, setComponentActions] = useState<Record<number, string>>(() => {
     const init: Record<number, string> = {};
-    check.componentDecisions?.forEach(c => { init[c.assetId] = c.defaultAction || 'KEEP_ATTACHED'; });
+    check.componentDecisions?.forEach(c => { init[c.assetId] = initialRequest?.componentActions?.[c.assetId]?.componentAction || c.defaultAction || 'KEEP_ATTACHED'; });
     return init;
   });
   const [perUserActions, setPerUserActions] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {};
-    check.optionalAssets?.forEach(a => { init[a.allocationId] = selectedAllocationIds.includes(a.allocationId) || a.selected; });
+    check.optionalAssets?.forEach(a => { init[a.allocationId] = initialRequest?.perUserActions?.[a.allocationId] ?? (selectedAllocationIds.includes(a.allocationId) || a.selected); });
     return init;
   });
 
@@ -351,18 +353,49 @@ export function SmartCheckDialog({
   );
 }
 
-export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) => void }) {
+export function RecoveryForm({ onCompleted, initialValue }: { onCompleted: (value: Recovery) => void; initialValue?: Recovery }) {
   const { t } = useTranslation('recovery');
-  const [selected, setSelected] = useState<AssetCandidate[]>([]);
-  const [returner, setReturner] = useState<Recipient | null>(null);
-  const [location, setLocation] = useState<LocationItem | null>(null);
-  const [date, setDate] = useState(localDate);
-  const [reason, setReason] = useState('');
+  const [selected, setSelected] = useState<AssetCandidate[]>(() => {
+    if (!initialValue?.request) return [];
+    const ids = new Set(initialValue.request.assetIds);
+    const allocations = new Set(initialValue.request.allocationIds);
+    return initialValue.lines.flatMap(line => {
+      const asset = ids.has(line.assetId) ? [{ assetId: line.assetId, assetTag: line.assetTag, name: line.name, category: line.category, licenseAssignmentTypeCode: null, assignedToUserId: initialValue.returnerUserId, assignedToFullName: initialValue.returnerName }] : [];
+      const seats = line.allocations.filter(a => allocations.has(a.allocationId)).map(a => ({ assetId: line.assetId, assetTag: line.assetTag, name: line.name, category: line.category, allocationId: a.allocationId, seats: a.seats, licenseAssignmentTypeCode: a.assignmentType, assignedToUserId: initialValue.returnerUserId, assignedToFullName: initialValue.returnerName }));
+      return [...asset, ...seats];
+    });
+  });
+  const [returner, setReturner] = useState<Recipient | null>(initialValue ? { id: initialValue.returnerUserId, fullName: initialValue.returnerName, email: initialValue.returnerEmail, accountStatus: 'ACTIVE' } : null);
+  const [location, setLocation] = useState<LocationItem | null>(initialValue ? { locationId: initialValue.receivingLocationId, name: initialValue.receivingLocationName } as LocationItem : null);
+  const [date, setDate] = useState(initialValue?.recoveryDate || localDate);
+  const [reason, setReason] = useState(initialValue?.reason || '');
   const [smartCheck, setSmartCheck] = useState<SmartCheckResponse | null>(null);
+  const [liveCheck, setLiveCheck] = useState<SmartCheckResponse | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const previewTrigger = useRef<HTMLElement | null>(null);
   const frozen = busy || smartCheck !== null;
+
+  useEffect(() => {
+    if (!returner || selected.length === 0) { setLiveCheck(null); setChecking(false); setCheckError(''); return; }
+    let active = true;
+    setLiveCheck(null);
+    setChecking(true);
+    setCheckError('');
+    const timer = window.setTimeout(() => {
+      recoveryApi.smartCheck({
+        returnerUserId: returner.id,
+        assetIds: selected.filter(a => a.allocationId == null).map(a => a.assetId),
+        allocationIds: selected.flatMap(a => a.allocationId == null ? [] : [a.allocationId]),
+        reason,
+      }).then(result => { if (active) setLiveCheck(result.data); })
+        .catch(e => { if (active) setCheckError(e instanceof Error ? e.message : t('error')); })
+        .finally(() => { if (active) setChecking(false); });
+    }, 180);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [returner, selected, reason, t]);
 
   function toggle(a: AssetCandidate) {
     if (selected.some(s => s.assetId === a.assetId && s.allocationId === a.allocationId)) {
@@ -374,6 +407,7 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
 
   function handleReturnerChange(r: Recipient | null) {
     // Changing the returner invalidates the previously picked assets (ownership/IN_USE check)
+    if (r?.id === returner?.id) return;
     setReturner(r);
     setSelected([]);
   }
@@ -411,7 +445,7 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
         receivingLocationId: location.locationId,
         recoveryDate: date,
       };
-      const r = await recoveryApi.complete(fullRequest);
+      const r = initialValue?.transactionId ? await recoveryApi.edit(initialValue.transactionId, fullRequest) : await recoveryApi.create(fullRequest);
       setSmartCheck(null);
       setSelected([]);
       onCompleted(r.data);
@@ -434,8 +468,8 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
       <p>{t('hint')}</p>
       {error && <p role="alert" className="document-error">{error}</p>}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <UserPicker onSelect={handleReturnerChange} disabled={frozen} />
-        <HandoverLocationPicker onSelect={setLocation} disabled={frozen} />
+        <UserPicker onSelect={handleReturnerChange} disabled={frozen} selected={returner} />
+        <HandoverLocationPicker onSelect={setLocation} disabled={frozen} selected={location} />
       </div>
       <h2>{t('selectDevices')}</h2>
       <p style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>{t('selectDevicesHint')}</p>
@@ -470,6 +504,17 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
           ))}
         </div>
       </div>
+      {selected.length > 0 && <section aria-live="polite" style={{ margin: '12px 0', padding: 12, border: '1px solid #ddd', borderRadius: 4 }}>
+        <strong>{t('smartCheckTitle')}</strong>
+        {checking && <p role="status">{t('loading')}</p>}
+        {checkError && <p role="alert">{t('loadFailed')} {checkError}</p>}
+        {liveCheck && <>
+          <p>{t('requiredAssets')}: {liveCheck.requiredAssets?.length ?? 0} · {t('componentDecisions')}: {liveCheck.componentDecisions?.length ?? 0} · {t('perUserLicenses')}: {liveCheck.optionalAssets?.length ?? 0}</p>
+          {liveCheck.requiredAssets?.map(a => <p key={a.assetId}>{a.assetTag} · {a.name}</p>)}
+          {liveCheck.blockedAssets?.map(a => <p key={a.assetId} role="alert" style={{ color: '#721c24' }}>{t('blocked')}: {a.assetTag} · {a.reason}</p>)}
+          {liveCheck.warnings?.map((warning, index) => <p key={index}>{warning}</p>)}
+        </>}
+      </section>}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <label className="form-label">{t('date')}<input className="form-input" type="date" required value={date} disabled={frozen} onChange={e => setDate(e.target.value)} /></label>
         <label className="form-label">{t('reason')}<textarea className="form-input" required value={reason} disabled={frozen} onChange={e => setReason(e.target.value)} style={{ minHeight: 60 }} /></label>
@@ -482,13 +527,13 @@ export function RecoveryForm({ onCompleted }: { onCompleted: (value: Recovery) =
           selectedAssetIds={selected.filter(a => a.allocationId == null).map(a => a.assetId)}
           selectedAllocationIds={selected.flatMap(a => a.allocationId == null ? [] : [a.allocationId])}
           reason={reason} onConfirm={confirm} onCancel={() => setSmartCheck(null)} busy={busy}
-          restoreFocusRef={previewTrigger} t={t as unknown as (key: string, options?: Record<string, unknown>) => string} />
+          restoreFocusRef={previewTrigger} initialRequest={initialValue?.request} t={t as unknown as (key: string, options?: Record<string, unknown>) => string} />
       )}
     </form>
   );
 }
 
-function HandoverLocationPicker({ onSelect, disabled }: { onSelect: (l: LocationItem) => void; disabled: boolean }) {
+function HandoverLocationPicker({ onSelect, disabled, selected }: { onSelect: (l: LocationItem) => void; disabled: boolean; selected: LocationItem | null }) {
   const { t } = useTranslation('recovery');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(0);
@@ -508,6 +553,7 @@ function HandoverLocationPicker({ onSelect, disabled }: { onSelect: (l: Location
   return (
     <fieldset disabled={disabled} style={{ border: '1px solid #ccc', padding: 12, margin: 8 }}>
       <legend>{t('searchLocations')}</legend>
+      {selected && <p><strong>{selected.name}</strong></p>}
       <input className="form-input" placeholder={t('searchPlaceholder')} value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
       {loading && <span>{t('loading')}</span>}
       {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}

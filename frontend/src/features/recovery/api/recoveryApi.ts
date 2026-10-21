@@ -1,5 +1,5 @@
 import { httpClient } from '@/shared/api/httpClient';
-import { ApiResponse } from '@/features/catalogs/types/catalog.types';
+import { ApiResponse, PageResponse } from '@/features/catalogs/types/catalog.types';
 
 export interface SmartCheckResponse {
   requiredAssets: { assetId: number; assetTag: string; name: string; category: string; reason: string | null }[];
@@ -70,11 +70,23 @@ export interface Recovery {
   reason: string;
   fingerprint: string;
   lines: RecoveryLine[];
+  status: 'DRAFT' | 'PENDING' | 'COMPLETED' | 'CANCELLED' | null;
+  creatorUserId: number | null;
+  creatorName: string | null;
+  request: RecoveryRequest | null;
 }
 
 export const recoveryApi = {
   smartCheck: (body: { returnerUserId: number; assetIds: number[]; allocationIds: number[]; reason: string }) =>
     httpClient<ApiResponse<SmartCheckResponse>>('/v1/recoveries/smart-check', { method: 'POST', body: JSON.stringify(body) }),
-  complete: (body: RecoveryRequest) =>
+  create: (body: RecoveryRequest) =>
     httpClient<ApiResponse<Recovery>>('/v1/recoveries', { method: 'POST', body: JSON.stringify(body) }),
+  edit: (id: number, body: RecoveryRequest, reason = '') =>
+    httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}`, { method: 'PUT', headers: reason ? { 'X-Override-Reason': encodeURIComponent(reason.trim()) } : undefined, body: JSON.stringify(body) }),
+  submit: (id: number) => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/submit`, { method: 'POST' }),
+  withdraw: (id: number, reason = '') => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/withdraw`, { method: 'POST', headers: reason ? { 'X-Override-Reason': encodeURIComponent(reason.trim()) } : undefined }),
+  cancel: (id: number, reason = '') => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/cancel`, { method: 'POST', headers: reason ? { 'X-Override-Reason': encodeURIComponent(reason.trim()) } : undefined }),
+  confirm: (id: number) => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/confirm`, { method: 'POST' }),
+  list: (keyword = '', status = '', page = 0, size = 20) => httpClient<ApiResponse<PageResponse<Recovery>>>(`/v1/recoveries?${new URLSearchParams({ keyword, status, page: String(page), size: String(size) })}`),
+  detail: (id: number) => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}`),
 };

@@ -32,8 +32,24 @@ public class RecoveryController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RecoveryResponse> complete(@Valid @RequestBody RecoveryRequest request) {
-        var result = service.complete(request);
-        publications.afterCommit(result.transactionId(), () -> publications.onCompleted(result.transactionId(), result));
-        return ApiResponse.success(messages.getMessage("RECOVERY_COMPLETED"), result);
+        return ApiResponse.success(messages.getMessage("RECOVERY_CREATED"), service.create(request));
     }
+    @GetMapping
+    public ApiResponse<com.company.itam.common.pagination.PageResponse<RecoveryResponse>> list(
+            @RequestParam(defaultValue="") String keyword,@RequestParam(defaultValue="") String status,
+            @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) {
+        return ApiResponse.success(messages.getMessage("RECOVERY_READ"),service.list(keyword,status,page,size));
+    }
+    @GetMapping("/{id}")
+    public ApiResponse<RecoveryResponse> get(@PathVariable Long id) {return ApiResponse.success(messages.getMessage("RECOVERY_READ"),service.get(id));}
+    @PutMapping("/{id}")
+    public ApiResponse<RecoveryResponse> update(@PathVariable Long id,@Valid @RequestBody RecoveryRequest request) {return ApiResponse.success(messages.getMessage("RECOVERY_UPDATED"),service.update(id,request));}
+    @PostMapping("/{id}/submit")
+    public ApiResponse<RecoveryResponse> submit(@PathVariable Long id) {return ApiResponse.success(messages.getMessage("RECOVERY_SUBMITTED"),service.submit(id));}
+    @PostMapping("/{id}/withdraw")
+    public ApiResponse<RecoveryResponse> withdraw(@PathVariable Long id) {return ApiResponse.success(messages.getMessage("RECOVERY_WITHDRAWN"),service.change(id,"withdraw"));}
+    @PostMapping("/{id}/cancel")
+    public ApiResponse<RecoveryResponse> cancel(@PathVariable Long id) {return ApiResponse.success(messages.getMessage("RECOVERY_CANCELLED"),service.change(id,"cancel"));}
+    @PostMapping("/{id}/confirm")
+    public ApiResponse<RecoveryResponse> confirm(@PathVariable Long id) {return ApiResponse.success(messages.getMessage("RECOVERY_COMPLETED"),service.confirm(id));}
 }

@@ -17,8 +17,18 @@ public record RecoveryResponse(
     LocalDate recoveryDate,
     String reason,
     String fingerprint,
-    List<RecoveryLine> lines
+    List<RecoveryLine> lines,
+    String status,
+    Long creatorUserId,
+    String creatorName,
+    RecoveryRequest request
 ) {
+    public RecoveryResponse(Long transactionId, String transactionCode, Instant completedAt,
+            Long returnerUserId, String returnerName, String returnerEmail, Long receivingLocationId,
+            String receivingLocationName, LocalDate recoveryDate, String reason, String fingerprint, List<RecoveryLine> lines) {
+        this(transactionId,transactionCode,completedAt,returnerUserId,returnerName,returnerEmail,
+            receivingLocationId,receivingLocationName,recoveryDate,reason,fingerprint,lines,null,null,null,null);
+    }
     public record RecoveryLine(
         Long assetId,
         String assetTag,

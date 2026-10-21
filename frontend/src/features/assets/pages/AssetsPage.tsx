@@ -421,7 +421,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     </td>
 
                     {/* Status */}
-                    <td>{getStatusBadge(asset.statusCode, asset.statusName)} {asset.pendingHandover && <span className="badge badge-warning">{t('assets:pendingHandover')}</span>}</td>
+                    <td>{getStatusBadge(asset.statusCode, asset.statusName)} {asset.pendingHandover && <span className="badge badge-warning">{t('assets:pendingHandover')}</span>} {asset.pendingRecovery && <span className="badge badge-warning">{t('assets:pendingRecovery')}</span>}</td>
 
                     {/* Assignment / Location */}
                     <td style={{ fontSize: '12px' }}>

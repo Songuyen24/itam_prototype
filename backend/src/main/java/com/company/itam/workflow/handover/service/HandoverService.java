@@ -156,7 +156,7 @@ public class HandoverService {
         for(var l:preview.lines()) if(!"LICENSE".equals(l.category())) reserved.add(l.assetId());
         for(var l:req.licenses()) if(l.deviceId()!=null) reserved.add(l.deviceId());
         for(var assetId:reserved) {
-            if(assets.hasPendingHandover(assetId)) fail("ASSET_NOT_AVAILABLE");
+            if(assets.hasPendingHandover(assetId)||assets.hasPendingRecovery(assetId)) fail("ASSET_NOT_AVAILABLE");
             jdbc.update("INSERT INTO handover_asset_reservations(asset_id,transaction_id) VALUES (?,?)",assetId,id);
         }
         for(var l:req.licenses()) {
@@ -305,7 +305,7 @@ public class HandoverService {
             if(a.getLicenseDetails()==null || !LicenseCodes.PER_USER.equals(a.getLicenseDetails().getAssignmentType().getCode())) fail("HANDOVER_LICENSE_SELECTION");
             if(allocations.usedSeats(l.assetId())+l.seats()>a.getLicenseDetails().getSeatCount()) fail("LICENSE_CAPACITY_EXCEEDED");
             if(l.deviceId()!=null) {
-                var device=asset(l.deviceId());
+                var device=asset(l.deviceId());if(assets.hasPendingRecovery(l.deviceId()))fail("RECOVERY_ASSET_RESERVED");
                 if(l.seats()!=1 || category(device)!=AssetCategory.DEVICE || (!selected.contains(l.deviceId()) &&
                         (device.getStatus().getCode()!=AssetStatus.IN_USE || device.getAssignedTo()==null || !device.getAssignedTo().getUserId().equals(req.recipientUserId())))) fail("HANDOVER_LICENSE_SELECTION");
             }

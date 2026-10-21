@@ -8,7 +8,7 @@
   "colDate": "Recovery Date",
   "colLocation": "Receiving Location",
   "colAssets": "Assets",
-  "hint": "Recover assets from users. The system will check component and license relationships before completing.",
+  "hint": "Create a recovery for one returner; check asset relationships before submitting for collection.",
   "searchAssets": "Search for returner",
   "searchLocations": "Search for receiving location",
   "selectDevices": "Select devices to recover",
@@ -34,7 +34,7 @@
   "selectedStandalone": "selected separately",
   "keepAttached": "Keep Attached",
   "detach": "Detach",
-  "complete": "Complete Recovery",
+  "complete": "Save Draft",
   "back": "Back",
   "success": "Recovery completed successfully!",
   "emptySelection": "No assets selected",
@@ -65,4 +65,16 @@
   "retry": "Retry",
   "allocation": "Allocation #{{id}}",
   "requiredComponents": "Components to recover"
+  ,"searchHistory": "Search recoveries"
+  ,"filterStatus": "Status"
+  ,"allStatuses": "All"
+  ,"details": "Details"
+  ,"edit": "Edit draft"
+  ,"submit": "Submit for collection"
+  ,"withdraw": "Withdraw to draft"
+  ,"cancel": "Cancel recovery"
+  ,"cancelConfirm": "Cancel this recovery?"
+  ,"confirmPhysical": "Confirm assets received"
+  ,"confirmPhysicalHint": "Check the assets physically received before completing recovery."
+  ,"status": { "DRAFT": "Draft", "PENDING": "Pending", "COMPLETED": "Completed", "CANCELLED": "Cancelled" }
 }

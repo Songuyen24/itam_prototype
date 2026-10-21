@@ -56,6 +56,7 @@ public class LicenseAllocationService {
         for (Long id:new java.util.TreeSet<>(java.util.List.of(licenseId,deviceId))) lock(id);
         var a=allocations.findById(allocationId).orElseThrow();
         var device=assets.findById(deviceId).orElseThrow();
+        if(assets.hasPendingRecovery(deviceId)||reserved(allocationId)) fail("RECOVERY_ASSET_RESERVED");
         if (a.getStatus()!=LicenseAllocationStatus.ACTIVE || a.getDevice()!=null || a.getSeatCount()!=1
                 || !LicenseCodes.PER_USER.equals(a.getLicense().getLicenseDetails().getAssignmentType().getCode())
                 || device.getType().getCategory().getCode()!=com.company.itam.common.enums.AssetCategory.DEVICE
@@ -84,6 +85,7 @@ public class LicenseAllocationService {
         lock(licenseId);
         var a=allocations.findById(allocationId).orElseThrow();
         if (a.getStatus()!=LicenseAllocationStatus.ACTIVE || !LicenseCodes.PER_USER.equals(a.getLicense().getLicenseDetails().getAssignmentType().getCode())) fail("LICENSE_WORKFLOW_REQUIRED");
+        if(reserved(allocationId)) fail("RECOVERY_ASSET_RESERVED");
         checkTransaction(recoveryId,"RECOVERY",a.getUser().getUserId());
         checkLine(recoveryId,a.getLicense().getAssetId());
         relationships.findByAllocationAllocationId(allocationId).ifPresent(r->{
@@ -95,6 +97,9 @@ public class LicenseAllocationService {
         a.setStatus(LicenseAllocationStatus.RELEASED); a.setReleasedAt(Instant.now()); a.setRecoveryTransactionId(recoveryId);
         audit.record(a.getLicense().getAssetId(),"RELEASE_SEATS",actor,null,Map.of("allocationId",allocationId,"seats",a.getSeatCount(),"transactionId",recoveryId));
         allocations.flush();
+    }
+    private boolean reserved(Long id) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM recovery_allocation_reservations WHERE allocation_id=?)",Boolean.class,id));
     }
     private AssetEntity lock(Long id) {
         return assets.lockById(id).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND"));

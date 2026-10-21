@@ -99,9 +99,12 @@ public class AssetService {
         var ids = page.getContent().stream().map(AssetEntity::getAssetId).toList();
         var pending = ids.isEmpty() ? java.util.Set.<Long>of()
                 : new java.util.HashSet<>(assetRepository.pendingHandoverAssetIds(ids));
+        var recovering = ids.isEmpty() ? java.util.Set.<Long>of()
+                : new java.util.HashSet<>(assetRepository.pendingRecoveryAssetIds(ids));
         return PageResponse.of(page.map(asset -> {
             var response = assetMapper.toResponse(asset);
             response.setPendingHandover(pending.contains(asset.getAssetId()));
+            response.setPendingRecovery(recovering.contains(asset.getAssetId()));
             return response;
         }));
     }
@@ -174,6 +177,7 @@ public class AssetService {
         }
         var response = assetMapper.toDetailResponse(asset);
         if (canReadInventory(authentication)) response.setPendingHandover(assetRepository.hasPendingHandover(id));
+        if (canReadInventory(authentication)) response.setPendingRecovery(assetRepository.hasPendingRecovery(id));
         if (asset.getLicenseDetails()!=null) response.setLicense(licenses.response(asset, canReadInventory(authentication)));
         if (!canReadInventory(authentication)) {
             response.setCreatedByUserId(null); response.setCreatedByFullName(null);
@@ -339,6 +343,9 @@ public class AssetService {
 
         if (assetRepository.hasPendingHandover(id)) {
             throw new AppException(HttpStatus.CONFLICT, "HANDOVER_ASSET_RESERVED", "HANDOVER_ASSET_RESERVED");
+        }
+        if (assetRepository.hasPendingRecovery(id)) {
+            throw new AppException(HttpStatus.CONFLICT, "RECOVERY_ASSET_RESERVED", "RECOVERY_ASSET_RESERVED");
         }
         if (receiving ? asset.getStatus().getCode() != AssetStatus.PENDING_IMPORT
                 : (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT || assetRepository.hasActiveReceiving(id))) {

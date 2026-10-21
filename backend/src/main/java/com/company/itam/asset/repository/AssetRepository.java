@@ -32,6 +32,10 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long>, JpaSp
     boolean hasActiveReceiving(@Param("id") Long id);
     @Query(value="SELECT EXISTS(SELECT 1 FROM handover_asset_reservations WHERE asset_id=:id) OR EXISTS(SELECT 1 FROM transaction_assets ta JOIN transactions t USING(transaction_id) WHERE ta.asset_id=:id AND t.type='HANDOVER' AND t.status='PENDING')",nativeQuery=true)
     boolean hasPendingHandover(@Param("id") Long id);
+    @Query(value="SELECT EXISTS(SELECT 1 FROM recovery_asset_reservations WHERE asset_id=:id)",nativeQuery=true)
+    boolean hasPendingRecovery(@Param("id") Long id);
+    @Query(value="SELECT asset_id FROM recovery_asset_reservations WHERE asset_id IN (:ids)",nativeQuery=true)
+    java.util.List<Long> pendingRecoveryAssetIds(@Param("ids") java.util.Collection<Long> ids);
     @Query(value="SELECT DISTINCT ta.asset_id FROM transaction_assets ta JOIN transactions t USING(transaction_id) WHERE ta.asset_id IN (:ids) AND t.type='HANDOVER' AND t.status='PENDING'",nativeQuery=true)
     java.util.List<Long> pendingHandoverAssetIds(@Param("ids") java.util.Collection<Long> ids);
     boolean existsByAssetTag(String assetTag);

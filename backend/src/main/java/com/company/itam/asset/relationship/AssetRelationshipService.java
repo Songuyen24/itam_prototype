@@ -44,6 +44,7 @@ public class AssetRelationshipService {
         var locked=new HashMap<Long,AssetEntity>();
         for (Long id:new TreeSet<>(List.of(parentId,childId))) locked.put(id,assets.lockById(id).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND")));
         var parent=locked.get(parentId); var child=locked.get(childId);
+        if (assets.hasPendingRecovery(parentId) || assets.hasPendingRecovery(childId)) fail("RECOVERY_ASSET_RESERVED");
         if (assets.hasPendingHandover(parentId)
                 || (category(child)!=AssetCategory.LICENSE && assets.hasPendingHandover(childId))) fail("HANDOVER_ASSET_RESERVED");
         if (category(parent)!=AssetCategory.DEVICE || (type==RelationshipType.COMPONENT_OF?category(child)!=AssetCategory.COMPONENT:category(child)!=AssetCategory.LICENSE)) fail("RELATIONSHIP_INVALID");
@@ -75,6 +76,7 @@ public class AssetRelationshipService {
                 r.getAllocation()==null?null:r.getAllocation().getAllocationId(),reason==null,reason);
     }
     private String blocked(AssetRelationshipEntity r) {
+        if (assets.hasPendingRecovery(r.getParentAsset().getAssetId()) || assets.hasPendingRecovery(r.getChildAsset().getAssetId())) return "RECOVERY_ASSET_RESERVED";
         if (assets.hasPendingHandover(r.getParentAsset().getAssetId())
                 || (category(r.getChildAsset())!=AssetCategory.LICENSE && assets.hasPendingHandover(r.getChildAsset().getAssetId())))
             return "HANDOVER_ASSET_RESERVED";
