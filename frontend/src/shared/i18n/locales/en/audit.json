@@ -1,0 +1,30 @@
+{
+  "title": "Activity log",
+  "asset": "Asset ID",
+  "actor": "Actor ID",
+  "from": "From date",
+  "to": "Through date",
+  "action": "Action type",
+  "all": "All",
+  "filter": "Filter",
+  "time": "Time",
+  "target": "Target",
+  "result": "Result",
+  "changes": "Changes",
+  "unknown": "Unknown",
+  "success": "Success",
+  "failure": "Failed",
+  "empty": "No matching events",
+  "error": "Could not load activity log",
+  "previous": "Previous page",
+  "next": "Next page",
+  "page": "Page {{page}} / {{total}} ({{count}} events)",
+  "actions": {
+    "LOGIN_SUCCESS": "Sign in", "LOGIN_FAILED": "Failed sign in", "LOGIN_BLOCKED": "Blocked sign in", "LOGIN_ACCESS_DENIED": "Denied sign in", "LOGOUT": "Sign out",
+    "PROFILE_CREATED": "Create profile", "PROFILE_UPDATED": "Update profile", "PROFILE_STATUS_CHANGED": "Change profile status",
+    "ACCOUNT_CREATED": "Create account", "ACCOUNT_UPDATED": "Update account", "ACCESS_CHANGED": "Change access", "PASSWORD_CHANGED": "Change password", "PASSWORD_RESET": "Reset password",
+    "HANDOVER_CREATED": "Create handover", "HANDOVER_UPDATED": "Update handover", "HANDOVER_SUBMITTED": "Submit handover", "HANDOVER_COMPLETED": "Complete handover",
+    "RECOVERY_CREATED": "Create recovery", "RECOVERY_UPDATED": "Update recovery", "RECOVERY_SUBMITTED": "Submit recovery", "RECOVERY_COMPLETED": "Complete recovery",
+    "DISPOSAL_APPROVED": "Approve disposal", "IMPORT_EXCEL": "Import Excel", "REPORT_PERMISSION_UPDATED": "Change report permission"
+  }
+}

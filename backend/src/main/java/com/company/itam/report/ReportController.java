@@ -9,7 +9,8 @@ import java.util.*;
 @RequestMapping("/v1/reports")
 public class ReportController {
     private final ReportService service;
-    public ReportController(ReportService service) {this.service=service;}
+    private final com.company.itam.audit.service.DownloadAuditService downloads;
+    public ReportController(ReportService service, com.company.itam.audit.service.DownloadAuditService downloads) {this.service=service;this.downloads=downloads;}
     private ReportAccessService.Group group(String value) {
         try {return ReportAccessService.Group.valueOf(value.toUpperCase(Locale.ROOT));}
         catch(IllegalArgumentException e) {throw new com.company.itam.common.exception.AppException(HttpStatus.BAD_REQUEST,"VALIDATION_ERROR","Invalid report group");}
@@ -35,8 +36,10 @@ public class ReportController {
         @RequestParam(defaultValue="created") String dateField,@RequestParam(required=false) LocalDate from,
         @RequestParam(required=false) LocalDate to) {
         var selected=group(group);
+        byte[] content = service.export(selected,new ReportService.Filter(type,status,departmentId,locationId,userId,actorId,dateField,from,to,0,20));
+        downloads.record("MASTER_DATA", 0L, "REPORT_EXPORTED_" + selected.name());
         return ResponseEntity.ok().contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
             .header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename=itam-"+selected.name().toLowerCase(Locale.ROOT)+".xlsx")
-            .cacheControl(CacheControl.noStore()).body(service.export(selected,new ReportService.Filter(type,status,departmentId,locationId,userId,actorId,dateField,from,to,0,20)));
+            .cacheControl(CacheControl.noStore()).body(content);
     }
 }

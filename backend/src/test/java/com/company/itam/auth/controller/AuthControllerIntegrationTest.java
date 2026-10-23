@@ -1,6 +1,7 @@
 package com.company.itam.auth.controller;
 
 import com.company.itam.auth.security.JwtTokenProvider;
+import com.company.itam.audit.service.AuthenticationAuditService;
 import com.company.itam.common.enums.AccountStatus;
 import com.company.itam.common.enums.Role;
 import com.company.itam.common.exception.AppException;
@@ -44,6 +45,8 @@ class AuthControllerIntegrationTest {
 
     @MockBean
     private UserRepository userRepository;
+    @MockBean
+    private AuthenticationAuditService authenticationAudit;
 
     private UserEntity adminUser;
 

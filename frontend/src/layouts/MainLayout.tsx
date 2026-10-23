@@ -36,6 +36,7 @@ function MainLayout() {
           {['ADMIN','IT_STAFF','PUR_STAFF'].includes(user?.role || '') && <NavLink to="/reports" className="nav-link">{t('nav.reports', 'Report')}</NavLink>}
           {['ADMIN', 'IT_STAFF', 'PUR_STAFF'].includes(user?.role || '') && <NavLink to="/employee-profiles" className={({isActive})=>`nav-link ${isActive?'active':''}`}>{t('auth:management.profiles')}</NavLink>}
           {user?.role === 'ADMIN' && <NavLink to="/accounts" className={({isActive})=>`nav-link ${isActive?'active':''}`}>{t('auth:management.accounts')}</NavLink>}
+          {user?.role === 'ADMIN' && <NavLink to="/audit-logs" className={({isActive})=>`nav-link ${isActive?'active':''}`}>{t('audit:title')}</NavLink>}
           {canViewInventory && (
             <NavLink
               to="/catalogs"

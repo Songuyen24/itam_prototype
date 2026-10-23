@@ -15,6 +15,7 @@ import { DocumentsPage } from '@/features/documents/pages/DocumentsPage';
 import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
 import { DisposalsPage } from '@/features/disposal/pages/DisposalsPage';
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
+import { AuditLogsPage } from '@/features/audit/AuditLogsPage';
 
 function AppRoutes() {
   const { user, token } = useAuth();
@@ -73,6 +74,7 @@ function AppRoutes() {
         <Route path="account" element={<Navigate to={homePath} replace />} />
         <Route path="employee-profiles" element={<ProtectedRoute allowedRoles={['ADMIN', 'IT_STAFF', 'PUR_STAFF']}><EmployeeProfilesPage /></ProtectedRoute>} />
         <Route path="accounts" element={<ProtectedRoute allowedRoles={['ADMIN']}><AccountsPage /></ProtectedRoute>} />
+        <Route path="audit-logs" element={<ProtectedRoute allowedRoles={['ADMIN']}><AuditLogsPage /></ProtectedRoute>} />
         <Route path="user-access" element={<ProtectedRoute allowedRoles={['ADMIN']}><Navigate to="/accounts" replace /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to={homePath} replace />} />
       </Route>

@@ -15,9 +15,11 @@ import java.nio.charset.StandardCharsets;
 public class TransactionPublicationController {
     private final TransactionPublicationService service;
     private final MessageHelper messages;
+    private final com.company.itam.audit.service.DownloadAuditService downloads;
 
-    public TransactionPublicationController(TransactionPublicationService service, MessageHelper messages) {
-        this.service = service; this.messages = messages;
+    public TransactionPublicationController(TransactionPublicationService service, MessageHelper messages,
+            com.company.itam.audit.service.DownloadAuditService downloads) {
+        this.service = service; this.messages = messages; this.downloads = downloads;
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF','PUR_STAFF')")
@@ -30,6 +32,7 @@ public class TransactionPublicationController {
     @GetMapping("/pdf")
     public ResponseEntity<ByteArrayResource> download(@PathVariable Long id) {
         var download = service.latestPdf(id);
+        downloads.record("TRANSACTION", id, "PDF_DOWNLOADED");
         String fileName = download.document().originalFileName().replaceAll("[\\p{Cntrl}/\\\\]", "_");
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).contentLength(download.content().length)
                 .cacheControl(CacheControl.noStore())
