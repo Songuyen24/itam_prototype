@@ -78,6 +78,7 @@ public class SecurityConfig {
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "USER")
                     .requestMatchers(HttpMethod.GET, "/v1/users", "/v1/users/*", "/v1/users/*/holdings",
                             "/api/v1/users", "/api/v1/users/*", "/api/v1/users/*/holdings").hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                    .requestMatchers("/v1/reports/**", "/api/v1/reports/**").hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
                     .requestMatchers("/v1/accounts/**", "/api/v1/accounts/**").hasAuthority("ADMIN")
                     .requestMatchers("/v1/**", "/api/v1/**").hasAnyAuthority("ADMIN", "IT_STAFF")
                     .anyRequest().permitAll()

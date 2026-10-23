@@ -1,3 +1,4 @@
+import { ReportsPage } from '@/features/reports/ReportsPage';
 import { HandoversPage } from '@/features/handover/pages/HandoversPage';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
@@ -67,6 +68,7 @@ function AppRoutes() {
         <Route path="handovers" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><HandoversPage /></ProtectedRoute>} />
         <Route path="recoveries" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><RecoveriesPage /></ProtectedRoute>} />
         <Route path="disposals" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><DisposalsPage /></ProtectedRoute>} />
+        <Route path="reports" element={<ProtectedRoute allowedRoles={['ADMIN', 'IT_STAFF', 'PUR_STAFF']}><ReportsPage /></ProtectedRoute>} />
         <Route path="dashboard" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><DashboardPage /></ProtectedRoute>} />
         <Route path="account" element={<Navigate to={homePath} replace />} />
         <Route path="employee-profiles" element={<ProtectedRoute allowedRoles={['ADMIN', 'IT_STAFF', 'PUR_STAFF']}><EmployeeProfilesPage /></ProtectedRoute>} />

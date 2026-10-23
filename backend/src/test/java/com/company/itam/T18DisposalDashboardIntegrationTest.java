@@ -253,20 +253,20 @@ class T18DisposalDashboardIntegrationTest {
         mvc.perform(get("/v1/dashboard/summary").with(role("PUR_STAFF"))).andExpect(status().isForbidden());
         mvc.perform(get("/v1/reports/assets/export").with(role("IT_STAFF"))).andExpect(status().isForbidden());
 
-        byte[] bytes = mvc.perform(get("/v1/reports/assets/export").with(role("ADMIN")))
+        byte[] bytes = mvc.perform(get("/v1/reports/assets/export").header("Accept-Language","en").with(role("ADMIN")))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
         try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(bytes))) {
             var sheet = workbook.getSheetAt(0);
-            assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("Asset Tag");
-            assertThat(sheet.getRow(0).getCell(10).getStringCellValue()).isEqualTo("Available Seats");
+            assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("Asset tag");
+            assertThat(sheet.getRow(0).getCell(17).getStringCellValue()).isEqualTo("Available seats (whole package)");
             boolean found = false, licenseFound = false;
             for (int row = 1; row <= sheet.getLastRowNum(); row++) {
                 if (sheet.getRow(row).getCell(0).getStringCellValue().equals(tag(oldStock))) found = true;
                 if (sheet.getRow(row).getCell(0).getStringCellValue().equals(tag(license))) {
                     licenseFound = true;
-                    assertThat(sheet.getRow(row).getCell(9).getNumericCellValue()).isEqualTo(10);
-                    assertThat(sheet.getRow(row).getCell(10).getNumericCellValue()).isEqualTo(7);
-                    assertThat(sheet.getRow(row).getCell(11).getNumericCellValue()).isEqualTo(3);
+                    assertThat(sheet.getRow(row).getCell(14).getNumericCellValue()).isEqualTo(10);
+                    assertThat(sheet.getRow(row).getCell(17).getNumericCellValue()).isEqualTo(7);
+                    assertThat(sheet.getRow(row).getCell(15).getNumericCellValue()).isEqualTo(3);
                 }
             }
             assertThat(found).isTrue(); assertThat(licenseFound).isTrue();
