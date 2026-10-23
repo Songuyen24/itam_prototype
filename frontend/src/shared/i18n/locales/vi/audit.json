@@ -1,0 +1,30 @@
+{
+  "title": "Log thao tác",
+  "asset": "ID tài sản",
+  "actor": "ID người thao tác",
+  "from": "Từ ngày",
+  "to": "Đến ngày",
+  "action": "Loại thao tác",
+  "all": "Tất cả",
+  "filter": "Lọc",
+  "time": "Thời gian",
+  "target": "Đối tượng",
+  "result": "Kết quả",
+  "changes": "Thay đổi",
+  "unknown": "Không xác định",
+  "success": "Thành công",
+  "failure": "Thất bại",
+  "empty": "Không có log phù hợp",
+  "error": "Không tải được log thao tác",
+  "previous": "Trang trước",
+  "next": "Trang sau",
+  "page": "Trang {{page}} / {{total}} ({{count}} bản ghi)",
+  "actions": {
+    "LOGIN_SUCCESS": "Đăng nhập", "LOGIN_FAILED": "Đăng nhập thất bại", "LOGIN_BLOCKED": "Đăng nhập bị khóa", "LOGIN_ACCESS_DENIED": "Đăng nhập bị từ chối", "LOGOUT": "Đăng xuất",
+    "PROFILE_CREATED": "Tạo hồ sơ", "PROFILE_UPDATED": "Sửa hồ sơ", "PROFILE_STATUS_CHANGED": "Đổi trạng thái hồ sơ",
+    "ACCOUNT_CREATED": "Tạo tài khoản", "ACCOUNT_UPDATED": "Sửa tài khoản", "ACCESS_CHANGED": "Đổi quyền truy cập", "PASSWORD_CHANGED": "Đổi mật khẩu", "PASSWORD_RESET": "Đặt lại mật khẩu",
+    "HANDOVER_CREATED": "Tạo bàn giao", "HANDOVER_UPDATED": "Sửa bàn giao", "HANDOVER_SUBMITTED": "Gửi bàn giao", "HANDOVER_COMPLETED": "Hoàn tất bàn giao",
+    "RECOVERY_CREATED": "Tạo thu hồi", "RECOVERY_UPDATED": "Sửa thu hồi", "RECOVERY_SUBMITTED": "Gửi thu hồi", "RECOVERY_COMPLETED": "Hoàn tất thu hồi",
+    "DISPOSAL_APPROVED": "Duyệt thanh lý", "IMPORT_EXCEL": "Nhập Excel", "REPORT_PERMISSION_UPDATED": "Đổi quyền báo cáo"
+  }
+}

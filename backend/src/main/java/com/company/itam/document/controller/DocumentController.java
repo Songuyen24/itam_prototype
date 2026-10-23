@@ -34,10 +34,13 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final MessageHelper messageHelper;
+    private final com.company.itam.audit.service.DownloadAuditService downloads;
 
-    public DocumentController(DocumentService documentService, MessageHelper messageHelper) {
+    public DocumentController(DocumentService documentService, MessageHelper messageHelper,
+            com.company.itam.audit.service.DownloadAuditService downloads) {
         this.documentService = documentService;
         this.messageHelper = messageHelper;
+        this.downloads = downloads;
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'PUR_STAFF')")
@@ -61,6 +64,7 @@ public class DocumentController {
     @GetMapping("/{id}/download")
     public ResponseEntity<ByteArrayResource> download(@PathVariable Long id) {
         DocumentDownload download = documentService.download(id);
+        downloads.record("DOCUMENT", id, "DOCUMENT_DOWNLOADED");
         DocumentResponse document = download.document();
         String filename = document.originalFileName().replaceAll("[\\p{Cntrl}/\\\\]", "_");
         String mimeType = document.mimeType();

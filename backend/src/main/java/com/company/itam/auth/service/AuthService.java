@@ -5,6 +5,7 @@ import com.company.itam.auth.dto.response.CurrentUserResponse;
 import com.company.itam.auth.dto.response.LoginResponse;
 import com.company.itam.auth.dto.response.LoginUserInfo;
 import com.company.itam.auth.security.JwtTokenProvider;
+import com.company.itam.audit.service.AuthenticationAuditService;
 import com.company.itam.common.exception.AppException;
 import com.company.itam.role.entity.RoleEntity;
 import com.company.itam.user.entity.UserEntity;
@@ -33,15 +34,18 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticationAuditService authenticationAudit;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtTokenProvider jwtTokenProvider
+            JwtTokenProvider jwtTokenProvider,
+            AuthenticationAuditService authenticationAudit
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.authenticationAudit = authenticationAudit;
     }
 
     /**
@@ -56,6 +60,7 @@ public class AuthService {
         String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase(java.util.Locale.ROOT);
         UserEntity user = userRepository.findByLogin(email)
                 .orElseThrow(() -> {
+                    authenticationAudit.record(null, "LOGIN_FAILED");
                     log.debug("Đăng nhập thất bại: email '{}' không tồn tại", email);
                     return new AppException(
                             HttpStatus.UNAUTHORIZED,
@@ -66,6 +71,7 @@ public class AuthService {
 
         if (user.getPasswordHash() == null
                 || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            authenticationAudit.record(user, "LOGIN_FAILED");
             log.debug("Đăng nhập thất bại: mật khẩu không khớp cho email '{}'", email);
             throw new AppException(
                     HttpStatus.UNAUTHORIZED,
@@ -75,6 +81,7 @@ public class AuthService {
         }
 
         if (user.isLoginBlocked()) {
+            authenticationAudit.record(user, "LOGIN_BLOCKED");
             log.debug("Từ chối đăng nhập: tài khoản '{}' đã bị khóa", email);
             throw new AppException(
                     HttpStatus.UNAUTHORIZED,
@@ -84,6 +91,7 @@ public class AuthService {
         }
 
         if (!user.canLogin()) {
+            authenticationAudit.record(user, "LOGIN_ACCESS_DENIED");
             throw new AppException(HttpStatus.UNAUTHORIZED, "LOGIN_ACCESS_NOT_GRANTED", "LOGIN_ACCESS_NOT_GRANTED");
         }
         RoleEntity role = user.getRole();
@@ -98,6 +106,7 @@ public class AuthService {
         );
         info.setUsername(user.getUsername());
         info.setEmployeeCode(user.getEmployeeCode());
+        authenticationAudit.record(user, "LOGIN_SUCCESS");
         return new LoginResponse(token, info);
     }
 
@@ -134,6 +143,9 @@ public class AuthService {
      * Đăng xuất: với prototype, đơn giản trả về thành công. Client phải xóa token.
      */
     public void logout() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        userRepository.findByPrincipal(authentication == null ? null : authentication.getName())
+                .ifPresent(user -> authenticationAudit.record(user, "LOGOUT"));
         SecurityContextHolder.clearContext();
     }
 }

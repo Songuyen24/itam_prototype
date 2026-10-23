@@ -23,7 +23,7 @@ public class AuditLogEntity {
     @JoinColumn(name = "transaction_id")
     private TransactionEntity transaction;
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "actor_user_id", nullable = false)
+    @JoinColumn(name = "actor_user_id")
     private UserEntity actor;
     @Column(name = "action", nullable = false, length = 50)
     private String action;

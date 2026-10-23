@@ -4,6 +4,7 @@ import com.company.itam.auth.dto.request.LoginRequest;
 import com.company.itam.auth.dto.response.CurrentUserResponse;
 import com.company.itam.auth.dto.response.LoginResponse;
 import com.company.itam.auth.security.JwtTokenProvider;
+import com.company.itam.audit.service.AuthenticationAuditService;
 import com.company.itam.common.enums.AccountStatus;
 import com.company.itam.common.enums.Role;
 import com.company.itam.common.exception.AppException;
@@ -41,6 +42,8 @@ class AuthServiceTest {
 
     @Mock
     private JwtTokenProvider jwtTokenProvider;
+    @Mock
+    private AuthenticationAuditService authenticationAudit;
 
     @InjectMocks
     private AuthService authService;
