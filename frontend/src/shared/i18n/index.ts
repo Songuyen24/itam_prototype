@@ -1,3 +1,5 @@
+import viReports from './locales/vi/reports.json';
+import enReports from './locales/en/reports.json';
 import viHandover from './locales/vi/handover.json';
 import enHandover from './locales/en/handover.json';
 import i18n from 'i18next';
@@ -36,6 +38,7 @@ export const resources = {
     recovery: viRecovery,
     disposal: viDisposal,
     dashboard: viDashboard,
+    reports: viReports,
   },
   en: {
     common: enCommon,
@@ -48,6 +51,7 @@ export const resources = {
     recovery: enRecovery,
     disposal: enDisposal,
     dashboard: enDashboard,
+    reports: enReports,
   },
 } as const;
 
@@ -65,7 +69,7 @@ i18n
     resources,
     fallbackLng: DEFAULT_LANGUAGE,
     defaultNS: 'common',
-    ns: ['common', 'auth', 'catalogs', 'assets', 'imports', 'documents', 'handover', 'recovery', 'disposal', 'dashboard'],
+    ns: ['common', 'auth', 'catalogs', 'assets', 'imports', 'documents', 'handover', 'recovery', 'disposal', 'dashboard', 'reports'],
     detection: {
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: 'itam_language',
