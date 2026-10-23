@@ -1,5 +1,6 @@
 {
   "systemTitle": "HỆ THỐNG QUẢN LÝ VÀ THEO DÕI VÒNG ĐỜI TÀI SẢN CNTT",
+  "search": { "title": "Tìm kiếm chung", "placeholder": "Mã, serial, tài sản hoặc nhân viên", "loading": "Đang tìm...", "empty": "Không có kết quả.", "error": "Không thể tìm kiếm. Hãy thử lại.", "allAssets": "Xem tất cả {{count}} tài sản", "allProfiles": "Xem tất cả {{count}} hồ sơ" },
   "version": "Phiên bản: 1.0.0 (ITAM Bilingual)",
   "language": {
     "vi": "Tiếng Việt",

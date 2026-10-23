@@ -26,14 +26,20 @@ import { AssetDetailModal } from '../components/AssetDetailModal';
 import { AssetImportModal } from '../components/AssetImportModal';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { canManageInventory } from '@/features/auth/permissions';
+import { useSearchParams } from 'react-router-dom';
 
 export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false }) => {
   const { t } = useTranslation(['assets', 'common']);
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const canManageAssets = !myAssets && canManageInventory(user?.role);
   const canCreateBaseline = canManageAssets;
   // Filters & Pagination
-  const [keyword, setKeyword] = useState('');
+  const [keyword, setKeyword] = useState(searchParams.get('keyword') ?? '');
+  useEffect(() => {
+    setKeyword(searchParams.get('keyword') ?? ''); setCurrentPage(0);
+    setStatusId(undefined); setTypeId(undefined); setModelId(undefined); setDepartmentId(undefined); setLocationId(undefined);
+  }, [searchParams]);
   const [statusId, setStatusId] = useState<number | undefined>();
   const [typeId, setTypeId] = useState<number | undefined>();
   const [modelId, setModelId] = useState<number | undefined>();

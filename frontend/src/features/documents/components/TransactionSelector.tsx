@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { documentApi } from '../api/documentApi';
-import { DocumentTransaction, TransactionStatus, TransactionType } from '../types/document.types';
+import { DocumentTransaction, TransactionType } from '../types/document.types';
 import { DocumentPagination } from './DocumentPagination';
 
 interface TransactionSelectorProps {
@@ -16,7 +16,7 @@ export function TransactionSelector({ selectedId, onSelect, receiving=false }: T
   const { user } = useAuth();
   const [keyword, setKeyword] = useState('');
   const [type, setType] = useState<TransactionType | ''>('');
-  const [status, setStatus] = useState<TransactionStatus | ''>(receiving&&user?.role==='IT_STAFF'?'PENDING':'');
+  const [tab, setTab] = useState<'DRAFT' | 'PENDING' | 'FINAL'>(receiving&&user?.role==='IT_STAFF'?'PENDING':'DRAFT');
   const [page, setPage] = useState(0);
   const [transactions, setTransactions] = useState<DocumentTransaction[]>([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -30,7 +30,8 @@ export function TransactionSelector({ selectedId, onSelect, receiving=false }: T
     setLoading(true);
     setError(null);
     setTransactions([]);
-    documentApi.getTransactions({ keyword, type: receiving || user?.role === 'PUR_STAFF' ? 'IMPORT' : type || undefined, status: status || undefined, page, size: 8 })
+    documentApi.getTransactions({ keyword, type: receiving || user?.role === 'PUR_STAFF' ? 'IMPORT' : type || undefined,
+      statuses: tab === 'FINAL' ? ['COMPLETED', 'REJECTED', 'CANCELLED'] : [tab], page, size: 8 })
       .then((response) => {
         if (!active) return;
         if (!response.success || !response.data) throw new Error(response.message || t('errors.transactions'));
@@ -43,11 +44,16 @@ export function TransactionSelector({ selectedId, onSelect, receiving=false }: T
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [keyword, type, status, page, reload, user?.role, receiving, t]);
+  }, [keyword, type, tab, page, reload, user?.role, receiving, t]);
 
   return (
     <section className="document-transactions" aria-labelledby="document-transactions-title">
       <h2 id="document-transactions-title">{t('transactionsTitle')}</h2>
+      <div className="document-tabs" role="tablist" aria-label={t('fields.status')}>
+        {(['DRAFT', 'PENDING', 'FINAL'] as const).map((value) => <button key={value} type="button" role="tab"
+          aria-selected={tab === value} className={tab === value ? 'is-active' : ''}
+          onClick={() => { setTab(value); setPage(0); }}>{t(`tabs.${value}`)}</button>)}
+      </div>
       <div className="document-filters">
         <label className="form-label" htmlFor="document-keyword">{t('fields.transactionCode')}</label>
         <input id="document-keyword" className="form-input" type="search" value={keyword}
@@ -62,15 +68,6 @@ export function TransactionSelector({ selectedId, onSelect, receiving=false }: T
               ))}
             </select>
           </label>}
-          <label className="form-label">
-            {t('fields.status')}
-            <select className="form-select" value={status} onChange={(event) => { setStatus(event.target.value as TransactionStatus | ''); setPage(0); }}>
-              <option value="">{t('filters.allStatuses')}</option>
-              {(['DRAFT', 'PENDING', 'COMPLETED', 'REJECTED', 'CANCELLED'] as const).map((value) => (
-                <option key={value} value={value}>{t(`statuses.${value}`)}</option>
-              ))}
-            </select>
-          </label>
         </div>
       </div>
       <div aria-busy={loading} className="document-transaction-list">
@@ -84,7 +81,7 @@ export function TransactionSelector({ selectedId, onSelect, receiving=false }: T
                 <button key={transaction.transactionId} type="button" className={`document-transaction-row ${transaction.transactionId === selectedId ? 'is-selected' : ''}`}
                   aria-pressed={transaction.transactionId === selectedId} onClick={() => onSelect(transaction.transactionId)}>
                   <span className="document-transaction-code">{transaction.transactionCode}</span>
-                  <span>{t(`transactionTypes.${transaction.type}`)} / {t(`statuses.${transaction.status}`)}</span>
+                  <span>{t(`transactionTypes.${transaction.type}`)} / <span className={`document-status document-status-${transaction.status.toLowerCase()}`}>{t(`statusTags.${transaction.status}`)}</span></span>
                   <time dateTime={transaction.createdAt}>{new Date(transaction.createdAt).toLocaleDateString(i18n.language)}</time>
                 </button>
               ))}

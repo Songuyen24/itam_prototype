@@ -5,14 +5,17 @@ import { managementApi, type EmployeeProfile, type ProfileInput } from '../api/m
 import type { HeldAsset } from '../api/managementApi';
 import type { Department } from '@/features/catalogs/types/catalog.types';
 import { departmentApi } from '@/features/catalogs/api/catalogApi';
+import { useSearchParams } from 'react-router-dom';
 
 const emptyForm: ProfileInput = { fullName: '', employeeCode: '', email: null, departmentId: null };
 
 export function EmployeeProfilesPage() {
   const { t } = useTranslation('auth');
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'IT_STAFF';
-  const [keyword, setKeyword] = useState('');
+  const [keyword, setKeyword] = useState(searchParams.get('keyword') ?? '');
+  useEffect(() => { setKeyword(searchParams.get('keyword') ?? ''); setPage(0); }, [searchParams]);
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const [profiles, setProfiles] = useState<EmployeeProfile[]>([]);

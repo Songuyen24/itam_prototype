@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { AssetsPage } from '@/features/assets/pages/AssetsPage';
+import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('@/features/auth/contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -17,6 +18,6 @@ vi.mock('react-i18next', () => ({
 
 describe('Asset baseline permissions', () => {
   it('shows the baseline asset action to IT Staff', () => {
-    expect(renderToStaticMarkup(<AssetsPage />)).toContain('actions.addBaselineAsset');
+    expect(renderToStaticMarkup(<MemoryRouter><AssetsPage /></MemoryRouter>)).toContain('actions.addBaselineAsset');
   });
 });

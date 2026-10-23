@@ -1,5 +1,6 @@
 {
   "systemTitle": "IT ASSET LIFECYCLE MANAGEMENT SYSTEM",
+  "search": { "title": "Global search", "placeholder": "Tag, serial, asset or employee", "loading": "Searching...", "empty": "No results.", "error": "Search failed. Try again.", "allAssets": "View all {{count}} assets", "allProfiles": "View all {{count}} profiles" },
   "version": "Version: 1.0.0 (ITAM Bilingual)",
   "language": {
     "vi": "Tiếng Việt",

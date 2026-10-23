@@ -146,7 +146,7 @@ async function httpClient<T>(
   return data;
 }
 
-async function downloadFile(endpoint: string, fallbackFilename: string): Promise<void> {
+async function fetchFileBlob(endpoint: string): Promise<Blob> {
   const url = `${API_BASE_URL}${endpoint}`;
   const currentLang = getCurrentLanguage();
 
@@ -181,6 +181,11 @@ async function downloadFile(endpoint: string, fallbackFilename: string): Promise
 
   const blob = await response.blob();
   assertCurrentSession(token, revision, currentLang);
+  return blob;
+}
+
+async function downloadFile(endpoint: string, fallbackFilename: string): Promise<void> {
+  const blob = await fetchFileBlob(endpoint);
   const downloadUrl = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = downloadUrl;
@@ -192,4 +197,4 @@ async function downloadFile(endpoint: string, fallbackFilename: string): Promise
 }
 
 export { API_BASE_URL, AUTH_TOKEN_KEY, AUTH_USER_KEY };
-export { httpClient, downloadFile };
+export { httpClient, downloadFile, fetchFileBlob };

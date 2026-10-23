@@ -18,6 +18,21 @@
   min-width: 0;
 }
 
+.document-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border-color); margin-top: 16px; }
+.document-tabs button { flex: 1; min-width: 0; padding: 10px 4px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); cursor: pointer; font: inherit; font-size: 12px; }
+.document-tabs button.is-active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+.document-status { font-weight: 600; }
+.document-status-completed { color: #16734b; }
+.document-status-rejected { color: #b64232; }
+.document-status-cancelled { color: #665b53; }
+.document-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.document-card { display: grid; align-content: start; gap: 8px; min-width: 0; padding: 14px; border: 1px solid var(--border-color); border-radius: 6px; }
+.document-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.document-preview-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 24px; background: #0009; }
+.document-preview { width: min(900px, 100%); max-height: 90vh; overflow: auto; padding: 20px; background: white; border-radius: 6px; }
+.document-preview-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; overflow-wrap: anywhere; }
+.document-preview iframe, .document-preview img { display: block; width: 100%; height: min(65vh, 640px); margin: 14px 0; border: 1px solid var(--border-color); object-fit: contain; }
+
 .documents-page h2 {
   font-size: 18px;
   overflow-wrap: anywhere;

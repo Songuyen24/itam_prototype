@@ -32,11 +32,12 @@ public class TransactionReadController {
     public ResponseEntity<ApiResponse<PageResponse<TransactionSummaryResponse>>> getTransactions(
             @RequestParam(required = false) TransactionType type,
             @RequestParam(required = false) TransactionStatus status,
+            @RequestParam(required = false) java.util.Set<TransactionStatus> statuses,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.success(messageHelper.getMessage("TRANSACTION_LIST_SUCCESS"),
-                transactionService.getTransactions(type, status, keyword, page, size)));
+                transactionService.getTransactions(type, status, statuses, keyword, page, size)));
     }
 
     @GetMapping("/{id}")

@@ -1,5 +1,5 @@
 import { ApiResponse, PageResponse } from '@/features/catalogs/types/catalog.types';
-import { downloadFile, httpClient } from '@/shared/api/httpClient';
+import { downloadFile, fetchFileBlob, httpClient } from '@/shared/api/httpClient';
 import { DocumentItem, DocumentTransaction, DocumentUploadPayload, TransactionFilters } from '../types/document.types';
 
 export const documentApi = {
@@ -7,6 +7,7 @@ export const documentApi = {
     const params = new URLSearchParams({ page: String(filters.page ?? 0), size: String(filters.size ?? 10) });
     if (filters.type) params.set('type', filters.type);
     if (filters.status) params.set('status', filters.status);
+    if (filters.statuses?.length) params.set('statuses', filters.statuses.join(','));
     if (filters.keyword?.trim()) params.set('keyword', filters.keyword.trim());
     return httpClient(`/v1/transactions?${params}`);
   },
@@ -34,4 +35,5 @@ export const documentApi = {
 
   download: (document: Pick<DocumentItem, 'documentId' | 'originalFileName'>): Promise<void> =>
     downloadFile(`/v1/documents/${document.documentId}/download`, document.originalFileName),
+  preview: (documentId: number): Promise<Blob> => fetchFileBlob(`/v1/documents/${documentId}/download`),
 };
