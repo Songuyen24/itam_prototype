@@ -296,6 +296,26 @@ class DocumentControllerIntegrationTest {
     }
 
     @Test
+    void finishedStatusesFilterBeforePaginationAndKeepOriginalStatus() throws Exception {
+        jdbc.update("UPDATE transactions SET status='REJECTED', processed_by=?, processed_at=NOW(), completed_at=NULL, rejection_reason='Test rejection' WHERE transaction_id=?", userIds.get("IT"), recoveryId);
+        jdbc.update("UPDATE transactions SET status='CANCELLED', processed_by=NULL, processed_at=NULL, completed_at=NULL WHERE transaction_id=?", disposalId);
+        var result = mockMvc.perform(as("ADMIN", get("/v1/transactions")
+                        .param("keyword", fixturePrefix).param("statuses", "COMPLETED,REJECTED,CANCELLED")
+                        .param("size", "1")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(4))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("CANCELLED");
+        mockMvc.perform(as("PUR1", get("/v1/transactions")
+                        .param("keyword", fixturePrefix).param("statuses", "COMPLETED,REJECTED,CANCELLED")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(0));
+        mockMvc.perform(as("ADMIN", get("/v1/transactions")
+                        .param("status", "DRAFT").param("statuses", "COMPLETED,REJECTED,CANCELLED")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void unknownIdsReturnNotFoundForAuthorizedRoles() throws Exception {
         long missingId = Long.MAX_VALUE;
         for (String path : List.of("/v1/transactions/" + missingId,

@@ -9,6 +9,7 @@ import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
 import { OverrideReasonDialog } from '@/features/auth/components/OverrideReasonDialog';
 import { AccountModal } from '@/features/auth/pages/AccountPage';
 import { demoLoginEnabled } from '@/features/auth/demo';
+import { GlobalSearch } from './GlobalSearch';
 
 function MainLayout() {
   const { t } = useTranslation('common');
@@ -81,11 +82,12 @@ function MainLayout() {
       {/* Main Content Area */}
       <div className="app-content-wrapper">
         <header className="app-navbar">
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)' }}>
+          <div className="navbar-title" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)' }}>
             {t('systemTitle', 'HỆ THỐNG QUẢN LÝ VÀ THEO DÕI VÒNG ĐỜI TÀI SẢN CNTT')}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div className="navbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <GlobalSearch />
             <LanguageSwitcher />
           </div>
         </header>

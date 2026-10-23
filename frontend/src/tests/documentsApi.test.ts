@@ -26,6 +26,15 @@ describe('Document API contract', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
+  it('sends finished status group to the server before pagination', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true, data: { content: [] } }) });
+    vi.stubGlobal('fetch', fetch);
+    await documentApi.getTransactions({ statuses: ['COMPLETED', 'REJECTED', 'CANCELLED'], page: 2, size: 8 });
+    const params = new URL(fetch.mock.calls[0][0]).searchParams;
+    expect(params.get('statuses')).toBe('COMPLETED,REJECTED,CANCELLED');
+    expect(params.get('page')).toBe('2');
+  });
+
   it('scopes document pagination to the selected real transaction', async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true, data: { content: [] } }) });
     vi.stubGlobal('fetch', fetch);

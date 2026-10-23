@@ -44,6 +44,7 @@ export interface DocumentItem {
 export interface TransactionFilters {
   type?: TransactionType;
   status?: TransactionStatus;
+  statuses?: TransactionStatus[];
   keyword?: string;
   page?: number;
   size?: number;

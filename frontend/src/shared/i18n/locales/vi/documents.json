@@ -1,6 +1,8 @@
 {
   "title": "Chứng từ",
   "transactionsTitle": "Danh sách phiếu",
+  "tabs": { "DRAFT": "Nháp", "PENDING": "Chờ xử lý", "FINAL": "Đã hoàn tất" },
+  "statusTags": { "DRAFT": "Nháp", "PENDING": "Chờ xử lý", "COMPLETED": "Thành công", "REJECTED": "Từ chối", "CANCELLED": "Đã hủy" },
   "listTitle": "Chứng từ đính kèm",
   "fields": {
     "transactionCode": "Mã phiếu",
@@ -42,6 +44,8 @@
   },
   "actions": {
     "download": "Tải xuống",
+    "preview": "Xem trước",
+    "close": "Đóng",
     "downloadFile": "Tải {{name}}",
     "upload": "Tải lên",
     "uploading": "Đang tải lên...",
@@ -52,6 +56,7 @@
     "noTransactions": "Không có phiếu phù hợp.",
     "selectTransaction": "Chưa chọn phiếu.",
     "noDocuments": "Chưa có chứng từ đính kèm.",
+    "previewUnavailable": "Không thể xem trước định dạng này.",
     "readOnly": "Chỉ đọc",
     "locked": "Đã khóa",
     "downloading": "Đang tải file xuống...",

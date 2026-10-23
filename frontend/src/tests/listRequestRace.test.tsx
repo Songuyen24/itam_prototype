@@ -1,4 +1,5 @@
 import { act, create, ReactTestRenderer } from 'react-test-renderer';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -114,7 +115,7 @@ describe('list request race guards', () => {
     const oldQuery = deferred<ReturnType<typeof page>>();
     const newQuery = deferred<ReturnType<typeof page>>();
     mocks.getAssets.mockReturnValueOnce(oldQuery.promise).mockReturnValueOnce(newQuery.promise);
-    const tree = await render(<AssetsPage />);
+    const tree = await render(<MemoryRouter><AssetsPage /></MemoryRouter>);
 
     await act(async () => tree.root.findByProps({ 'data-testid': 'asset-query' }).props.onChange({ target: { value: 'new' } }));
     await act(async () => oldQuery.reject(new Error('old query failed')));
@@ -132,7 +133,7 @@ describe('list request race guards', () => {
     const oldQuery = deferred<ReturnType<typeof page>>();
     const newQuery = deferred<ReturnType<typeof page>>();
     mocks.getAssets.mockReturnValueOnce(oldQuery.promise).mockReturnValueOnce(newQuery.promise);
-    const tree = await render(<AssetsPage />);
+    const tree = await render(<MemoryRouter><AssetsPage /></MemoryRouter>);
 
     await act(async () => tree.root.findByProps({ 'data-testid': 'asset-query' }).props.onChange({ target: { value: 'new' } }));
     await act(async () => newQuery.resolve(page([{ assetId: 8, assetTag: 'NEW-ASSET', name: 'New asset', statusCode: 'IN_STOCK' }], 2, 2)));

@@ -34,8 +34,15 @@ public class TransactionReadService {
 
     public PageResponse<TransactionSummaryResponse> getTransactions(TransactionType type, TransactionStatus status,
                                                                      String keyword, int page, int size) {
+        return getTransactions(type, status, null, keyword, page, size);
+    }
+
+    public PageResponse<TransactionSummaryResponse> getTransactions(TransactionType type, TransactionStatus status,
+                                                                     java.util.Set<TransactionStatus> statuses,
+                                                                     String keyword, int page, int size) {
         accessService.requireTransactionReader();
-        if (page < 0 || size < 1 || size > 100 || (keyword != null && keyword.length() > 100)) {
+        if (page < 0 || size < 1 || size > 100 || (keyword != null && keyword.length() > 100)
+                || (status != null && statuses != null) || (statuses != null && statuses.isEmpty())) {
             throw invalidRequest();
         }
         TransactionType permittedType = type;
@@ -55,6 +62,8 @@ public class TransactionReadService {
             }
             if (status != null) {
                 predicates.add(builder.equal(root.get("status"), status));
+            } else if (statuses != null) {
+                predicates.add(root.get("status").in(statuses));
             }
             if (!search.isEmpty()) {
                 predicates.add(builder.like(builder.lower(root.get("transactionCode")), "%" + search + "%", '\\'));

@@ -20,13 +20,48 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated }: { 
   const [error, setError] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [preview, setPreview] = useState<DocumentItem | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [reload, setReload] = useState(0);
   const activeDownload = useRef(true);
+  const previewDialog = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     activeDownload.current = true;
     return () => { activeDownload.current = false; };
   }, []);
+
+  useEffect(() => { setPreview(null); }, [transactionId]);
+
+  useEffect(() => {
+    if (!preview) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    previewDialog.current?.querySelector('button')?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setPreview(null); };
+    const keepFocus = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || !previewDialog.current) return;
+      const buttons = [...previewDialog.current.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+      if (!buttons.length) return;
+      if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1].focus(); }
+      else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0].focus(); }
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('keydown', keepFocus);
+    let active = true;
+    let url: string | null = null;
+    setPreviewLoading(true);
+    setPreviewUrl(null);
+    setDownloadError(null);
+    documentApi.preview(preview.documentId).then(blob => {
+      if (!active) return;
+      url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    }).catch(cause => {
+      if (active) setDownloadError(cause instanceof Error ? cause.message : t('errors.download'));
+    }).finally(() => { if (active) setPreviewLoading(false); });
+    return () => { active = false; if (url) URL.revokeObjectURL(url); window.removeEventListener('keydown', closeOnEscape); window.removeEventListener('keydown', keepFocus); previousFocus?.focus(); };
+  }, [preview, t]);
 
   useEffect(() => {
     if (transactionId === null) return;
@@ -105,41 +140,35 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated }: { 
         <h3>{t('listTitle')}</h3>
         {downloadingId !== null && <span role="status">{t('states.downloading')}</span>}
       </div>
-      {documents.length === 0 ? <div className="empty-state">{t('states.noDocuments')}</div> : (
-        <div className="table-responsive">
-          <table className="data-table document-table">
-            <thead><tr>
-              <th scope="col">{t('fields.file')}</th>
-              <th scope="col">{t('fields.documentType')}</th>
-              <th scope="col">{t('fields.uploadedBy')}</th>
-              <th scope="col">{t('fields.actions')}</th>
-            </tr></thead>
-            <tbody>{documents.map((document) => <tr key={document.documentId}>
-              <td data-label={t('fields.file')}>
-                <div className="document-filename">{document.originalFileName}</div>
-                <div className="document-file-meta">{document.mimeType ?? t('states.notAvailable')} / {document.fileSize == null
-                  ? t('states.notAvailable')
-                  : `${new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(document.fileSize / 1024)} KB`}</div>
-                {document.assetId != null && <div className="document-file-meta">{t('fields.assetId')}: {document.assetId}</div>}
-              </td>
-              <td data-label={t('fields.documentType')}>{t(`documentTypes.${document.documentType}`)}
-                {document.locked && <div className="document-file-meta">{t('states.locked')}</div>}
-              </td>
-              <td data-label={t('fields.uploadedBy')}><div>{document.uploadedByName || t('states.notAvailable')}</div>
-                <time className="document-file-meta" dateTime={document.createdAt}>{new Date(document.createdAt).toLocaleString(i18n.language)}</time>
-              </td>
-              <td data-label={t('fields.actions')}><button type="button" className="btn btn-secondary btn-sm document-download" disabled={downloadingId !== null}
-                aria-label={t('actions.downloadFile', { name: document.originalFileName })}
-                onClick={() => void download(document)}>{t('actions.download')}</button>
-                {canUpload && <button type="button" className="btn btn-secondary btn-sm" onClick={() => {
-                  if (!window.confirm(t('draft.detachConfirm'))) return;
-                  void documentApi.detach(document.documentId, transaction.transactionId, transaction.expectedVersion!)
-                    .then(refresh).catch(cause => setDownloadError(cause.message));
-                }}>{t('draft.detach')}</button>}</td>
-            </tr>)}</tbody>
-          </table>
+      {documents.length === 0 ? <div className="empty-state">{t('states.noDocuments')}</div> :
+        <div className="document-cards">{documents.map(document => <article className="document-card" key={document.documentId}>
+          <strong className="document-filename">{document.originalFileName}</strong>
+          <span>{t(`documentTypes.${document.documentType}`)}{document.locked ? ` · ${t('states.locked')}` : ''}</span>
+          <span className="document-file-meta">{document.mimeType ?? t('states.notAvailable')} · {document.fileSize == null ? t('states.notAvailable') : `${new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(document.fileSize / 1024)} KB`}</span>
+          {document.assetId != null && <span className="document-file-meta">{t('fields.assetId')}: {document.assetId}</span>}
+          <span className="document-file-meta">{document.uploadedByName || t('states.notAvailable')} · {new Date(document.createdAt).toLocaleString(i18n.language)}</span>
+          <div className="document-card-actions">
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPreview(document)}>{t('actions.preview')}</button>
+            <button type="button" className="btn btn-secondary btn-sm" disabled={downloadingId !== null}
+              aria-label={t('actions.downloadFile', { name: document.originalFileName })} onClick={() => void download(document)}>{t('actions.download')}</button>
+            {canUpload && <button type="button" className="btn btn-secondary btn-sm" onClick={() => {
+              if (!window.confirm(t('draft.detachConfirm'))) return;
+              void documentApi.detach(document.documentId, transaction.transactionId, transaction.expectedVersion!)
+                .then(refresh).catch(cause => setDownloadError(cause.message));
+            }}>{t('draft.detach')}</button>}
+          </div>
+        </article>)}</div>}
+      {preview && <div className="document-preview-backdrop" onClick={() => setPreview(null)}>
+        <div ref={previewDialog} role="dialog" aria-modal="true" aria-label={preview.originalFileName} className="document-preview" onClick={event => event.stopPropagation()}>
+          <div className="document-preview-heading"><strong>{preview.originalFileName}</strong><button type="button" className="btn btn-secondary btn-sm" onClick={() => setPreview(null)}>{t('actions.close')}</button></div>
+          <p>{t(`documentTypes.${preview.documentType}`)} · {preview.uploadedByName || t('states.notAvailable')} · {new Date(preview.createdAt).toLocaleString(i18n.language)}</p>
+          {downloadError && <p role="alert">{downloadError}</p>}
+          {previewLoading ? <p role="status">{t('states.loading')}</p> : previewUrl && (preview.mimeType === 'application/pdf'
+            ? <iframe title={preview.originalFileName} src={previewUrl} />
+            : preview.mimeType?.startsWith('image/') ? <img src={previewUrl} alt={preview.originalFileName} /> : <p>{t('states.previewUnavailable')}</p>)}
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void download(preview)}>{t('actions.download')}</button>
         </div>
-      )}
+      </div>}
       <DocumentPagination page={page} totalPages={totalPages} totalElements={totalElements} loading={loading} onPageChange={setPage} />
     </section>
   );

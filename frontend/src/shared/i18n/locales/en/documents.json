@@ -1,6 +1,8 @@
 {
   "title": "Documents",
   "transactionsTitle": "Transactions",
+  "tabs": { "DRAFT": "Draft", "PENDING": "Pending", "FINAL": "Finished" },
+  "statusTags": { "DRAFT": "Draft", "PENDING": "Pending", "COMPLETED": "Successful", "REJECTED": "Rejected", "CANCELLED": "Cancelled" },
   "listTitle": "Attached documents",
   "fields": {
     "transactionCode": "Transaction code",
@@ -42,6 +44,8 @@
   },
   "actions": {
     "download": "Download",
+    "preview": "Preview",
+    "close": "Close",
     "downloadFile": "Download {{name}}",
     "upload": "Upload",
     "uploading": "Uploading...",
@@ -52,6 +56,7 @@
     "noTransactions": "No matching transactions.",
     "selectTransaction": "No transaction selected.",
     "noDocuments": "No attached documents.",
+    "previewUnavailable": "Preview is unavailable for this file type.",
     "readOnly": "Read-only",
     "locked": "Locked",
     "downloading": "Downloading file...",
