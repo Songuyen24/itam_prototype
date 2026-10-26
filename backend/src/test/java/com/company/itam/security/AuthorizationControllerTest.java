@@ -15,6 +15,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,6 +75,10 @@ class AuthorizationControllerTest {
         ownAssetId = createAsset("OWN", users.get("USER"));
         otherAssetId = createAsset("OTHER", users.get("OTHER_USER"));
         warehouseAssetId = createAsset("WAREHOUSE", null);
+        // Commit only fixture setup: login audit runs in its own transaction.
+        TestTransaction.flagForCommit();
+        TestTransaction.end();
+        TestTransaction.start();
     }
 
     @Test
