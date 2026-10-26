@@ -37,7 +37,7 @@ describe('i18n Bilingual Framework', () => {
     expect(i18n.t('common:systemTitle')).toBe('HỆ THỐNG QUẢN LÝ VÀ THEO DÕI VÒNG ĐỜI TÀI SẢN CNTT');
     expect(i18n.t('catalogs:tabs.departments')).toBe('Phòng ban');
     expect(i18n.t('assets:fields.assetTag')).toBe('Mã tài sản');
-    expect(i18n.t('imports:steps.upload')).toBe('1. Chọn file Excel');
+    expect(i18n.t('imports:steps.upload')).toBe('1. Chọn Excel / PDF');
   });
 
   it('should switch language to English and resolve English translations', async () => {
@@ -47,7 +47,7 @@ describe('i18n Bilingual Framework', () => {
     expect(i18n.t('common:systemTitle')).toBe('IT ASSET LIFECYCLE MANAGEMENT SYSTEM');
     expect(i18n.t('catalogs:tabs.departments')).toBe('Departments');
     expect(i18n.t('assets:fields.assetTag')).toBe('Asset Tag');
-    expect(i18n.t('imports:steps.upload')).toBe('1. Select Excel File');
+    expect(i18n.t('imports:steps.upload')).toBe('1. Select Excel / PDF');
   });
 
   it('getCurrentLanguage should read from localStorage and fallback to "vi"', () => {

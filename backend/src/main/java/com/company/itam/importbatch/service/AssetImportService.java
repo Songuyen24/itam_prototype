@@ -55,6 +55,8 @@ public class AssetImportService {
     private com.company.itam.workflow.receiving.service.ImportDraftService drafts;
     @org.springframework.beans.factory.annotation.Autowired
     private com.company.itam.asset.service.LicenseDetailsService licenses;
+    @org.springframework.beans.factory.annotation.Autowired
+    private PdfAssetReader pdfReader;
     private final ExcelHelperService excelHelperService;
     private final AssetImportValidator assetImportValidator;
     private final ImportBatchRepository importBatchRepository;
@@ -110,6 +112,14 @@ public class AssetImportService {
 
     public ImportPreviewResponse preview(MultipartFile file) {
         List<Map<String, Object>> rawRows = excelHelperService.parseExcel(file);
+        return previewRows(file.getOriginalFilename(), rawRows);
+    }
+
+    public ImportPreviewResponse previewPdf(MultipartFile file) {
+        return previewRows(file.getOriginalFilename(), pdfReader.read(file));
+    }
+
+    public ImportPreviewResponse previewRows(String fileName, List<Map<String,Object>> rawRows) {
         List<ImportRowDetailResponse> validatedRows = assetImportValidator.validateRows(rawRows);
 
         int total = validatedRows.size();
@@ -118,7 +128,7 @@ public class AssetImportService {
         int invalid = total - valid - duplicate;
 
         return new ImportPreviewResponse(
-                file.getOriginalFilename(),
+                fileName,
                 total,
                 valid,
                 invalid,
@@ -320,7 +330,7 @@ public class AssetImportService {
             assetAudit.setEntityId(savedAsset.getAssetId());
             assetAudit.setActor(currentUser);
             assetAudit.setAction("CREATED_VIA_IMPORT");
-            assetAudit.setDetails("Tạo tài sản từ file Excel: " + request.getFileName() + " (Lô: #" + savedBatch.getImportBatchId() + ")");
+            assetAudit.setDetails("Tạo tài sản từ file nhập liệu: " + request.getFileName() + " (Lô: #" + savedBatch.getImportBatchId() + ")");
             auditLogRepository.save(assetAudit);
         }
 
@@ -347,7 +357,7 @@ public class AssetImportService {
         batchAudit.setEntityType("IMPORT_BATCH");
         batchAudit.setEntityId(savedBatch.getImportBatchId());
         batchAudit.setActor(currentUser);
-        batchAudit.setAction("IMPORT_EXCEL");
+        batchAudit.setAction(request.getFileName().toLowerCase(Locale.ROOT).endsWith(".pdf") ? "IMPORT_PDF" : "IMPORT_EXCEL");
         batchAudit.setDetails("Nhập thành công " + validCount + " tài sản từ file " + request.getFileName());
         auditLogRepository.save(batchAudit);
 

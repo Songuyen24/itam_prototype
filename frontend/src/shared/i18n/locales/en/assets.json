@@ -8,7 +8,7 @@
   "actions": {
     "addAsset": "Add Asset",
     "addBaselineAsset": "Add opening inventory asset",
-    "importExcel": "Import Excel",
+    "importExcel": "Excel / PDF",
     "exportExcel": "Export Excel"
   },
   "fields": {

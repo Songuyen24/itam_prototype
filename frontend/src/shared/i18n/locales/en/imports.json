@@ -1,20 +1,20 @@
 {
-  "title": "Add assets from Excel",
+  "title": "Add assets from Excel / PDF",
   "subtitle": "Supports .xlsx, .xls files up to 1,000 rows",
   "steps": {
-    "upload": "1. Select Excel File",
+    "upload": "1. Select Excel / PDF",
     "preview": "2. Validate & Preview",
     "completed": "3. Import Result"
   },
   "upload": {
-    "dragDrop": "Drag and drop Excel file here or",
+    "dragDrop": "Drop an Excel / PDF file here or",
     "browseFile": "Browse file from computer",
-    "supports": "Supported formats: .xlsx, .xls (Max 10MB, up to 1,000 rows)",
+    "supports": "Excel: max 1,000 rows. PDF text/scan: max 10 pages. Max 10 MB.",
     "fileSelected": "Selected file:",
     "downloadTemplate": "Download Standard Excel Template",
     "downloadHelp": "Template includes column structure and format guidelines",
     "btnPreview": "Continue: Validate Data",
-    "analyzing": "Analyzing and validating Excel file...",
+    "analyzing": "Reading and validating file…",
     "retryBatchId": "Previous batch ID (when resubmitting a corrected file)",
     "retryBatchPlaceholder": "Leave blank for a new import",
     "keepRowOrder": "Use the previous batch ID only to correct failed rows; keep successful row contents unchanged. Start a new import for new purchases."
@@ -42,7 +42,9 @@
     "btnBack": "Choose Another File",
     "btnConfirm": "Confirm Import ({{count}} rows)",
     "importing": "Importing records into system...",
-    "previous": "Previous", "next": "Next", "page": "Page {{page}} / {{pages}}"
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {{page}} / {{pages}}"
   },
   "completed": {
     "resultTitle": "Result by row",
@@ -61,15 +63,55 @@
     "IMPORTED": "IMPORTED"
   },
   "errors": {
-    "fileRequired": "Please select an Excel file",
-    "invalidFormat": "Only Excel file formats (.xlsx or .xls) are accepted",
+    "fileRequired": "Please select an Excel / PDF file",
+    "invalidFormat": "Select .xlsx, .xls or .pdf",
     "noValidRows": "No valid rows to import!",
     "downloadFailed": "Could not download template. Please try again later.",
-    "previewFailed": "Could not read and validate the Excel file.",
+    "previewFailed": "Could not read and validate the file.",
     "importFailed": "Could not import assets."
   },
   "openingInventory": "Import sample opening inventory. Blank tags are generated on confirmation; new purchases require a receiving transaction.",
-  "receivingTitle": "Add assets from Excel to receiving draft",
+  "receivingTitle": "Add Excel / PDF assets to receiving draft",
   "receivingHint": "Valid rows are added to the draft. IT confirms the transaction before the assets enter stock.",
-  "guide": { "title": "Import rules", "required": "Asset name and type are required; Asset Tag may be blank and is generated on confirmation.", "unique": "Asset Tag and Serial Number must be unique in the file and database.", "status": "Assets added directly enter IN_STOCK.", "license": "For licenses, enter software, assignment type, term and seat count; subscriptions need an expiry date.", "preview": "Preview does not write to the database until confirmation." }
+  "guide": {
+    "title": "Import rules",
+    "required": "Asset name and type are required; Asset Tag may be blank and is generated on confirmation.",
+    "unique": "Asset Tag and Serial Number must be unique in the file and database.",
+    "status": "Assets added directly enter IN_STOCK.",
+    "license": "For licenses, enter software, assignment type, term and seat count; subscriptions need an expiry date.",
+    "preview": "Preview does not write to the database until confirmation."
+  },
+  "fields": {
+    "assetTag": "Asset tag",
+    "name": "Asset name",
+    "type": "Asset type (catalog code/name)",
+    "model": "Model",
+    "serialNumber": "Serial number",
+    "status": "Status",
+    "condition": "Condition",
+    "department": "Department",
+    "location": "Location",
+    "supplier": "Supplier",
+    "poNumber": "PO / Invoice",
+    "purchaseDate": "Purchase date (YYYY-MM-DD)",
+    "purchaseCost": "Purchase cost",
+    "warrantyExpiration": "Warranty expiration (YYYY-MM-DD)",
+    "actualCpu": "CPU",
+    "actualRam": "RAM",
+    "actualStorage": "Storage",
+    "actualGraphicsCard": "GPU",
+    "software": "Software",
+    "licenseAssignment": "License assignment",
+    "licenseTerm": "License term",
+    "seatCount": "Seat count",
+    "licenseExpiry": "License expiry (YYYY-MM-DD)"
+  },
+  "ocr": {
+    "source": "Recognized text, page {{page}}",
+    "validate": "Validate edited rows",
+    "edit": "Edit",
+    "hint": "PDF is processed locally. Each page needs a table header using Excel column names or field keys, separated by | (use - for blank cells). Review every proposed value; PDF is not retained. Confirmation only adds valid rows; it never completes a receiving transaction.",
+    "editRow": "Edit row {{row}}",
+    "changed": "Values changed. Validate again before confirming."
+  }
 }

@@ -149,7 +149,7 @@
     "processedBy": "Processed by",
     "reason": "Rejection reason",
     "requirements": "Before submitting: add valid assets, select hardware condition, and save notes. Attach documents when available.",
-    "importExcel": "Import Excel into draft",
+    "importExcel": "Excel / PDF into draft",
     "reuse": "Choose an existing asset awaiting import",
     "search": "Search by tag, serial or name",
     "noCandidates": "No eligible assets found.",

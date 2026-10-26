@@ -149,7 +149,7 @@
     "processedBy": "Người xử lý",
     "reason": "Lý do từ chối",
     "requirements": "Trước khi gửi: thêm tài sản hợp lệ, chọn tình trạng phần cứng và lưu ghi chú. Có thể đính kèm chứng từ nếu có.",
-    "importExcel": "Nhập Excel vào phiếu",
+    "importExcel": "Nhập Excel / PDF vào phiếu",
     "reuse": "Chọn tài sản chờ nhập đã có",
     "search": "Tìm theo mã, serial hoặc tên",
     "noCandidates": "Không có tài sản phù hợp.",

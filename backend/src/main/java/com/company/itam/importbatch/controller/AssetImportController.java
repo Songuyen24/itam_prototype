@@ -57,6 +57,18 @@ public class AssetImportController {
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
+    @PostMapping(value = "/pdf/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Object previewPdf(@RequestParam("file") MultipartFile file) {
+        return ApiResponse.success(assetImportService.previewPdf(file));
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
+    @PostMapping("/validate")
+    public Object validateRows(@Valid @RequestBody ImportConfirmRequest request) {
+        return ApiResponse.success(assetImportService.previewRows(request.getFileName(), request.getValidRows()));
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ImportBatchResponse>>> getImportBatches(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
