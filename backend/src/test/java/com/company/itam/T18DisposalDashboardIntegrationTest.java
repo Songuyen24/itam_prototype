@@ -119,6 +119,13 @@ class T18DisposalDashboardIntegrationTest {
                         .contentType("application/json").content("{\"expectedFingerprint\":\"" + detail.path("fingerprint").asText() + "\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("COMPLETED"));
 
+        mvc.perform(post("/v1/disposals/{id}/approve", transactionId).with(role("ADMIN"))
+                .contentType("application/json").content(fingerprintBody(detail)))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/v1/disposals/{id}/withdraw", transactionId).with(role("ADMIN"))
+                .header("X-Override-Reason","Cannot change completed")
+                .contentType("application/json").content(fingerprintBody(detail(transactionId,"ADMIN"))))
+                .andExpect(status().isConflict());
         assertThat(assetStatus(laptop)).isEqualTo("RETIRED");
         assertThat(assetStatus(ram)).isEqualTo("RETIRED");
         assertThat(assetStatus(oem)).isEqualTo("IN_STOCK");
@@ -223,6 +230,7 @@ class T18DisposalDashboardIntegrationTest {
         mvc.perform(post("/v1/disposals/{id}/reject", pending.path("transactionId").asLong()).with(role("ADMIN"))
                         .contentType("application/json").content("{\"reason\":\"Repair first\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("REJECTED"));
+        assertThat(detail(pending.path("transactionId").asLong(), "IT_STAFF").path("rejectionReason").asText()).isNotBlank();
         assertThat(assetStatus(oldStock)).isEqualTo("IN_STOCK");
     }
 
@@ -233,6 +241,7 @@ class T18DisposalDashboardIntegrationTest {
         jdbc.update("INSERT INTO departments(code,name,is_active) VALUES (?, 'Unassigned', true) ON CONFLICT DO NOTHING", "T18U-" + UUID.randomUUID().toString().substring(0, 24));
         jdbc.update("UPDATE assets SET location_id=(SELECT location_id FROM locations WHERE name='Unassigned' LIMIT 1), department_id=(SELECT department_id FROM departments WHERE name='Unassigned' LIMIT 1) WHERE asset_id=?", oldStock);
         asset(componentType, "PENDING_IMPORT", LocalDate.now(), "Pending RAM");
+        asset(deviceType, "PENDING_IMPORT", LocalDate.now(), "Pending laptop");
         asset(deviceType, "RETIRED", LocalDate.now().minusYears(8), "Retired laptop");
         Long license = license("PER_USER", 10);
         jdbc.update("INSERT INTO license_allocations(license_asset_id,user_id,seat_count,status,created_by) VALUES (?,(SELECT user_id FROM users WHERE email='user01@itam.example'),3,'ACTIVE',?)", license, admin);
@@ -477,6 +486,123 @@ class T18DisposalDashboardIntegrationTest {
         } finally {
             jdbc.update("UPDATE users SET full_name=? WHERE user_id=?", originalActor, admin);
         }
+    }
+
+
+    @Test
+    void draftSubmitRevalidatesReservationsAndHistoryRemainsReadable() throws Exception {
+        Long device = asset(deviceType, "DAMAGED", LocalDate.now(), "M10 draft");
+        JsonNode first = createDisposal(device, true);
+        JsonNode second = createDisposal(device, true);
+        long firstId = first.path("transactionId").asLong();
+        long secondId = second.path("transactionId").asLong();
+        assertThat(first.path("status").asText()).isEqualTo("DRAFT");
+        assertThat(assetRepository.hasPendingDisposal(device)).isFalse();
+        mvc.perform(post("/v1/disposals/{id}/submit", firstId).with(role("IT_STAFF"))
+                .contentType("application/json").content(fingerprintBody(first))).andExpect(status().isOk());
+        assertThat(assetRepository.hasPendingDisposal(device)).isTrue();
+        assertThat(assetStatus(device)).isEqualTo("DAMAGED");
+        JsonNode readable = detail(secondId, "IT_STAFF");
+        mvc.perform(post("/v1/disposals/{id}/submit", secondId).with(role("IT_STAFF"))
+                .contentType("application/json").content(fingerprintBody(readable)))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DISPOSAL_ALREADY_PENDING"));
+        mvc.perform(post("/v1/disposals/{id}/cancel", firstId).with(role("IT_STAFF"))
+                .contentType("application/json").content(fingerprintBody(detail(firstId,"IT_STAFF"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/v1/disposals/{id}/withdraw", firstId).with(role("IT_STAFF"))
+                .contentType("application/json").content(fingerprintBody(detail(firstId,"IT_STAFF"))))
+                .andExpect(status().isOk());
+        assertThat(assetRepository.hasPendingDisposal(device)).isFalse();
+        mvc.perform(post("/v1/disposals/{id}/submit", secondId).with(role("IT_STAFF"))
+                .contentType("application/json").content(fingerprintBody(detail(secondId,"IT_STAFF"))))
+                .andExpect(status().isOk());
+        mvc.perform(post("/v1/disposals/{id}/cancel", firstId).with(role("IT_STAFF"))
+                .contentType("application/json").content(fingerprintBody(detail(firstId,"IT_STAFF"))))
+                .andExpect(status().isOk());
+        assertThat(detail(firstId,"IT_STAFF").path("status").asText()).isEqualTo("CANCELLED");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id IN (?,?)", Integer.class, firstId, secondId)).isZero();
+    }
+
+    @Test
+    void draftSubmitRechecksEligibilityAndCreationIsItOnly() throws Exception {
+        Long device = asset(deviceType, "DAMAGED", LocalDate.now(), "M10 eligibility");
+        JsonNode draft = createDisposal(device, true);
+        for (String denied : new String[]{"ADMIN", "PUR_STAFF", "USER"}) {
+            mvc.perform(post("/v1/disposals/draft").with(role(denied)).contentType("application/json")
+                    .content("{\"assetIds\":[" + device + "],\"reason\":\"test\",\"disposalDate\":\"2026-10-26\",\"expectedFingerprint\":\"x\"}"))
+                    .andExpect(status().isForbidden());
+        }
+        jdbc.update("UPDATE assets SET status_id=(SELECT status_id FROM asset_statuses WHERE code='IN_STOCK'),purchase_date=CURRENT_DATE WHERE asset_id=?", device);
+        long id = draft.path("transactionId").asLong();
+        mvc.perform(post("/v1/disposals/{id}/submit", id).with(role("IT_STAFF"))
+                .contentType("application/json").content(fingerprintBody(detail(id,"IT_STAFF"))))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DISPOSAL_ASSET_NOT_ELIGIBLE"));
+        assertThat(assetRepository.hasPendingDisposal(device)).isFalse();
+    }
+
+    @Test
+    void adminOverrideNeedsReasonAndReleasesDisposalReservation() throws Exception {
+        Long device = asset(deviceType, "DAMAGED", LocalDate.now(), "M10 pending");
+        JsonNode pending = createDisposal(device, false);
+        long id = pending.path("transactionId").asLong();
+        Long component = asset(componentType, "IN_STOCK", LocalDate.now(), "M10 linked component");
+        mvc.perform(post("/v1/assets/{id}/relationships",device).with(role("IT_STAFF"))
+                .contentType("application/json").content(json.writeValueAsString(java.util.Map.of("childAssetId",component,"type","COMPONENT_OF"))))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DISPOSAL_ALREADY_PENDING"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/v1/assets/{id}",device)
+                .with(role("IT_STAFF")).contentType("application/json").content(json.writeValueAsString(
+                        java.util.Map.of("name","Changed", "typeId",deviceType,"expectedVersion",0))))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DISPOSAL_ALREADY_PENDING"));
+        mvc.perform(get("/v1/assets/{id}",device).with(role("IT_STAFF")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.pendingDisposal").value(true));
+        mvc.perform(post("/v1/disposals/{id}/cancel", id).with(role("ADMIN"))
+                .contentType("application/json").content(fingerprintBody(pending)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("OVERRIDE_REASON_REQUIRED"));
+        mvc.perform(post("/v1/disposals/{id}/cancel", id).with(role("ADMIN")).header("X-Override-Reason","Duplicate request")
+                .contentType("application/json").content(fingerprintBody(pending)))
+                .andExpect(status().isOk());
+        assertThat(assetRepository.hasPendingDisposal(device)).isFalse();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE transaction_id=? AND action='ADMIN_OVERRIDE'", Integer.class,id)).isOne();
+    }
+
+    @Test
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    void concurrentDraftSubmissionsReserveAssetExactlyOnce() throws Exception {
+        Long device = asset(deviceType, "DAMAGED", LocalDate.now(), "M10 concurrent submit");
+        JsonNode first = createDisposal(device, true);
+        JsonNode second = createDisposal(device, true);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var results = new java.util.ArrayList<java.util.concurrent.Future<Integer>>();
+            for (JsonNode draft : java.util.List.of(first, second)) {
+                results.add(pool.submit(() -> {
+                    await(start);
+                    return mvc.perform(post("/v1/disposals/{id}/submit",draft.path("transactionId").asLong())
+                            .with(role("IT_STAFF")).contentType("application/json").content(fingerprintBody(draft)))
+                            .andReturn().getResponse().getStatus();
+                }));
+            }
+            start.countDown();
+            assertThat(java.util.List.of(results.get(0).get(20,java.util.concurrent.TimeUnit.SECONDS),
+                    results.get(1).get(20,java.util.concurrent.TimeUnit.SECONDS))).containsExactlyInAnyOrder(200,409);
+        }
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_assets a JOIN transactions t USING(transaction_id) WHERE a.asset_id=? AND t.status='PENDING'",Integer.class,device)).isOne();
+        assertThat(assetStatus(device)).isEqualTo("DAMAGED");
+    }
+
+    private JsonNode createDisposal(Long assetId, boolean draft) throws Exception {
+        JsonNode check = body(mvc.perform(post("/v1/disposals/smart-check").with(role("IT_STAFF"))
+                .contentType("application/json").content("{\"assetIds\":[" + assetId + "]}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("data");
+        return body(mvc.perform(post(draft ? "/v1/disposals/draft" : "/v1/disposals").with(role("IT_STAFF"))
+                .contentType("application/json").content(json.writeValueAsString(java.util.Map.of(
+                        "assetIds",java.util.List.of(assetId),"reason","Prototype disposal","disposalDate","2026-10-26",
+                        "expectedFingerprint",check.path("fingerprint").asText()))))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).path("data");
+    }
+
+    private String fingerprintBody(JsonNode value) throws Exception {
+        return json.writeValueAsString(java.util.Map.of("expectedFingerprint",value.path("fingerprint").asText()));
     }
 
     private org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.UserRequestPostProcessor role(String role) {

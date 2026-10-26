@@ -7,7 +7,7 @@ export interface PerUserLink extends OemAllocation { userName: string; }
 export interface DisposalCheck { assets: DisposalAsset[]; warnings: string[]; fingerprint: string; oemAllocations?: OemAllocation[]; }
 export interface Disposal {
   transactionId: number; transactionCode: string; status: 'DRAFT' | 'PENDING' | 'COMPLETED' | 'REJECTED' | 'CANCELLED'; requesterId?: number;
-  actorName: string; reason: string; disposalDate: string; createdAt: string; assets: DisposalAsset[]; warnings: string[];
+  rejectionReason?: string | null; actorName: string; reason: string; disposalDate: string; createdAt: string; assets: DisposalAsset[]; warnings: string[];
   perUserLinks: PerUserLink[]; oemAllocations: OemAllocation[]; fingerprint: string;
 }
 export interface DisposalRequest { assetIds: number[]; reason: string; disposalDate: string; expectedFingerprint: string; expectedTransactionFingerprint?: string; }
@@ -18,6 +18,7 @@ export const disposalApi = {
   listPending: (page = 0) => httpClient<ApiResponse<PageResponse<TransactionSummary>>>(`/v1/transactions?type=DISPOSAL&status=PENDING&page=${page}&size=50`),
   smartCheck: (assetIds: number[]) => httpClient<ApiResponse<DisposalCheck>>('/v1/disposals/smart-check', { method: 'POST', body: JSON.stringify({ assetIds }) }),
   create: (body: DisposalRequest) => httpClient<ApiResponse<Disposal>>('/v1/disposals', { method: 'POST', body: JSON.stringify(body) }),
+  createDraft: (body: DisposalRequest) => httpClient<ApiResponse<Disposal>>('/v1/disposals/draft', { method: 'POST', body: JSON.stringify(body) }),
   detail: (id: number) => httpClient<ApiResponse<Disposal>>(`/v1/disposals/${id}`),
   edit: (id: number, body: DisposalRequest) => httpClient<ApiResponse<Disposal>>(`/v1/disposals/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   transition: (value: Disposal, action: 'withdraw'|'submit'|'cancel') => httpClient<ApiResponse<Disposal>>(`/v1/disposals/${value.transactionId}/${action}`, { method: 'POST', body: JSON.stringify({expectedFingerprint:value.fingerprint}) }),

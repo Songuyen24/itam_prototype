@@ -86,6 +86,7 @@ public class LicenseAllocationService {
         var a=allocations.findById(allocationId).orElseThrow();
         if (a.getStatus()!=LicenseAllocationStatus.ACTIVE || !LicenseCodes.PER_USER.equals(a.getLicense().getLicenseDetails().getAssignmentType().getCode())) fail("LICENSE_WORKFLOW_REQUIRED");
         if(reserved(allocationId)) fail("RECOVERY_ASSET_RESERVED");
+        if (a.getDevice() != null && assets.hasPendingDisposal(a.getDevice().getAssetId())) fail("DISPOSAL_ALREADY_PENDING");
         checkTransaction(recoveryId,"RECOVERY",a.getUser().getUserId());
         checkLine(recoveryId,a.getLicense().getAssetId());
         relationships.findByAllocationAllocationId(allocationId).ifPresent(r->{
@@ -102,7 +103,9 @@ public class LicenseAllocationService {
         return Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM recovery_allocation_reservations WHERE allocation_id=?)",Boolean.class,id));
     }
     private AssetEntity lock(Long id) {
-        return assets.lockById(id).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
+        var asset = assets.lockById(id).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
+        if (assets.hasPendingDisposal(id)) fail("DISPOSAL_ALREADY_PENDING");
+        return asset;
     }
     private void capacity(AssetEntity license,int seats) {
         if (license.getLicenseDetails()==null || license.getStatus().getCode()!=AssetStatus.IN_STOCK || seats<1) fail("LICENSE_WORKFLOW_REQUIRED");

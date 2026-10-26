@@ -40,6 +40,12 @@ public class DisposalController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(messages.getMessage("DISPOSAL_CREATED"), result));
     }
 
+    @PostMapping("/draft")
+    public ResponseEntity<ApiResponse<DisposalResponse>> createDraft(@Valid @RequestBody CreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success(messages.getMessage("DISPOSAL_CREATED"), service.createDraft(request)));
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<DisposalResponse> get(@PathVariable Long id) {
         return ApiResponse.success(messages.getMessage("DISPOSAL_READ"), service.get(id));
@@ -53,7 +59,11 @@ public class DisposalController {
     @PostMapping("/{id}/{action:withdraw|submit|cancel}")
     public ApiResponse<DisposalResponse> transition(@PathVariable Long id, @PathVariable String action,
                                                   @Valid @RequestBody ApproveRequest request) {
-        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"),service.transition(id,action,request.expectedFingerprint()));
+        var result = service.transition(id, action, request.expectedFingerprint());
+        if ("submit".equals(action)) {
+            publications.afterCommit(id, () -> publications.onDisposalPending(id));
+        }
+        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"), result);
     }
 
     @PostMapping("/{id}/per-user")

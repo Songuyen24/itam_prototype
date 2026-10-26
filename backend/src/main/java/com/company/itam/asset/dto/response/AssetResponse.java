@@ -6,6 +6,9 @@ import java.time.LocalDate;
 
 public class AssetResponse {
     private boolean pendingHandover;
+    private boolean pendingDisposal;
+    public boolean isPendingDisposal() { return pendingDisposal; }
+    public void setPendingDisposal(boolean value) { pendingDisposal = value; }
     private boolean pendingRecovery;
     public boolean isPendingRecovery() { return pendingRecovery; }
     public void setPendingRecovery(boolean value) { pendingRecovery = value; }

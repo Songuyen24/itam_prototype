@@ -27,14 +27,15 @@ function DisposalDialog({ title, busy = false, restoreFocusRef, onClose, childre
   </dialog>;
 }
 
-export function DisposalReview({ value, editing = false, saving, error, restoreFocusRef, onCancel, onConfirm }: {
-  value: DisposalCheck; editing?: boolean; saving: boolean; error?: string; restoreFocusRef?: RefObject<HTMLElement>; onCancel: () => void; onConfirm: () => void;
+export function DisposalReview({ value, editing = false, saving, error, restoreFocusRef, onCancel, onConfirm, onSaveDraft }: {
+  value: DisposalCheck; editing?: boolean; saving: boolean; error?: string; restoreFocusRef?: RefObject<HTMLElement>; onCancel: () => void; onConfirm: () => void; onSaveDraft?: () => void;
 }) {
   const { t } = useTranslation('disposal');
   const warningText = (warning: string) => warning.startsWith('PER_USER_LINKED:')
     ? t('perUserWarning', { assetTag: warning.slice('PER_USER_LINKED:'.length) }) : warning;
   return <DisposalDialog title={t('reviewTitle')} busy={saving} restoreFocusRef={restoreFocusRef} onClose={onCancel} footer={<>
     <button className="btn btn-secondary" disabled={saving} onClick={onCancel}>{t('cancel')}</button>
+    {!editing && onSaveDraft && <button className="btn btn-secondary" disabled={saving} onClick={onSaveDraft}>{t('saveDraft')}</button>}
     <button className="btn btn-primary" disabled={saving} onClick={onConfirm}>{saving ? t('saving') : t(editing?'saveDraft':'confirmCreate')}</button>
   </>}>
     {error && <div className="alert-banner alert-danger" role="alert">{error}</div>}
@@ -79,9 +80,11 @@ export function DisposalDetail({ value, role, userId, onTransition, onEdit, deci
   </>}>
     {error && <div className="alert-banner alert-danger" role="alert">{error}</div>}
     <dl className="disposal-metadata">
+      <div><dt>{t('state')}</dt><dd>{t(`common:status.${value.status}`)}</dd></div>
       <div><dt>{t('code')}</dt><dd>{value.transactionCode}</dd></div>
       <div><dt>{t('requester')}</dt><dd>{value.actorName}</dd></div>
       <div><dt>{t('reason')}</dt><dd>{value.reason}</dd></div>
+      {value.rejectionReason && <div><dt>{t('rejectReason')}</dt><dd>{value.rejectionReason}</dd></div>}
       <div><dt>{t('date')}</dt><dd>{value.disposalDate}</dd></div>
       <div><dt>{t('createdAt')}</dt><dd>{value.createdAt}</dd></div>
     </dl>
@@ -100,6 +103,6 @@ export function DisposalDetail({ value, role, userId, onTransition, onEdit, deci
     </section>}
     {action === 'approve' && <section className="decision-confirm" role="alertdialog" aria-labelledby="approve-confirm-title"><h3 id="approve-confirm-title">{t('approveTitle')}</h3><p>{t('approveHint')}</p><div className="pending-actions"><button className="btn btn-secondary" disabled={saving} onClick={() => onChooseAction(null)}>{t('cancel')}</button><button className="btn btn-primary" disabled={saving} onClick={onApprove}>{t('confirmApprove')}</button></div></section>}
     {action === 'reject' && <section className="decision-confirm" role="alertdialog" aria-labelledby="reject-confirm-title"><h3 id="reject-confirm-title">{t('rejectTitle')}</h3><label className="form-group"><span className="form-label required">{t('rejectReason')}</span><textarea className="form-textarea" required value={rejectReason} onChange={event => onRejectReason(event.target.value)} /></label><div className="pending-actions"><button className="btn btn-secondary" disabled={saving} onClick={() => onChooseAction(null)}>{t('cancel')}</button><button className="btn btn-danger" disabled={saving || !rejectReason.trim()} onClick={onReject}>{t('confirmReject')}</button></div></section>}
-    <PublicationPanel transactionId={value.transactionId} />
+    {value.status === 'COMPLETED' && <PublicationPanel transactionId={value.transactionId} />}
   </DisposalDialog>;
 }

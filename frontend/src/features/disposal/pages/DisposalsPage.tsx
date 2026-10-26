@@ -77,14 +77,14 @@ export function DisposalsPage() {
     finally { setSaving(false); }
   };
 
-  const create = async () => {
+  const create = async (draft = false) => {
     if (!createReview) return;
     setSaving(true); setError('');
     try {
       const body={ assetIds: selected, reason, disposalDate: date, expectedFingerprint: createReview.fingerprint, expectedTransactionFingerprint: editingFingerprint };
-      if(editingId) await disposalApi.edit(editingId,body); else await disposalApi.create(body);
+      if(editingId) await disposalApi.edit(editingId,body); else if (draft) await disposalApi.createDraft(body); else await disposalApi.create(body);
       setEditingId(null);
-      setNotice(t(editingId?'savedDraft':'created')); setCreateReview(null); setSelected([]); setReason(''); setReload(value => value + 1);
+      setNotice(t(editingId || draft ? 'savedDraft' : 'created')); if (draft) setListStatus('DRAFT'); setCreateReview(null); setSelected([]); setReason(''); setReload(value => value + 1);
     } catch (cause) { setError(cause instanceof Error ? cause.message : t('error')); }
     finally { setSaving(false); }
   };
@@ -96,14 +96,8 @@ export function DisposalsPage() {
     try {
       const next = (await disposalApi.detail(id)).data;
       if (request === detailRequest.current) {
-        if (next.status === 'PENDING' || next.status === 'DRAFT') {
-          setDetail(next);
-          setDecisions(Object.fromEntries(next.perUserLinks.map(link => [link.allocationId, true])));
-        } else {
-          setDetail(null);
-          if (pending.length === 1 && pendingPage > 0) setPendingPage(page => page - 1);
-          else setReload(count => count + 1);
-        }
+        setDetail(next);
+        setDecisions(Object.fromEntries(next.perUserLinks.map(link => [link.allocationId, true])));
       }
     } catch (cause) { if (request === detailRequest.current) setError(cause instanceof Error ? cause.message : t('error')); }
     finally { if (request === detailRequest.current) setDetailLoading(false); }
@@ -147,7 +141,7 @@ export function DisposalsPage() {
     {error && <div className="alert-banner alert-danger" role="alert">{error}</div>}
     {notice && <div className="alert-banner alert-success">{notice}</div>}
     <div className="t18-columns">
-      <section className="content-card t18-section">
+      {(user?.role === 'IT_STAFF' || editingId !== null) && <section className="content-card t18-section">
         <h2>{t('createTitle')}</h2>
         {editingId&&<p>{t('editDraft')} #{editingId} <button className="btn btn-secondary" onClick={()=>{setEditingId(null);setSelected([]);setReason('');}}>{t('cancel')}</button></p>}
         <form onSubmit={submit}>
@@ -165,10 +159,10 @@ export function DisposalsPage() {
           <label className="form-group"><span className="form-label required">{t('date')}</span><input className="form-input" type="date" required value={date} onChange={event => setDate(event.target.value)} /></label>
           <button className="btn btn-primary" disabled={saving || selected.length === 0}>{saving ? t('saving') : t('smartCheck')}</button>
         </form>
-      </section>
+      </section>}
       <section className="content-card t18-section">
         <h2>{t('pendingTitle')}</h2>
-        <label>{t('state')}<select className="form-input" value={listStatus} onChange={e=>{setListStatus(e.target.value);setPendingPage(0);}}><option value="PENDING">{t('common:status.PENDING')}</option><option value="DRAFT">{t('common:status.DRAFT')}</option></select></label>
+        <label>{t('state')}<select className="form-input" value={listStatus} onChange={e=>{setListStatus(e.target.value);setPendingPage(0);}}>{['PENDING','DRAFT','COMPLETED','REJECTED','CANCELLED'].map(status => <option key={status} value={status}>{t(`common:status.${status}`)}</option>)}</select></label>
         {!pendingLoading && pending.length === 0 && <p className="empty-state">{t('noPending')}</p>}
         {pending.map(item => <div className="pending-row" key={item.transactionId}><div><strong>{item.transactionCode}</strong><small>{item.requesterName} · {item.createdAt}</small></div>
           <button className="btn btn-secondary btn-sm" disabled={detailLoading} onClick={event => void showDetail(item.transactionId, false, event.currentTarget)}>{t('review')}</button>
@@ -176,7 +170,7 @@ export function DisposalsPage() {
         <p>{t('documents:pagination.summary', { page: pendingPages ? pendingPage + 1 : 0, pages: pendingPages, count: pendingTotal })}</p><Pagination page={pendingPage} pages={pendingPages} loading={pendingLoading} previous={t('previous')} next={t('next')} onPage={setPendingPage} />
       </section>
     </div>
-    {createReview && <DisposalReview value={createReview} editing={!!editingId} saving={saving} error={error} restoreFocusRef={createTrigger} onCancel={() => setCreateReview(null)} onConfirm={create} />}
+    {createReview && <DisposalReview value={createReview} editing={!!editingId} saving={saving} error={error} restoreFocusRef={createTrigger} onCancel={() => setCreateReview(null)} onConfirm={() => void create()} onSaveDraft={() => void create(true)} />}
     {detail && <DisposalDetail value={detail} role={user?.role} userId={user?.id} decisions={decisions} saving={saving} error={error} restoreFocusRef={detailTrigger} action={action} rejectReason={rejectReason}
       onTransition={action=>void mutateDetail(async value=>(await disposalApi.transition(value,action)).data)}
       onEdit={()=>{setEditingId(detail.transactionId);setEditingFingerprint(detail.fingerprint);setSelected(detail.assets.filter(a=>!a.autoAdded).map(a=>a.assetId));setReason(detail.reason);setDate(detail.disposalDate);closeDetail();}}

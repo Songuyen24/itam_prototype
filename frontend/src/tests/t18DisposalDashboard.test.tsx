@@ -58,7 +58,8 @@ describe('T18 disposal and dashboard', () => {
     const disposal = renderToStaticMarkup(<DisposalsPage />);
     const dashboard = renderToStaticMarkup(<DashboardPage />);
     expect(disposal).toContain('role="status"');
-    expect(disposal).toContain('reason');
+    expect(disposal).not.toContain('<form');
+    expect(disposal).toContain('common:status.COMPLETED');
     expect(dashboard).toContain('role="status"');
     expect(dashboard).toContain('export');
     expect(enDisposal.empty).toBeTruthy();

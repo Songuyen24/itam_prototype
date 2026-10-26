@@ -173,7 +173,9 @@ class M3HandoverLifecycleIntegrationTest {
         assertThatThrownBy(()->disposals.smartCheck(check)).isInstanceOf(AppException.class);
         handovers.change(tx.transactionId(),"withdraw");
         var preview=disposals.smartCheck(check);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("it01@itam.example",null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("IT_STAFF"))));
         disposals.create(new com.company.itam.workflow.disposal.dto.DisposalModels.CreateRequest(List.of(device),"Old device",LocalDate.now(),preview.fingerprint(),null));
+        login();
         assertThatThrownBy(()->handovers.submit(tx.transactionId())).isInstanceOf(AppException.class);
     }
     @Test @Transactional(propagation=Propagation.NOT_SUPPORTED)
