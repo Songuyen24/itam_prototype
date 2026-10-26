@@ -109,6 +109,21 @@ public class AssetService {
         }));
     }
 
+    public PageResponse<AssetResponse> relationshipCandidates(Long id, String keyword, Pageable pageable) {
+        if (!canReadInventory(requireAuthentication())) throw new AccessDeniedException("Access denied");
+        var source = assetRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + id));
+        boolean parent = source.getType().getCategory().getCode() == com.company.itam.common.enums.AssetCategory.DEVICE;
+        var criteria = new AssetSearchCriteria(); criteria.setKeyword(keyword);
+        var specification = new AssetSpecification(criteria).and((root, query, cb) -> {
+            var category = root.get("type").get("category").get("code");
+            var license = root.join("licenseDetails", jakarta.persistence.criteria.JoinType.LEFT);
+            var assignment = license.join("assignmentType", jakarta.persistence.criteria.JoinType.LEFT);
+            var kind = parent ? cb.or(cb.equal(category, com.company.itam.common.enums.AssetCategory.COMPONENT), cb.and(cb.equal(category, com.company.itam.common.enums.AssetCategory.LICENSE), cb.equal(assignment.get("code"), "OEM"))) : cb.equal(category, com.company.itam.common.enums.AssetCategory.DEVICE);
+            return cb.and(cb.notEqual(root.get("assetId"), id), cb.equal(root.get("status").get("code"), AssetStatus.IN_STOCK), cb.isNull(root.get("assignedTo")), kind);
+        });
+        return PageResponse.of(assetRepository.findAll(specification, pageable).map(assetMapper::toResponse));
+    }
+
     public record RecoveryCandidate(Long assetId, String assetTag, String name, String categoryCode,
                                     String licenseAssignmentTypeCode, Long assignedToUserId, String assignedToFullName,
                                     Long allocationId, String deviceTag, Integer seats) {}

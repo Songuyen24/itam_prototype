@@ -280,16 +280,19 @@ public class ImportDraftService {
     }
 
     @Transactional(readOnly=true)
-    public List<Map<String,Object>> candidates(String keyword,int page) {
+    public com.company.itam.common.pagination.PageResponse<Map<String,Object>> candidates(String keyword,int page) {
         var probe=new TransactionEntity(); probe.setType(TransactionType.IMPORT); access.requireImportEditor(probe);
-        return jdbc.queryForList("""
-            SELECT a.asset_id AS "assetId",a.asset_tag AS "assetTag",a.name,h.serial_number AS "serialNumber"
+        String where = """
             FROM assets a JOIN asset_statuses s USING(status_id) LEFT JOIN asset_hardware_details h USING(asset_id)
             WHERE s.code='PENDING_IMPORT' AND (a.asset_tag ILIKE ? OR a.name ILIKE ? OR h.serial_number ILIKE ?)
             AND NOT EXISTS(SELECT 1 FROM transaction_assets ta JOIN transactions t USING(transaction_id)
               WHERE ta.asset_id=a.asset_id AND t.type='IMPORT' AND t.status IN ('PENDING','COMPLETED'))
-            ORDER BY a.asset_id LIMIT 20 OFFSET ?
-            ""","%"+keyword+"%","%"+keyword+"%","%"+keyword+"%",Math.max(0,page)*20);
+            """;
+        String search = "%" + keyword + "%";
+        long count = jdbc.queryForObject("SELECT count(*) " + where, Long.class, search, search, search);
+        int safePage = Math.max(0,page);
+        var rows = jdbc.queryForList("SELECT a.asset_id AS \"assetId\",a.asset_tag AS \"assetTag\",a.name,h.serial_number AS \"serialNumber\" " + where + " ORDER BY a.asset_id LIMIT 20 OFFSET ?", search, search, search, (long)safePage*20);
+        return com.company.itam.common.pagination.PageResponse.of(new org.springframework.data.domain.PageImpl<>(rows, org.springframework.data.domain.PageRequest.of(safePage,20), count));
     }
 
     public TransactionSummaryResponse withdraw(Long id,Long version,Integer revision) {

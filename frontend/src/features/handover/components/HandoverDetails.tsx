@@ -1,3 +1,4 @@
+import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { useTranslation } from 'react-i18next';
 import { Handover } from '../api/handoverApi';
 import { PublicationPanel } from '@/features/documents/components/PublicationPanel';
@@ -10,9 +11,9 @@ export function HandoverDetails({ value }: { value: Handover }) {
     {value.recipientEmployeeCode && <p>{t('employeeCode')}: <strong>{value.recipientEmployeeCode}</strong></p>}
     <p>{t('location')}: {value.destinationLocationName} · {t('date')}: {value.handoverDate}</p>
     {value.notes && <p>{t('notes')}: {value.notes}</p>}
-    <div className="table-container"><table className="data-table">
+    <PaginatedContent key={value.transactionId} items={value.lines}>{lines => <div className="table-container"><table className="data-table">
       <thead><tr><th>{t('asset')}</th><th>{t('bundle')}</th><th>{t('seats')}</th><th>{t('configuration')}</th></tr></thead>
-      <tbody>{value.lines.map(line => <tr key={line.assetId}>
+      <tbody>{lines.map(line => <tr key={line.assetId}>
         <td><strong>{line.assetTag}</strong><br />{line.name}</td>
         <td>{line.parentAssetId ? t('withParent', { id: value.lines.find(a => a.assetId === line.parentAssetId)?.assetTag ?? line.parentAssetId }) : t(`categories.${line.category}`)}
           {line.allocations.map((a, i) => <div key={i}>{a.assignmentType} · {a.deviceId ? t('withParent', { id: a.deviceTag ?? value.lines.find(d => d.assetId === a.deviceId)?.assetTag ?? a.deviceId }) : t('toUser')}
@@ -27,7 +28,7 @@ export function HandoverDetails({ value }: { value: Handover }) {
           {line.details.softwareName && <div>{line.details.softwareName}</div>}
         </td>
       </tr>)}</tbody>
-    </table></div>
+    </table></div>}</PaginatedContent>
     {value.transactionId != null && value.status === 'COMPLETED' && <PublicationPanel transactionId={value.transactionId} canManage />}
   </section>;
 }

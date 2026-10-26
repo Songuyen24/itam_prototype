@@ -79,11 +79,11 @@ export async function syncSupplierContacts(
   }
 }
 
-export const CatalogsPage: React.FC = () => {
+export const CatalogsPage: React.FC<{ mode?: 'asset' | 'organization' }> = ({ mode = 'asset' }) => {
   const { t } = useTranslation(['catalogs', 'common']);
   const { user } = useAuth();
   const canManageCatalogs = user?.role === 'ADMIN' || user?.role === 'IT_STAFF';
-  const [activeTab, setActiveTab] = useState<CatalogTabKey>('departments');
+  const [activeTab, setActiveTab] = useState<CatalogTabKey>(mode === 'organization' ? 'departments' : 'categories');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [currentPage, setCurrentPage] = useState(0);
@@ -172,6 +172,10 @@ export const CatalogsPage: React.FC = () => {
       }
 
       if (requestVersion.current === version && res && res.success && res.data) {
+        if (currentPage > 0 && currentPage >= Math.max(1, res.data.totalPages || 0)) {
+          setCurrentPage(Math.max(0, (res.data.totalPages || 1) - 1));
+          return;
+        }
         setItems(res.data.content || []);
         setTotalPages(res.data.totalPages || 1);
         setTotalElements(res.data.totalElements || 0);
@@ -650,9 +654,9 @@ export const CatalogsPage: React.FC = () => {
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 className="page-title">{t('catalogs:title', 'Quản lý Danh mục')}</h1>
+          <h1 className="page-title">{t(`catalogs:${mode === 'organization' ? 'organizationTitle' : 'assetTitle'}`)}</h1>
           <p className="page-description">
-            {t('catalogs:subtitle', 'Quản lý tất cả danh mục dùng chung cho tài sản, thiết bị, phần mềm và nhà cung cấp.')}
+            {t(`catalogs:${mode === 'organization' ? 'organizationSubtitle' : 'assetSubtitle'}`)}
           </p>
         </div>
         {canManageCatalogs && (
@@ -673,7 +677,7 @@ export const CatalogsPage: React.FC = () => {
 
       {/* Tabs */}
       <div className="tabs-container">
-        {TABS.map((tab) => (
+        {TABS.filter((tab) => mode === 'organization' ? ['departments', 'locations', 'suppliers'].includes(tab.key) : !['departments', 'locations', 'suppliers'].includes(tab.key)).map((tab) => (
           <button
             key={tab.key}
             className={`tab-button ${activeTab === tab.key ? 'active' : ''}`}
@@ -733,7 +737,7 @@ export const CatalogsPage: React.FC = () => {
         {/* Pagination */}
         <div className="pagination-wrapper">
           <div>
-            Trang <strong>{currentPage + 1}</strong> / {totalPages || 1}
+            {t('common:pagination.page')} <strong>{currentPage + 1}</strong> / {totalPages || 1}
           </div>
           <div className="pagination-controls">
             <button

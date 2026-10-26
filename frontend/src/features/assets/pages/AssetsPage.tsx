@@ -136,7 +136,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
 
       if (requestVersion.current === version && res.success && res.data) {
         setAssets(res.data.content);
-        setTotalPages(res.data.totalPages);
+        setTotalPages(res.data.totalPages); setCurrentPage(current => Math.min(current, Math.max(0, res.data.totalPages - 1)));
         setTotalElements(res.data.totalElements);
       }
     } catch (err: any) {

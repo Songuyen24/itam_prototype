@@ -1,3 +1,4 @@
+import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { FormEvent, RefObject, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { locationApi } from '@/features/catalogs/api/catalogApi';
@@ -26,12 +27,14 @@ function UserPicker({ onSelect, disabled, selected }: { onSelect: (r: Recipient)
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     setError(false);
     handoverApi.users(keyword, page)
-      .then(r => { setItems(r.data?.content || []); setTotal(r.data?.totalElements || 0); })
-      .catch(() => { setItems([]); setTotal(0); setError(true); })
-      .finally(() => setLoading(false));
+      .then(r => { if (active) { setItems(r.data?.content || []); setTotal(r.data?.totalElements || 0); setPage(p => Math.min(p, Math.max(0, (r.data?.totalPages ?? 0) - 1))); } })
+      .catch(() => { if (active) { setItems([]); setTotal(0); setError(true); } })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [keyword, page, retry]);
 
   const pages = Math.ceil(total / 10);
@@ -50,7 +53,7 @@ function UserPicker({ onSelect, disabled, selected }: { onSelect: (r: Recipient)
       {pages > 1 && (
         <div style={{ marginTop: 8 }}>
           <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
-          <span style={{ margin: '0 8px' }}>{page + 1} / {pages}</span>
+          <span style={{ margin: '0 8px' }}>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span>
           <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>{t('next')}</button>
         </div>
       )}
@@ -86,16 +89,20 @@ function UserAssetPicker({
       setTotal(0);
       return;
     }
+    let active = true;
     setLoading(true);
     setError(false);
     recoveryCandidateApi
       .byUser(userId, keyword, page, 20)
       .then(r => {
+        if (!active) return;
+        setPage(p => Math.min(p, Math.max(0, (r.data?.totalPages ?? 0) - 1)));
         setItems(r.data?.content || []);
         setTotal(r.data?.totalElements || 0);
       })
-      .catch(() => { setItems([]); setTotal(0); setError(true); })
-      .finally(() => setLoading(false));
+      .catch(() => { if (active) { setItems([]); setTotal(0); setError(true); } })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [userId, keyword, page, retry]);
 
   const pages = Math.ceil(total / 20);
@@ -167,7 +174,7 @@ function UserAssetPicker({
           {pages > 1 && (
             <div style={{ marginTop: 8 }}>
               <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
-              <span style={{ margin: '0 8px' }}>{page + 1} / {pages}</span>
+              <span style={{ margin: '0 8px' }}>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span>
               <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>{t('next')}</button>
             </div>
           )}
@@ -245,7 +252,7 @@ export function SmartCheckDialog({
           <h3 style={{ color: '#721c24', margin: '0 0 8px' }}>
             ⛔ {t('blocked')} ({check.blockedAssets.length})
           </h3>
-          {check.blockedAssets.map(a => {
+          <PaginatedContent items={check.blockedAssets ?? []}>{items => items.map(a => {
             const tag = tagBlocked(a.reason);
             return (
               <div key={a.assetId} style={{ padding: '6px 0', borderBottom: '1px solid #f5c6cb' }}>
@@ -256,7 +263,7 @@ export function SmartCheckDialog({
                 <p style={{ margin: '4px 0', color: '#721c24', fontSize: 13 }}>→ {a.reason}</p>
               </div>
             );
-          })}
+          })}</PaginatedContent>
         </div>
       ) : null}
 
@@ -271,12 +278,12 @@ export function SmartCheckDialog({
       {requiredDevices.length ? (
         <div style={{ marginBottom: 16 }}>
           <h3>💻 {t('requiredDevices')} ({requiredDevices.length})</h3>
-          {requiredDevices.map(a => (
+          <PaginatedContent items={requiredDevices ?? []}>{items => items.map(a => (
             <div key={a.assetId} style={{ padding: '4px 8px', background: '#d4edda', marginBottom: 4, borderRadius: 4 }}>
               <strong>{a.assetTag}</strong> · {a.name}
               {a.reason && <span style={{ color: '#155724', marginLeft: 8, fontSize: 12 }}>({a.reason})</span>}
             </div>
-          ))}
+          ))}</PaginatedContent>
         </div>
       ) : null}
 
@@ -284,20 +291,20 @@ export function SmartCheckDialog({
       {requiredOem.length ? (
         <div style={{ marginBottom: 16 }}>
           <h3>🪪 {t('oemBundled')} ({requiredOem.length})</h3>
-          {requiredOem.map(a => (
+          <PaginatedContent items={requiredOem ?? []}>{items => items.map(a => (
             <div key={a.assetId} style={{ padding: '4px 8px', background: '#fff3cd', marginBottom: 4, borderRadius: 4, border: '1px solid #ffeeba' }}>
               <strong>{a.assetTag}</strong> · {a.name}
               <span style={{ marginLeft: 8, fontSize: 11, background: '#856404', color: '#fff', padding: '1px 6px', borderRadius: 3 }}>🔒 OEM</span>
               {a.reason && <p style={{ margin: '4px 0', color: '#856404', fontSize: 12 }}>{a.reason}</p>}
             </div>
-          ))}
+          ))}</PaginatedContent>
         </div>
       ) : null}
 
       {requiredComponents.length ? (
         <div style={{ marginBottom: 16 }}>
           <h3>🔧 {t('requiredComponents')} ({requiredComponents.length})</h3>
-          {requiredComponents.map(a => <div key={a.assetId} style={{ padding: '4px 8px', background: '#d4edda', marginBottom: 4, borderRadius: 4 }}><strong>{a.assetTag}</strong> · {a.name}</div>)}
+          <PaginatedContent items={requiredComponents ?? []}>{items => items.map(a => <div key={a.assetId} style={{ padding: '4px 8px', background: '#d4edda', marginBottom: 4, borderRadius: 4 }}><strong>{a.assetTag}</strong> · {a.name}</div>)}</PaginatedContent>
         </div>
       ) : null}
 
@@ -305,7 +312,7 @@ export function SmartCheckDialog({
       {check.componentDecisions?.length ? (
         <div style={{ marginBottom: 16 }}>
           <h3>🔧 {t('componentDecisions')} ({check.componentDecisions.length})</h3>
-          {check.componentDecisions.map(c => (
+          <PaginatedContent items={check.componentDecisions ?? []}>{items => items.map(c => (
             <div key={c.assetId} style={{ padding: 8, background: '#e9ecef', marginBottom: 8, borderRadius: 4 }}>
               <p><strong>{c.assetTag}</strong> · {c.name}</p>
               {c.options.map(opt => (
@@ -317,7 +324,7 @@ export function SmartCheckDialog({
                 </label>
               ))}
             </div>
-          ))}
+          ))}</PaginatedContent>
         </div>
       ) : null}
 
@@ -325,7 +332,7 @@ export function SmartCheckDialog({
       {check.optionalAssets?.length ? (
         <div style={{ marginBottom: 16 }}>
           <h3>👤 {t(hasOptionalPerUser ? 'perUserLicenses' : 'perUserLicensesRequired')} ({check.optionalAssets.length})</h3>
-          {check.optionalAssets.map(a => (
+          <PaginatedContent items={check.optionalAssets ?? []}>{items => items.map(a => (
             <label key={a.allocationId} style={{ display: 'block', padding: 4 }}>
               <input type="checkbox" disabled={selectedAllocationIds.includes(a.allocationId)} checked={perUserActions[a.allocationId] ?? false}
                 onChange={e => setPerUserActions(prev => ({ ...prev, [a.allocationId]: e.target.checked }))} />
@@ -336,7 +343,7 @@ export function SmartCheckDialog({
                 {a.deviceTag && <span style={{ color: '#666', fontSize: 12 }}> · {t('assignedToDevice', { deviceTag: a.deviceTag })}</span>}
               </span>
             </label>
-          ))}
+          ))}</PaginatedContent>
           <p style={{ fontSize: 12, color: '#666', marginTop: 4 }}>{t(hasOptionalPerUser ? 'perUserHint' : 'perUserRequiredHint')}</p>
         </div>
       ) : null}
@@ -493,7 +500,7 @@ export function RecoveryForm({ onCompleted, initialValue }: { onCompleted: (valu
             </div>
           )}
           {selected.length === 0 && <p style={{ color: '#999', marginTop: 4 }}>{t('noDevices')}</p>}
-          {selected.map(a => (
+          <PaginatedContent items={selected}>{items => items.map(a => (
             <div key={a.allocationId == null ? `asset-${a.assetId}` : `allocation-${a.allocationId}`} style={{ padding: '4px 0', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>
                 <strong>{a.assetTag}</strong> · {a.name}
@@ -501,7 +508,7 @@ export function RecoveryForm({ onCompleted, initialValue }: { onCompleted: (valu
               </span>
               <button type="button" className="btn btn-secondary" style={{ padding: '2px 8px' }} disabled={frozen} onClick={() => toggle(a)}>×</button>
             </div>
-          ))}
+          ))}</PaginatedContent>
         </div>
       </div>
       {selected.length > 0 && <section aria-live="polite" style={{ margin: '12px 0', padding: 12, border: '1px solid #ddd', borderRadius: 4 }}>
@@ -510,9 +517,9 @@ export function RecoveryForm({ onCompleted, initialValue }: { onCompleted: (valu
         {checkError && <p role="alert">{t('loadFailed')} {checkError}</p>}
         {liveCheck && <>
           <p>{t('requiredAssets')}: {liveCheck.requiredAssets?.length ?? 0} · {t('componentDecisions')}: {liveCheck.componentDecisions?.length ?? 0} · {t('perUserLicenses')}: {liveCheck.optionalAssets?.length ?? 0}</p>
-          {liveCheck.requiredAssets?.map(a => <p key={a.assetId}>{a.assetTag} · {a.name}</p>)}
-          {liveCheck.blockedAssets?.map(a => <p key={a.assetId} role="alert" style={{ color: '#721c24' }}>{t('blocked')}: {a.assetTag} · {a.reason}</p>)}
-          {liveCheck.warnings?.map((warning, index) => <p key={index}>{warning}</p>)}
+          <PaginatedContent items={liveCheck.requiredAssets ?? []}>{items => items.map(a => <p key={a.assetId}>{a.assetTag} · {a.name}</p>)}</PaginatedContent>
+          <PaginatedContent items={liveCheck.blockedAssets ?? []}>{items => items.map(a => <p key={a.assetId} role="alert" style={{ color: '#721c24' }}>{t('blocked')}: {a.assetTag} · {a.reason}</p>)}</PaginatedContent>
+          <PaginatedContent items={liveCheck.warnings ?? []}>{items => items.map((warning, index) => <p key={index}>{warning}</p>)}</PaginatedContent>
         </>}
       </section>}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -544,9 +551,11 @@ function HandoverLocationPicker({ onSelect, disabled, selected }: { onSelect: (l
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     setError(false);
-    loadLocations(keyword, page).then(r => { setItems(r.data?.content || []); setTotal(r.data?.totalElements || 0); }).catch(() => { setItems([]); setTotal(0); setError(true); }).finally(() => setLoading(false));
+    loadLocations(keyword, page).then(r => { if (active) { setItems(r.data?.content || []); setTotal(r.data?.totalElements || 0); setPage(p => Math.min(p, Math.max(0, (r.data?.totalPages ?? 0) - 1))); } }).catch(() => { if (active) { setItems([]); setTotal(0); setError(true); } }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [keyword, page, retry]);
 
   const pages = Math.ceil(total / 10);
@@ -565,7 +574,7 @@ function HandoverLocationPicker({ onSelect, disabled, selected }: { onSelect: (l
       {pages > 1 && (
         <div style={{ marginTop: 8 }}>
           <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
-          <span style={{ margin: '0 8px' }}>{page + 1} / {pages}</span>
+          <span style={{ margin: '0 8px' }}>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span>
           <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>{t('next')}</button>
         </div>
       )}

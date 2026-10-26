@@ -37,10 +37,11 @@ function AppRoutes() {
           path="catalogs"
           element={
             <ProtectedRoute allowedRoles={INVENTORY_ROLES}>
-              <CatalogsPage />
+              <CatalogsPage key="asset-catalogs" />
             </ProtectedRoute>
           }
         />
+        <Route path="organization-catalogs" element={<ProtectedRoute allowedRoles={INVENTORY_ROLES}><CatalogsPage key="organization-catalogs" mode="organization" /></ProtectedRoute>} />
         <Route
           path="assets"
           element={

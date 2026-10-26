@@ -10,6 +10,7 @@ import {
 } from '../types/asset.types';
 
 export const assetApi = {
+  relationshipCandidates: (id: number, keyword: string, page: number) => httpClient<ApiResponse<PageResponse<Asset>>>(`/v1/assets/${id}/relationship-candidates?${new URLSearchParams({ keyword, page: String(page), size: '20' })}`),
   getMyAssets: (params: Pick<AssetFilterParams, 'keyword' | 'page' | 'size'> = {}) => {
     const query = new URLSearchParams();
     if (params.page !== undefined) query.append('page', String(params.page));

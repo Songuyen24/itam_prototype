@@ -1,3 +1,5 @@
+import { DocumentPagination } from './DocumentPagination';
+import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError } from '@/shared/api/httpClient';
@@ -20,6 +22,8 @@ export function ImportDraftPanel({ transaction, onChanged, onCreated }: { transa
   const [edit,setEdit]=useState<Line|null|undefined>(undefined);
   const [keyword,setKeyword]=useState('');
   const [page,setPage]=useState(0);
+  const [candidateTotal,setCandidateTotal]=useState(0);
+  const [candidatePages,setCandidatePages]=useState(0);
   const [candidates,setCandidates]=useState<Line[]>([]);
   const [searched,setSearched]=useState(false);
   const [loading,setLoading]=useState(true);
@@ -52,7 +56,7 @@ export function ImportDraftPanel({ transaction, onChanged, onCreated }: { transa
   }
   async function search(next:number) {
     setBusy(true);setError(null);
-    try {const result=await receivingApi.candidates(keyword,next);setCandidates(result.data);setPage(next);setSearched(true);}
+    try {let result=await receivingApi.candidates(keyword,next);const last=Math.max(0,result.data.totalPages-1);if(next>last){next=last;result=await receivingApi.candidates(keyword,next);}setCandidates(result.data.content);setCandidateTotal(result.data.totalElements);setCandidatePages(result.data.totalPages);setPage(next);setSearched(true);}
     catch(cause){setError(cause instanceof Error?cause.message:t('errors.transaction'));}
     finally{setBusy(false);}
   }
@@ -77,19 +81,19 @@ export function ImportDraftPanel({ transaction, onChanged, onCreated }: { transa
       <AssetImportModal isOpen={excelOpen} onClose={()=>{setExcelOpen(false);if(excelChanged){setExcelChanged(false);onChanged();}}} receiving={{id,version}} onImportSuccess={()=>setExcelChanged(true)}/>
       {edit!==undefined&&refs&&<ReceivingAssetForm key={edit?.assetId??'new'} initial={edit?.input} refs={refs} busy={disabled} onCancel={()=>setEdit(undefined)} onSave={(input:LineInput)=>mutate(()=>receivingApi.saveLine(id,version,input,edit?.assetId))}/>}
       <details><summary>{t('receiving.reuse')}</summary>
-        <form onSubmit={e=>{e.preventDefault();void search(0);}} className="receiving-actions"><label>{t('receiving.search')}<input className="form-input" value={keyword} onChange={e=>setKeyword(e.target.value)} maxLength={100}/></label><button className="btn btn-secondary" disabled={disabled}>{t('receiving.search')}</button></form>
+        <form onSubmit={e=>{e.preventDefault();void search(0);}} className="receiving-actions"><label>{t('receiving.search')}<input className="form-input" value={keyword} disabled={disabled} onChange={e=>{setKeyword(e.target.value);setPage(0);setSearched(false);setCandidates([]);}} maxLength={100}/></label><button className="btn btn-secondary" disabled={disabled}>{t('receiving.search')}</button></form>
         {searched&&candidates.length===0&&<p>{t('receiving.noCandidates')}</p>}
         {candidates.map(a=><div key={a.assetId}>{a.assetTag} — {a.name} <button className="btn btn-secondary" disabled={disabled||content?.assets.some(x=>x.assetId===a.assetId)} onClick={()=>void mutate(()=>receivingApi.reuse(id,version,a.assetId))}>{t('receiving.select')}</button></div>)}
-        {searched&&<div className="receiving-actions"><button className="btn btn-secondary" disabled={disabled||page===0} onClick={()=>void search(page-1)}>{t('pagination.previous')}</button><button className="btn btn-secondary" disabled={disabled||candidates.length<20} onClick={()=>void search(page+1)}>{t('pagination.next')}</button></div>}
+        {searched&&<DocumentPagination page={page} totalPages={candidatePages} totalElements={candidateTotal} loading={disabled} onPageChange={next=>void search(next)}/>}
       </details>
     </>}
     {!draft&&content?.notes&&<p>{content.notes}</p>}
     {content&&<div><h3>{t('draft.assets')} ({content.assets.length})</h3>
       {content.assets.length===0&&<p>{t('draft.noAssets')}</p>}
-      {content.assets.map(a=><div key={a.assetId}><ReceivingAssetDetails line={a}/>{draft&&<div className="receiving-actions">
+      <PaginatedContent items={content.assets}>{rows => rows.map(a=><div key={a.assetId}><ReceivingAssetDetails line={a}/>{draft&&<div className="receiving-actions">
         <button className="btn btn-secondary" disabled={disabled||!a.input} onClick={()=>setEdit(a)}>{t('receiving.editAsset')}</button>
         <button className="btn btn-secondary" disabled={disabled} onClick={()=>{if(window.confirm(t('receiving.removeConfirm')))void mutate(()=>receivingApi.remove(id,version,a.assetId));}}>{t('receiving.remove')}</button>
-      </div>}</div>)}
+      </div>}</div>)}</PaginatedContent>
     </div>}
     <div className="receiving-actions">
       {(draft || (user?.role==='ADMIN' && transaction.status==='PENDING')) && <button className="btn btn-secondary" disabled={disabled} onClick={()=>{if(window.confirm(t('draft.cancelConfirm')))void mutate(()=>receivingApi.action(transaction,'cancel'));}}>{t('draft.cancelTransaction')}</button>}
@@ -106,10 +110,10 @@ export function ImportDraftPanel({ transaction, onChanged, onCreated }: { transa
       <button className="btn btn-primary" disabled={disabled||!reason.trim()}>{t('receiving.reject')}</button><button type="button" className="btn btn-secondary" disabled={busy} onClick={()=>setReject(false)}>{t('receiving.cancel')}</button>
     </form></div>}
     <h3>{t('draft.history')}</h3>{revisions.length===0&&<p>{t('draft.noHistory')}</p>}
-    {revisions.map(r=><details key={r.revision}><summary>{t('draft.revision',{number:r.revision})} · {r.submittedBy} · {new Date(r.submittedAt).toLocaleString(i18n.language)}</summary>
-      <p>{r.snapshot.notes}</p>{r.snapshot.assets.map(a=><ReceivingAssetDetails key={a.assetId} line={a}/>)}
-      <ul>{r.snapshot.documents.map(d=><li key={d.documentId}>{d.originalFileName} · {t(`documentTypes.${d.documentType}`)} · {d.uploadedByName} <button className="btn btn-secondary btn-sm" disabled={busy} onClick={()=>void download(d)}>{t('actions.download')}</button></li>)}</ul>
+    <PaginatedContent items={revisions}>{rows => rows.map(r=><details key={r.revision}><summary>{t('draft.revision',{number:r.revision})} · {r.submittedBy} · {new Date(r.submittedAt).toLocaleString(i18n.language)}</summary>
+      <p>{r.snapshot.notes}</p><PaginatedContent items={r.snapshot.assets}>{assets => assets.map(a=><ReceivingAssetDetails key={a.assetId} line={a}/>)}</PaginatedContent>
+      <PaginatedContent items={r.snapshot.documents}>{documents => <ul>{documents.map(d=><li key={d.documentId}>{d.originalFileName} · {t(`documentTypes.${d.documentType}`)} · {d.uploadedByName} <button className="btn btn-secondary btn-sm" disabled={busy} onClick={()=>void download(d)}>{t('actions.download')}</button></li>)}</ul>}</PaginatedContent>
       <ul>{events.filter(e=>e.revision===r.revision).map(e=><li key={e.action}>{t(`receiving.events.${e.action}`)} · {e.actor} · {new Date(e.time).toLocaleString(i18n.language)} {e.reason&&`— ${e.reason}`}</li>)}</ul>
-    </details>)}
+    </details>)}</PaginatedContent>
   </div>;
 }

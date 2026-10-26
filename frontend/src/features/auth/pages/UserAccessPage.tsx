@@ -22,7 +22,7 @@ export function UserAccessPage() {
   useEffect(()=>{
     let active=true; setLoading(true); setError('');
     httpClient<ApiResponse<PageResponse<Person>>>(`/v1/users?${new URLSearchParams({keyword,page:String(page),size:'20'})}`)
-      .then(result=>{if(active){setPeople(result.data.content);setPages(result.data.totalPages);}})
+      .then(result=>{if(active){setPeople(result.data.content);setPages(result.data.totalPages);setPage(current=>Math.min(current,Math.max(0,result.data.totalPages-1)));}})
       .catch(cause=>{if(active)setError(cause instanceof Error?cause.message:t('access.error'));})
       .finally(()=>{if(active)setLoading(false);});
     return ()=>{active=false;};

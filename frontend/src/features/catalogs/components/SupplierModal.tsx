@@ -1,3 +1,4 @@
+import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { Supplier, SupplierContact } from '../types/catalog.types';
@@ -210,7 +211,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
               </div>
 
               {contacts.length > 0 ? (
-                <div style={{ marginBottom: '16px' }}>
+                <PaginatedContent items={contacts.map((contact, index) => ({ contact, index }))}>{rows => <div style={{ marginBottom: '16px' }}>
                   <table className="data-table" style={{ border: '1px solid var(--border-color)' }}>
                     <thead>
                       <tr>
@@ -222,7 +223,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {contacts.map((contact, idx) => (
+                      {rows.map(({ contact, index: idx }) => (
                         <tr key={contact.contactId || idx}>
                           <td>{contact.name}</td>
                           <td>{contact.position || '-'}</td>
@@ -241,7 +242,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </div>}</PaginatedContent>
               ) : (
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
                   {t('forms.noContacts')}

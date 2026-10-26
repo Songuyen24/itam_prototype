@@ -23,9 +23,11 @@ public class AccountController {
     }
     @GetMapping
     public ApiResponse<PageResponse<UserResponse>> list(@RequestParam(defaultValue="") String keyword,
-            @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) {
-        return ApiResponse.success(messages.getMessage("ACCOUNT_READ"),PageResponse.of(users.findAccounts(keyword.trim(),
-            PageRequest.of(Math.max(page,0),Math.min(Math.max(size,1),100),Sort.by("userId"))).map(UserResponse::fromEntity)));
+            @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,
+            @RequestParam(defaultValue="false") boolean reportEligible) {
+        var pageable = PageRequest.of(Math.max(page,0),Math.min(Math.max(size,1),100),Sort.by("userId"));
+        var result = reportEligible ? users.findReportAccounts(keyword.trim(), pageable) : users.findAccounts(keyword.trim(), pageable);
+        return ApiResponse.success(messages.getMessage("ACCOUNT_READ"),PageResponse.of(result.map(UserResponse::fromEntity)));
     }
     @PostMapping
     public ApiResponse<UserResponse> create(@Valid @RequestBody IdentityService.CreateAccount request) {

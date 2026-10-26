@@ -28,7 +28,7 @@ export function AuditLogsPage() {
     }
     setBusy(true); setError(false);
     httpClient<{ data: Page }>(`/v1/audit-logs?${params}`).then(response => {
-      if (active) setData(response.data);
+      if (active) { setData(response.data); setPage(current => Math.min(current, Math.max(0, response.data.totalPages - 1))); }
     }).catch(() => { if (active) setError(true); }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
   }, [filter, page]);

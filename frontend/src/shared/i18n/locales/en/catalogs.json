@@ -1,5 +1,9 @@
 {
   "title": "Catalog Management",
+  "assetTitle": "Asset catalogs",
+  "assetSubtitle": "Asset, software and license catalogs",
+  "organizationTitle": "Organization catalogs",
+  "organizationSubtitle": "Departments, locations and suppliers",
   "subtitle": "Manage shared catalog data across the ITAM system",
   "tabs": {
     "departments": "Departments",
