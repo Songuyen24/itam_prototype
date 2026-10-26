@@ -1,3 +1,4 @@
+import { AdjustmentPanel } from './AdjustmentPanel';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { documentApi } from '../api/documentApi';
@@ -131,6 +132,7 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated }: { 
         <div><dt>{t('fields.createdAt')}</dt><dd>{new Date(transaction.createdAt).toLocaleString(i18n.language)}</dd></div>
       </dl>
       {transaction.type === 'IMPORT' && <ImportDraftPanel transaction={transaction} onChanged={refresh} onCreated={onCreated} />}
+      {transaction.status === 'COMPLETED' && <AdjustmentPanel key={transaction.transactionId} transactionId={transaction.transactionId} isAdmin={user?.role === 'ADMIN'} />}
       {transaction.status !== 'DRAFT' && <PublicationPanel transactionId={transaction.transactionId}
         {...publicationActions} />}
       <DocumentUpload transactionId={transaction.transactionId} documentsEditable={canUpload} expectedVersion={transaction.expectedVersion}
