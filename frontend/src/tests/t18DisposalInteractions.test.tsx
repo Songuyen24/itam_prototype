@@ -5,10 +5,11 @@ import { DisposalReview } from '@/features/disposal/components/DisposalReview';
 import { ApiError } from '@/shared/api/httpClient';
 
 const client = vi.hoisted(() => vi.fn());
+const auth = vi.hoisted(() => ({ role: 'ADMIN' }));
 const t = vi.hoisted(() => (key: string) => key);
 vi.mock('@/shared/api/httpClient', async importOriginal => ({ ...(await importOriginal<typeof import('@/shared/api/httpClient')>()), httpClient: client }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t }) }));
-vi.mock('@/features/auth/contexts/AuthContext', () => ({ useAuth: () => ({ user: { role: 'ADMIN' } }) }));
+vi.mock('@/features/auth/contexts/AuthContext', () => ({ useAuth: () => ({ user: auth }) }));
 vi.mock('@/features/documents/components/PublicationPanel', () => ({ PublicationPanel: () => <section>publication</section> }));
 
 const page = <T,>(content: T[], totalPages = 1) => ({ data: { content, pageNumber: 0, pageSize: 20, totalElements: content.length, totalPages, first: true, last: totalPages <= 1, empty: content.length === 0 } });
@@ -28,7 +29,7 @@ async function renderPage() {
 }
 
 describe('T18 disposal interactions', () => {
-  beforeEach(() => { client.mockReset(); });
+  beforeEach(() => { client.mockReset(); auth.role = 'ADMIN'; });
   afterEach(() => { while (renderers.length) act(() => renderers.pop()!.unmount()); });
 
   it('restores focus to the trigger captured before asynchronous work', () => {
@@ -48,6 +49,7 @@ describe('T18 disposal interactions', () => {
   });
 
   it('preserves selected asset IDs while paging candidates', async () => {
+    auth.role = 'IT_STAFF';
     client.mockImplementation((url?: string) => String(url).includes('/candidates')
       ? Promise.resolve(page([asset(String(url).includes('page=1') ? 2 : 1)], 2))
       : Promise.resolve(page([])));
@@ -63,6 +65,7 @@ describe('T18 disposal interactions', () => {
   });
 
   it('ignores a stale candidate search response', async () => {
+    auth.role = 'IT_STAFF';
     let resolveOld!: (value: unknown) => void;
     client.mockImplementation((url?: string) => {
       const endpoint = String(url);
@@ -82,6 +85,7 @@ describe('T18 disposal interactions', () => {
   });
 
   it('returns candidate and pending lists to their last valid page when totals shrink', async () => {
+    auth.role = 'IT_STAFF';
     let created = false;
     const candidateCalls: string[] = [];
     const first = { ...summary, transactionId: 8, transactionCode: 'DIS-08' };
@@ -133,7 +137,7 @@ describe('T18 disposal interactions', () => {
     expect(tree.root.findAllByType('strong').some(node => node.children.includes('DIS-08'))).toBe(true);
   });
 
-  it('closes a terminal detail loaded from a stale pending row without exposing mutations', async () => {
+  it('shows terminal history loaded from a stale pending row without exposing mutations', async () => {
     client.mockImplementation((url?: string) => {
       const endpoint = String(url);
       if (endpoint.includes('/candidates')) return Promise.resolve(page([]));
@@ -143,7 +147,8 @@ describe('T18 disposal interactions', () => {
     });
     const tree = await renderPage();
     await act(async () => tree.root.findAllByType('button').find(button => button.children.includes('review'))!.props.onClick({ currentTarget: {} }));
-    expect(tree.root.findAllByType('dialog')).toHaveLength(0);
+    expect(tree.root.findAllByType('dialog')).toHaveLength(1);
+    expect(tree.root.findAllByType('button').some(button => button.children.includes('approve'))).toBe(false);
     expect(client.mock.calls.some(call => /\/(approve|reject|per-user)$/.test(String(call[0])))).toBe(false);
   });
 

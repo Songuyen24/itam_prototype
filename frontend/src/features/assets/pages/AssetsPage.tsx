@@ -427,7 +427,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     </td>
 
                     {/* Status */}
-                    <td>{getStatusBadge(asset.statusCode, asset.statusName)} {asset.pendingHandover && <span className="badge badge-warning">{t('assets:pendingHandover')}</span>} {asset.pendingRecovery && <span className="badge badge-warning">{t('assets:pendingRecovery')}</span>}</td>
+                    <td>{getStatusBadge(asset.statusCode, asset.statusName)} {asset.pendingHandover && <span className="badge badge-warning">{t('assets:pendingHandover')}</span>} {asset.pendingRecovery && <span className="badge badge-warning">{t('assets:pendingRecovery')}</span>} {asset.pendingDisposal && <span className="badge badge-warning">{t('assets:pendingDisposal')}</span>}</td>
 
                     {/* Assignment / Location */}
                     <td style={{ fontSize: '12px' }}>
@@ -455,7 +455,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                         >
                           👁️
                         </button>
-                        {canManageAssets && asset.statusCode !== 'PENDING_IMPORT' && !asset.pendingHandover && (
+                        {canManageAssets && asset.statusCode !== 'PENDING_IMPORT' && !asset.pendingHandover && !asset.pendingDisposal && (
                           <button
                             type="button"
                             className="btn btn-secondary"
@@ -553,7 +553,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         asset={selectedAssetDetail}
-        onEdit={canManageAssets && selectedAssetDetail?.statusCode !== 'PENDING_IMPORT' && !selectedAssetDetail?.pendingHandover ? (asset) => {
+        onEdit={canManageAssets && selectedAssetDetail?.statusCode !== 'PENDING_IMPORT' && !selectedAssetDetail?.pendingHandover && !selectedAssetDetail?.pendingDisposal ? (asset) => {
           setSelectedAssetDetail(asset);
           setIsFormModalOpen(true);
         } : undefined}

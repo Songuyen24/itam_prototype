@@ -441,6 +441,7 @@ public class RecoveryService {
         for(var a:check.optionalAssets()) {allocationIds.add(a.allocationId());if(a.deviceId()!=null)physical.add(a.deviceId());}
         for(var l:links(physical)) if(l.allocation()!=null&&physical.contains(l.parent())) allocationIds.add(l.allocation());
         for(var assetId:physical) {
+            if(assets.hasPendingDisposal(assetId))fail("DISPOSAL_ALREADY_PENDING");
             if(assets.hasPendingHandover(assetId)||assets.hasPendingRecovery(assetId))fail("RECOVERY_ASSET_RESERVED");
             jdbc.update("INSERT INTO recovery_asset_reservations(asset_id,transaction_id) VALUES (?,?)",assetId,id);
         }

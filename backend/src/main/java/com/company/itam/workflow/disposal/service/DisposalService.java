@@ -109,13 +109,24 @@ public class DisposalService {
     }
 
     @Transactional
+    @PreAuthorize("hasAuthority('IT_STAFF')")
     public DisposalResponse create(CreateRequest request) {
+        return create(request, TransactionStatus.PENDING);
+    }
+
+    @Transactional
+    @PreAuthorize("hasAuthority('IT_STAFF')")
+    public DisposalResponse createDraft(CreateRequest request) {
+        return create(request, TransactionStatus.DRAFT);
+    }
+
+    private DisposalResponse create(CreateRequest request, TransactionStatus status) {
         Prepared checked = prepareSelection(request.assetIds(), true);
         if (!fingerprint(null, null, checked).equals(request.expectedFingerprint())) conflict("DISPOSAL_CHANGED");
         UserEntity actor = actor();
         var tx = new TransactionEntity();
         tx.setTransactionCode("DI-" + UUID.randomUUID()); tx.setType(TransactionType.DISPOSAL);
-        tx.setStatus(TransactionStatus.PENDING); tx.setRequester(actor); tx.setNotes(request.reason());
+        tx.setStatus(status); tx.setRequester(actor); tx.setNotes(request.reason());
         transactions.saveAndFlush(tx);
         var detail = new TransactionDisposalDetailEntity(); detail.setTransaction(tx);
         detail.setReason(request.reason().trim()); detail.setDisposalDate(request.disposalDate()); details.save(detail);
@@ -125,7 +136,7 @@ public class DisposalService {
             item.setAsset(assets.getReferenceById(selected.assetId())); item.setLineNumber(++number);
             item.setNotes(selected.autoAdded() ? "AUTO_ADDED" : null); lines.save(item);
         }
-        recordTransaction(tx, actor, "DISPOSAL_CREATED", Map.of("status", "PENDING",
+        recordTransaction(tx, actor, "DISPOSAL_CREATED", Map.of("status", status.name(),
                 "assetIds", checked.assetLines().stream().map(AssetLine::assetId).toList()));
         return response(tx, detail, checked);
     }
@@ -137,6 +148,7 @@ public class DisposalService {
         var detail = details.findById(id).orElseThrow(() -> new ResourceNotFoundException("DISPOSAL_NOT_FOUND"));
         var stored = lines.findByTransactionTransactionId(id);
         Prepared current = prepareStored(stored, true);
+        requireAvailable(current, id);
         if (!fingerprint(tx, detail, current).equals(request.expectedFingerprint())) conflict("DISPOSAL_CHANGED");
 
         var decisions = new TreeMap<Long, Boolean>();
@@ -209,6 +221,10 @@ public class DisposalService {
         else if ("submit".equals(action) && tx.getStatus() == TransactionStatus.DRAFT) next = TransactionStatus.PENDING;
         else if ("cancel".equals(action) && (tx.getStatus() == TransactionStatus.DRAFT || tx.getStatus() == TransactionStatus.PENDING)) next = TransactionStatus.CANCELLED;
         else { conflict("DOCUMENT_LOCKED"); return null; }
+        if (next == TransactionStatus.PENDING) {
+            validateStoredExpansion(lines.findByTransactionTransactionId(id), prepared);
+            requireAvailable(prepared, id);
+        }
         tx.setStatus(next); tx.setUpdatedAt(Instant.now());
         tx.setContentVersion(tx.getContentVersion()+1);
         recordTransaction(tx,actor(),action.toUpperCase(Locale.ROOT),Map.of("status",next.name()));
@@ -232,6 +248,7 @@ public class DisposalService {
         Prepared current = prepareStored(stored, true);
         if (!fingerprint(tx, detail, current).equals(request.expectedFingerprint())) conflict("DISPOSAL_CHANGED");
         validateStoredExpansion(stored, current);
+        requireAvailable(current, id);
         if (!current.perUserLinks().isEmpty()) conflict("DISPOSAL_PER_USER_LINKED");
 
         UserEntity actor = actor();
@@ -285,13 +302,19 @@ public class DisposalService {
             targets = selectionTargets(selected, discovered);
         }
         Prepared prepared = buildPrepared(targets, discovered);
+        requireAvailable(prepared, -1L);
+        return prepared;
+    }
+
+    private void requireAvailable(Prepared prepared, Long transactionId) {
         for (AssetLine line : prepared.assetLines()) {
+            if (assets.hasPendingRecovery(line.assetId())) conflict("RECOVERY_ASSET_RESERVED");
+            if (assets.hasPendingHandover(line.assetId())) conflict("HANDOVER_ASSET_RESERVED");
             if (Boolean.TRUE.equals(jdbc.queryForObject("""
                     SELECT EXISTS(SELECT 1 FROM transaction_assets ta JOIN transactions t USING(transaction_id)
-                    WHERE ta.asset_id=? AND t.type='DISPOSAL' AND t.status='PENDING')
-                    """, Boolean.class, line.assetId()))) conflict("DISPOSAL_ALREADY_PENDING");
+                    WHERE ta.asset_id=? AND t.type='DISPOSAL' AND t.status='PENDING' AND t.transaction_id<>?)
+                    """, Boolean.class, line.assetId(), transactionId))) conflict("DISPOSAL_ALREADY_PENDING");
         }
-        return prepared;
     }
 
     private SortedMap<Long, Boolean> selectionTargets(Collection<Long> selectedIds, List<ScalarLink> links) {
@@ -330,8 +353,6 @@ public class DisposalService {
         var targetAssets = new ArrayList<AssetEntity>();
         var assetLines = new ArrayList<AssetLine>();
         for (var entry : targets.entrySet()) {
-            if (assets.hasPendingRecovery(entry.getKey())) conflict("RECOVERY_ASSET_RESERVED");
-            if (assets.hasPendingHandover(entry.getKey())) conflict("HANDOVER_ASSET_RESERVED");
             AssetEntity asset = asset(entry.getKey());
             targetAssets.add(asset); assetLines.add(line(asset, entry.getValue()));
         }
@@ -507,7 +528,7 @@ public class DisposalService {
         UserEntity displayActor = tx.getProcessedBy() == null ? tx.getRequester() : tx.getProcessedBy();
         return new DisposalResponse(tx.getTransactionId(), tx.getTransactionCode(), tx.getStatus().name(), detail.getReason(),
                 detail.getDisposalDate(), tx.getCreatedAt(), displayActor.getFullName(), prepared.assetLines(),
-                prepared.oemAllocations(), prepared.perUserLinks(), prepared.warnings(), fingerprint(tx, detail, prepared), tx.getRequester().getUserId());
+                prepared.oemAllocations(), prepared.perUserLinks(), prepared.warnings(), fingerprint(tx, detail, prepared), tx.getRequester().getUserId(), tx.getRejectionReason());
     }
 
     private String fingerprint(TransactionEntity tx, TransactionDisposalDetailEntity detail, Prepared prepared) {

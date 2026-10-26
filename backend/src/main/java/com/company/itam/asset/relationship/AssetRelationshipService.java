@@ -44,6 +44,7 @@ public class AssetRelationshipService {
         var locked=new HashMap<Long,AssetEntity>();
         for (Long id:new TreeSet<>(List.of(parentId,childId))) locked.put(id,assets.lockById(id).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND")));
         var parent=locked.get(parentId); var child=locked.get(childId);
+        if (assets.hasPendingDisposal(parentId) || assets.hasPendingDisposal(childId)) fail("DISPOSAL_ALREADY_PENDING");
         if (assets.hasPendingRecovery(parentId) || assets.hasPendingRecovery(childId)) fail("RECOVERY_ASSET_RESERVED");
         if (assets.hasPendingHandover(parentId)
                 || (category(child)!=AssetCategory.LICENSE && assets.hasPendingHandover(childId))) fail("HANDOVER_ASSET_RESERVED");
@@ -76,6 +77,7 @@ public class AssetRelationshipService {
                 r.getAllocation()==null?null:r.getAllocation().getAllocationId(),reason==null,reason);
     }
     private String blocked(AssetRelationshipEntity r) {
+        if (assets.hasPendingDisposal(r.getParentAsset().getAssetId()) || assets.hasPendingDisposal(r.getChildAsset().getAssetId())) return "DISPOSAL_ALREADY_PENDING";
         if (assets.hasPendingRecovery(r.getParentAsset().getAssetId()) || assets.hasPendingRecovery(r.getChildAsset().getAssetId())) return "RECOVERY_ASSET_RESERVED";
         if (assets.hasPendingHandover(r.getParentAsset().getAssetId())
                 || (category(r.getChildAsset())!=AssetCategory.LICENSE && assets.hasPendingHandover(r.getChildAsset().getAssetId())))
