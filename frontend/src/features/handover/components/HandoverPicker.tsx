@@ -12,6 +12,7 @@ export function HandoverPicker<T>({ title, load, identify, label, selected, choo
   const [page, setPage] = useState(0);
   const [items, setItems] = useState<T[]>([]);
   const [pages, setPages] = useState(0);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
@@ -19,7 +20,7 @@ export function HandoverPicker<T>({ title, load, identify, label, selected, choo
     let active = true;
     setLoading(true); setError(''); setItems([]);
     load(keyword, page).then(r => {
-      if (active) { setItems(r.data.content); setPages(r.data.totalPages); }
+      if (active) { setItems(r.data.content); setPages(r.data.totalPages); setTotal(r.data.totalElements); setPage(current => Math.min(current, Math.max(0, r.data.totalPages - 1))); }
     }).catch((e: unknown) => { if (active) setError(e instanceof Error ? e.message : t('error')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -34,7 +35,7 @@ export function HandoverPicker<T>({ title, load, identify, label, selected, choo
       </button>)}</div>}
     <div className="handover-pagination">
       <button type="button" className="btn btn-secondary" disabled={disabled || loading || page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
-      <span>{page + 1} / {Math.max(1, pages)}</span>
+      <span>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span>
       <button type="button" className="btn btn-secondary" disabled={disabled || loading || page + 1 >= pages} onClick={() => setPage(p => p + 1)}>{t('next')}</button>
     </div>
   </section>;

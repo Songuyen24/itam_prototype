@@ -1,5 +1,9 @@
 {
   "title": "Quản lý Danh mục",
+  "assetTitle": "Danh mục tài sản",
+  "assetSubtitle": "Danh mục tài sản, phần mềm và giấy phép",
+  "organizationTitle": "Danh mục tổ chức",
+  "organizationSubtitle": "Phòng ban, vị trí và nhà cung cấp",
   "subtitle": "Quản lý dữ liệu danh mục dùng chung của toàn bộ hệ thống ITAM",
   "tabs": {
     "departments": "Phòng ban",

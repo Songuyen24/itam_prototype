@@ -76,12 +76,31 @@ describe('list request race guards', () => {
     resetApis();
   });
 
+  it('keeps catalog modes separate and returns to the last valid page when results shrink', async () => {
+    mocks.categories.getAll.mockResolvedValueOnce(page([]))
+      .mockResolvedValueOnce(page([{ name: 'A' }], 21, 2))
+      .mockResolvedValueOnce(page([], 0, 1))
+      .mockResolvedValueOnce(page([{ name: 'Remaining' }], 1, 1));
+    const tree = await render(<CatalogsPage mode="asset" />);
+    const buttonLabels = () => tree.root.findAllByType('button').flatMap(button => button.children);
+    expect(JSON.stringify(tree.toJSON())).toContain('common:pagination.page');
+    expect(buttonLabels()).toContain('catalogs:tabs.categories');
+    expect(buttonLabels()).not.toContain('catalogs:tabs.departments');
+    await act(async () => tree.root.findAllByType('button').find(button => button.children.includes('common:pagination.next'))!.props.onClick());
+    expect(mocks.categories.getAll).toHaveBeenLastCalledWith(0, 20);
+    expect(tree.root.findByProps({ 'data-testid': 'catalog-rows' }).children).toContain('Remaining');
+    await act(async () => tree.update(<CatalogsPage key="organization" mode="organization" />));
+    expect(buttonLabels()).toContain('catalogs:tabs.departments');
+    expect(buttonLabels()).not.toContain('catalogs:tabs.categories');
+    expect(mocks.departments.getAll).toHaveBeenCalledWith(undefined, undefined, 0, 20);
+  });
+
   it('keeps newer Catalog tab rows, total, pagination, and selection when an old success resolves late', async () => {
     const oldDepartments = deferred<ReturnType<typeof page>>();
     const newLocations = deferred<ReturnType<typeof page>>();
     mocks.departments.getAll.mockReturnValue(oldDepartments.promise);
     mocks.locations.getAll.mockReturnValue(newLocations.promise);
-    const tree = await render(<CatalogsPage />);
+    const tree = await render(<CatalogsPage mode="organization" />);
 
     await act(async () => tree.root.findAllByType('button').find(button => button.children.includes('catalogs:tabs.locations'))!.props.onClick());
     await act(async () => newLocations.resolve(page([{ locationId: 2, name: 'NEW-LOCATION' }], 2, 2)));
@@ -101,7 +120,7 @@ describe('list request race guards', () => {
     const newLocations = deferred<ReturnType<typeof page>>();
     mocks.departments.getAll.mockReturnValue(oldDepartments.promise);
     mocks.locations.getAll.mockReturnValue(newLocations.promise);
-    const tree = await render(<CatalogsPage />);
+    const tree = await render(<CatalogsPage mode="organization" />);
 
     await act(async () => tree.root.findAllByType('button').find(button => button.children.includes('catalogs:tabs.locations'))!.props.onClick());
     await act(async () => oldDepartments.reject(new Error('old request failed')));

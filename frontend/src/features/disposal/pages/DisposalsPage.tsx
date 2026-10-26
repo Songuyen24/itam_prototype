@@ -13,6 +13,8 @@ export function DisposalsPage() {
   const [assetKeyword, setAssetKeyword] = useState('');
   const [assetPage, setAssetPage] = useState(0);
   const [assetPages, setAssetPages] = useState(0);
+  const [assetTotal, setAssetTotal] = useState(0);
+  const [pendingTotal, setPendingTotal] = useState(0);
   const [selected, setSelected] = useState<number[]>([]);
   const [pending, setPending] = useState<TransactionSummary[]>([]);
   const [pendingPage, setPendingPage] = useState(0);
@@ -44,7 +46,7 @@ export function DisposalsPage() {
     disposalApi.candidates(assetKeyword, assetPage).then(result => {
       if (!active) return;
       const lastPage = Math.max(0, result.data.totalPages - 1);
-      setAssetPages(result.data.totalPages);
+      setAssetPages(result.data.totalPages); setAssetTotal(result.data.totalElements);
       if (assetPage > lastPage) { setAssetPage(lastPage); return; }
       setAssets(result.data.content);
     }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : t('error')); })
@@ -58,7 +60,7 @@ export function DisposalsPage() {
     disposalApi.list(pendingPage,listStatus).then(result => {
       if (!active) return;
       const lastPage = Math.max(0, result.data.totalPages - 1);
-      setPendingPages(result.data.totalPages);
+      setPendingPages(result.data.totalPages); setPendingTotal(result.data.totalElements);
       if (pendingPage > lastPage) { setPendingPage(lastPage); return; }
       setPending(result.data.content);
     }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : t('error')); })
@@ -157,7 +159,7 @@ export function DisposalsPage() {
               <span><strong>{asset.assetTag}</strong><small>{asset.name} · {t(`categories.${asset.category}`, { defaultValue: asset.category })}</small></span>
             </label>)}
           </div>
-          <Pagination page={assetPage} pages={assetPages} loading={assetLoading} previous={t('previous')} next={t('next')} onPage={setAssetPage} />
+          <p>{t('documents:pagination.summary', { page: assetPages ? assetPage + 1 : 0, pages: assetPages, count: assetTotal })}</p><Pagination page={assetPage} pages={assetPages} loading={assetLoading} previous={t('previous')} next={t('next')} onPage={setAssetPage} />
           <p className="selection-count">{t('selectedCount', { count: selected.length })}</p>
           <label className="form-group"><span className="form-label required">{t('reason')}</span><textarea className="form-textarea" required value={reason} onChange={event => setReason(event.target.value)} /></label>
           <label className="form-group"><span className="form-label required">{t('date')}</span><input className="form-input" type="date" required value={date} onChange={event => setDate(event.target.value)} /></label>
@@ -171,7 +173,7 @@ export function DisposalsPage() {
         {pending.map(item => <div className="pending-row" key={item.transactionId}><div><strong>{item.transactionCode}</strong><small>{item.requesterName} · {item.createdAt}</small></div>
           <button className="btn btn-secondary btn-sm" disabled={detailLoading} onClick={event => void showDetail(item.transactionId, false, event.currentTarget)}>{t('review')}</button>
         </div>)}
-        <Pagination page={pendingPage} pages={pendingPages} loading={pendingLoading} previous={t('previous')} next={t('next')} onPage={setPendingPage} />
+        <p>{t('documents:pagination.summary', { page: pendingPages ? pendingPage + 1 : 0, pages: pendingPages, count: pendingTotal })}</p><Pagination page={pendingPage} pages={pendingPages} loading={pendingLoading} previous={t('previous')} next={t('next')} onPage={setPendingPage} />
       </section>
     </div>
     {createReview && <DisposalReview value={createReview} editing={!!editingId} saving={saving} error={error} restoreFocusRef={createTrigger} onCancel={() => setCreateReview(null)} onConfirm={create} />}

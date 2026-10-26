@@ -1,3 +1,4 @@
+import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { ReactNode, RefObject, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PublicationPanel } from '@/features/documents/components/PublicationPanel';
@@ -38,19 +39,19 @@ export function DisposalReview({ value, editing = false, saving, error, restoreF
   </>}>
     {error && <div className="alert-banner alert-danger" role="alert">{error}</div>}
     {value.warnings.length > 0 && <div className="alert-banner alert-danger">{value.warnings.map(warning => <span key={warning}>{warningText(warning)}</span>)}</div>}
-    <div className="candidate-list">{value.assets.map(asset => <div className="candidate-row" key={asset.assetId}><span><strong>{asset.assetTag}</strong><small>{asset.name} · {t(`categories.${asset.category}`, { defaultValue: asset.category })}{asset.autoAdded ? ` · ${t('autoAdded')}` : ''}</small></span></div>)}</div>
+    <PaginatedContent items={value.assets}>{assets => <div className="candidate-list">{assets.map(asset => <div className="candidate-row" key={asset.assetId}><span><strong>{asset.assetTag}</strong><small>{asset.name} · {t(`categories.${asset.category}`, { defaultValue: asset.category })}{asset.autoAdded ? ` · ${t('autoAdded')}` : ''}</small></span></div>)}</div>}</PaginatedContent>
     {!!value.oemAllocations?.length && <AllocationList title={t('oemTitle')} rows={value.oemAllocations} />}
   </DisposalDialog>;
 }
 
 function AllocationList({ title, rows, perUser = false }: {
-  title: string; rows: Disposal['oemAllocations'] | Disposal['perUserLinks']; perUser?: boolean;
+  title: string; rows: Array<Disposal['oemAllocations'][number] | Disposal['perUserLinks'][number]>; perUser?: boolean;
 }) {
   const { t } = useTranslation('disposal');
-  return <section className="disposal-allocations"><h3>{title}</h3>{rows.map(row => <div className="allocation-row" key={row.allocationId}>
+  return <section className="disposal-allocations"><h3>{title}</h3><PaginatedContent items={rows}>{items => items.map(row => <div className="allocation-row" key={row.allocationId}>
     <strong>{row.assetTag}</strong><span>{t('seats', { count: row.seats })} · {row.deviceTag}</span>
     {perUser && 'userName' in row && <span>{row.userName}</span>}
-  </div>)}</section>;
+  </div>)}</PaginatedContent></section>;
 }
 
 export function DisposalDetail({ value, role, userId, onTransition, onEdit, decisions, saving, error, restoreFocusRef, action, rejectReason, onDecision, onResolve,
@@ -85,16 +86,16 @@ export function DisposalDetail({ value, role, userId, onTransition, onEdit, deci
       <div><dt>{t('createdAt')}</dt><dd>{value.createdAt}</dd></div>
     </dl>
     {value.warnings.length > 0 && <div className="alert-banner alert-danger">{value.warnings.map(warning => <span key={warning}>{warningText(warning)}</span>)}</div>}
-    <div className="table-container"><table className="data-table"><thead><tr><th>{t('asset')}</th><th>{t('category')}</th><th>{t('serial')}</th></tr></thead>
-      <tbody>{value.assets.map(asset => <tr key={asset.assetId}><td><strong>{asset.assetTag}</strong><br />{asset.name}{asset.autoAdded && <> · {t('autoAdded')}</>}</td><td>{t(`categories.${asset.category}`, { defaultValue: asset.category })}</td><td>{asset.serialNumber || '-'}</td></tr>)}</tbody>
-    </table></div>
+    <PaginatedContent key={value.transactionId} items={value.assets}>{assets => <div className="table-container"><table className="data-table"><thead><tr><th>{t('asset')}</th><th>{t('category')}</th><th>{t('serial')}</th></tr></thead>
+      <tbody>{assets.map(asset => <tr key={asset.assetId}><td><strong>{asset.assetTag}</strong><br />{asset.name}{asset.autoAdded && <> · {t('autoAdded')}</>}</td><td>{t(`categories.${asset.category}`, { defaultValue: asset.category })}</td><td>{asset.serialNumber || '-'}</td></tr>)}</tbody>
+    </table></div>}</PaginatedContent>
     {!!value.oemAllocations.length && <><p className="disposal-hint">{t('oemHint')}</p><AllocationList title={t('oemTitle')} rows={value.oemAllocations} /></>}
     {!!value.perUserLinks.length && <section className="disposal-allocations"><h3>{t('perUserTitle')}</h3><p className="disposal-hint">{t('perUserDecisionHint')}</p>
-      {value.perUserLinks.map(link => <fieldset className="allocation-row" key={link.allocationId} disabled={!canResolve || saving}>
+      <PaginatedContent items={value.perUserLinks}>{links => links.map(link => <fieldset className="allocation-row" key={link.allocationId} disabled={!canResolve || saving}>
         <legend><strong>{link.assetTag}</strong> · {link.userName} · {link.deviceTag} · {t('seats', { count: link.seats })}</legend>
         <label><input type="radio" name={`allocation-${link.allocationId}`} checked={decisions[link.allocationId] !== false} onChange={() => onDecision(link.allocationId, true)} /> {t('releaseSeats')}</label>
         <label><input type="radio" name={`allocation-${link.allocationId}`} checked={decisions[link.allocationId] === false} onChange={() => onDecision(link.allocationId, false)} /> {t('keepActive')}</label>
-      </fieldset>)}
+      </fieldset>)}</PaginatedContent>
       {canResolve && <button className="btn btn-primary" disabled={saving} onClick={onResolve}>{t('resolvePerUser')}</button>}
     </section>}
     {action === 'approve' && <section className="decision-confirm" role="alertdialog" aria-labelledby="approve-confirm-title"><h3 id="approve-confirm-title">{t('approveTitle')}</h3><p>{t('approveHint')}</p><div className="pending-actions"><button className="btn btn-secondary" disabled={saving} onClick={() => onChooseAction(null)}>{t('cancel')}</button><button className="btn btn-primary" disabled={saving} onClick={onApprove}>{t('confirmApprove')}</button></div></section>}

@@ -1,3 +1,4 @@
+import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
@@ -13,6 +14,7 @@ export function RecoveriesPage() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(0);
   const [pages, setPages] = useState(0);
+  const [total, setTotal] = useState(0);
   const [history, setHistory] = useState<Recovery[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<Recovery | null>(null);
@@ -30,7 +32,7 @@ export function RecoveriesPage() {
     let active = true;
     setLoading(true); setError('');
     recoveryApi.list(keyword, status, page).then(r => {
-      if (active) { setHistory(r.data.content); setPages(r.data.totalPages); }
+      if (active) { setHistory(r.data.content); setPages(r.data.totalPages); setTotal(r.data.totalElements); setPage(current => Math.min(current, Math.max(0, r.data.totalPages - 1))); }
     }).catch(e => { if (active) setError(e instanceof Error ? e.message : t('error')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -91,11 +93,11 @@ export function RecoveriesPage() {
         </tr></thead><tbody>{history.map(r => <tr key={r.transactionId}><td>{r.transactionCode}</td><td>{r.returnerName}</td><td>{r.recoveryDate}</td><td>{t(`status.${r.status}`)}</td>
           <td><button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectedId(r.transactionId)}>{t('details')}</button></td></tr>)}</tbody></table>}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><button className="btn btn-secondary" disabled={loading || page === 0} onClick={() => setPage(n => n - 1)}>{t('previous')}</button>
-        <span>{page + 1} / {Math.max(1, pages)}</span><button className="btn btn-secondary" disabled={loading || page + 1 >= pages} onClick={() => setPage(n => n + 1)}>{t('next')}</button></div>
+        <span>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span><button className="btn btn-secondary" disabled={loading || page + 1 >= pages} onClick={() => setPage(n => n + 1)}>{t('next')}</button></div>
       {detailError && <p role="alert">{detailError} <button type="button" onClick={() => setReload(n => n + 1)}>{t('retry')}</button></p>}
       {detail && <section style={{ marginTop: 20 }}><h2>{detail.transactionCode} · {t(`status.${detail.status}`)}</h2>
         <p>{detail.returnerName} · {detail.receivingLocationName} · {detail.recoveryDate}</p><p>{detail.reason}</p>
-        <ul>{detail.lines?.map(line => <li key={line.assetId}>{line.assetTag} · {line.name} · {line.category}</li>)}</ul>
+        <PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <ul>{lines.map(line => <li key={line.assetId}>{line.assetTag} · {line.name} · {line.category}</li>)}</ul>}</PaginatedContent>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {detail.status === 'DRAFT' && (owner || admin) && <><button className="btn btn-secondary" disabled={acting} onClick={() => setEditing(true)}>{t('edit')}</button><button className="btn btn-primary" disabled={acting} onClick={() => void act('submit')}>{t('submit')}</button><button className="btn btn-secondary" disabled={acting} onClick={() => void act('cancel')}>{t('cancel')}</button></>}
           {detail.status === 'PENDING' && (owner || admin) && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('withdraw')}>{t('withdraw')}</button>}
@@ -111,7 +113,7 @@ export function RecoveriesPage() {
       {confirming && detail && <dialog ref={confirmRef} aria-labelledby="recovery-confirm-title" onCancel={e => { if (acting) e.preventDefault(); else setConfirming(false); }} style={{ margin: 'auto', padding: 24, width: 'min(700px, calc(100vw - 32px))' }}>
         <h2 id="recovery-confirm-title">{t('confirmPhysical')}</h2><p>{t('confirmPhysicalHint')}</p>
         <p>{detail.transactionCode} · {detail.returnerName} · {detail.receivingLocationName}</p>
-        <ul>{detail.lines?.map(line => <li key={line.assetId}>{line.assetTag} · {line.name}</li>)}</ul>
+        <PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <ul>{lines.map(line => <li key={line.assetId}>{line.assetTag} · {line.name}</li>)}</ul>}</PaginatedContent>
         <button className="btn btn-secondary" disabled={acting} onClick={() => setConfirming(false)}>{t('back')}</button>
         <button className="btn btn-primary" disabled={acting} onClick={() => void act('confirm')}>{acting ? t('loading') : t('confirmPhysical')}</button>
       </dialog>}

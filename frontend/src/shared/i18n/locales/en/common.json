@@ -8,6 +8,12 @@
     "switchLabel": "Language"
   },
   "nav": {
+    "mainMenu": "Main navigation",
+    "management": "Management",
+    "assetCatalogs": "Asset catalogs",
+    "organizationCatalogs": "Organization catalogs",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
     "overview": "Overview",
     "catalogs": "Catalog Management",
     "assets": "Assets",

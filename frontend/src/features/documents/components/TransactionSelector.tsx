@@ -36,7 +36,7 @@ export function TransactionSelector({ selectedId, onSelect, receiving=false }: T
         if (!active) return;
         if (!response.success || !response.data) throw new Error(response.message || t('errors.transactions'));
         setTransactions(response.data.content);
-        setTotalPages(response.data.totalPages);
+        setTotalPages(response.data.totalPages); setPage(current => Math.min(current, Math.max(0, response.data.totalPages - 1)));
         setTotalElements(response.data.totalElements);
       })
       .catch((cause: unknown) => {

@@ -1,3 +1,4 @@
+import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { locationApi } from '@/features/catalogs/api/catalogApi';
@@ -33,7 +34,7 @@ export function HandoverForm({ onCompleted, onBusyChange, initialRecipient, init
   useEffect(() => {
     if (!recipient) { setRecipientDetail(null); return; }
     let active = true; setRecipientLoading(true); setRecipientError('');
-    handoverApi.holder(recipient.id, recipientPage).then(r => { if (active) setRecipientDetail(r.data); })
+    handoverApi.holder(recipient.id, recipientPage).then(r => { if (active) { setRecipientDetail(r.data); setRecipientPage(p => Math.min(p, Math.max(0, r.data.assets.totalPages - 1))); } })
       .catch((e: unknown) => { if (active) setRecipientError(e instanceof Error ? e.message : t('error')); })
       .finally(() => { if (active) setRecipientLoading(false); });
     return () => { active = false; };
@@ -62,6 +63,7 @@ export function HandoverForm({ onCompleted, onBusyChange, initialRecipient, init
   async function review(e: FormEvent) {
     e.preventDefault(); setError('');
     if (!recipient || !location || selected.length === 0) { setError(t('required')); return; }
+    if (selected.some(a => a.category === 'LICENSE' && (!Number.isInteger(licenses[a.assetId]?.seats) || licenses[a.assetId].seats < 1 || licenses[a.assetId].seats > Math.min(100, a.availableSeats ?? 100)))) { setError(t('required')); return; }
     const request: HandoverRequest = { recipientUserId: recipient.id, destinationLocationId: location.locationId, handoverDate: date, notes,
       assetIds: selected.filter(a => a.category !== 'LICENSE').map(a => a.assetId),
       licenses: selected.filter(a => a.category === 'LICENSE').map(a => ({ assetId: a.assetId, ...licenses[a.assetId] })) };
@@ -99,7 +101,7 @@ export function HandoverForm({ onCompleted, onBusyChange, initialRecipient, init
               {item.assetTag} · {item.name}{item.serialNumber ? ` · ${t('serial')}: ${item.serialNumber}` : ''}{item.category === 'LICENSE' ? ` · ${t('licenseSeatCount', { count: item.seats })}` : ''}{item.deviceTag ? ` · ${t('withParent', { id: item.deviceTag })}` : ''}
             </li>)}</ul>}
             <div className="handover-pagination"><button type="button" className="btn btn-secondary" disabled={recipientPage === 0} onClick={() => setRecipientPage(p => p - 1)}>{t('previous')}</button>
-              <span>{recipientPage + 1} / {Math.max(1, recipientDetail.assets.totalPages)}</span><button type="button" className="btn btn-secondary" disabled={recipientPage + 1 >= recipientDetail.assets.totalPages} onClick={() => setRecipientPage(p => p + 1)}>{t('next')}</button></div>
+              <span>{t('documents:pagination.summary', { page: recipientDetail.assets.totalPages ? recipientPage + 1 : 0, pages: recipientDetail.assets.totalPages, count: recipientDetail.assets.totalElements })}</span><button type="button" className="btn btn-secondary" disabled={recipientPage + 1 >= recipientDetail.assets.totalPages} onClick={() => setRecipientPage(p => p + 1)}>{t('next')}</button></div>
           </div>}
         <HandoverPicker title={t('searchLocations')} load={loadLocations} identify={l => l.locationId} label={l => l.name}
           selected={location ? [location.locationId] : []} choose={setLocation} disabled={frozen} />
@@ -108,7 +110,7 @@ export function HandoverForm({ onCompleted, onBusyChange, initialRecipient, init
     </div>
     <h2>{t('selected', { count: selected.length })}</h2>
     {selected.length === 0 && <p>{t('emptySelection')}</p>}
-    {selected.map(a => <div className="handover-selected" key={a.assetId}>
+    <PaginatedContent items={selected}>{items => items.map(a => <div className="handover-selected" key={a.assetId}>
       <span><strong>{a.assetTag}</strong> · {a.name}</span>
       {a.category === 'LICENSE' && <>
         <label>{t('seats')}<input className="form-input" type="number" min={1} max={Math.min(100, a.availableSeats ?? 100)} required disabled={frozen}
@@ -119,7 +121,7 @@ export function HandoverForm({ onCompleted, onBusyChange, initialRecipient, init
         </select></label>
       </>}
       <button type="button" className="btn btn-secondary" disabled={frozen} onClick={() => toggle(a)}>{t('remove')}</button>
-    </div>)}
+    </div>)}</PaginatedContent>
     <div className="handover-grid">
       <label className="form-label">{t('date')}<input className="form-input" type="date" required value={date} disabled={frozen} onChange={e => setDate(e.target.value)} /></label>
       <label className="form-label">{t('notes')}<textarea className="form-input" maxLength={4000} value={notes} disabled={frozen} onChange={e => setNotes(e.target.value)} /></label>

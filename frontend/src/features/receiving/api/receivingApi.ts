@@ -1,4 +1,4 @@
-import { ApiResponse } from '@/features/catalogs/types/catalog.types';
+import { ApiResponse, PageResponse } from '@/features/catalogs/types/catalog.types';
 import { DocumentItem, DocumentTransaction } from '@/features/documents/types/document.types';
 import { httpClient, downloadFile } from '@/shared/api/httpClient';
 import { ImportBatch, ImportConfirmPayload, ImportPreviewData } from '@/features/assets/types/import.types';
@@ -31,7 +31,7 @@ export const receivingApi = {
   saveLine:(id:number,version:number,input:LineInput,assetId?:number)=>httpClient(`${base}/${id}/${assetId?`assets/${assetId}`:'hardware'}?expectedVersion=${version}`,{method:assetId?'PUT':'POST',body:JSON.stringify(input)}),
   remove:(id:number,version:number,assetId:number)=>httpClient(`${base}/${id}/assets/${assetId}?expectedVersion=${version}`,{method:'DELETE'}),
   reuse:(id:number,version:number,assetId:number)=>httpClient(`${base}/${id}/assets/${assetId}?expectedVersion=${version}`,{method:'POST'}),
-  candidates:(keyword:string,page:number)=>httpClient<ApiResponse<Line[]>>(`${base}/candidates?${new URLSearchParams({keyword,page:String(page)})}`),
+  candidates:(keyword:string,page:number)=>httpClient<ApiResponse<PageResponse<Line>>>(`${base}/candidates?${new URLSearchParams({keyword,page:String(page)})}`),
   action:(transaction:DocumentTransaction,action:'submit'|'withdraw'|'approve'|'reject'|'cancel',reason?:string)=>httpClient(`${base}/${transaction.transactionId}/${action}`,{
     method:'POST',body:JSON.stringify({expectedVersion:transaction.expectedVersion,expectedSubmissionRevision:transaction.submittedRevision,reason})}),
 };

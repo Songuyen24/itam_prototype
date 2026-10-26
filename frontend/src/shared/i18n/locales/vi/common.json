@@ -8,6 +8,12 @@
     "switchLabel": "Ngôn ngữ"
   },
   "nav": {
+    "mainMenu": "Điều hướng chính",
+    "management": "Quản lý",
+    "assetCatalogs": "Danh mục tài sản",
+    "organizationCatalogs": "Danh mục tổ chức",
+    "collapseSidebar": "Thu gọn thanh điều hướng",
+    "expandSidebar": "Mở rộng thanh điều hướng",
     "overview": "Tổng quan",
     "catalogs": "Quản lý Danh mục",
     "assets": "Tài sản",

@@ -50,12 +50,15 @@ public class UserController {
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> list(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size
+            @RequestParam(value = "size", defaultValue = "20") int size,
+            @RequestParam(defaultValue = "false") boolean withoutAccount
     ) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(size, 1), 100);
         Pageable pageable = PageRequest.of(safePage, safeSize, org.springframework.data.domain.Sort.by("userId"));
-        Page<UserEntity> result = (keyword != null && !keyword.isBlank())
+        Page<UserEntity> result = withoutAccount
+                ? userRepository.findProfilesWithoutAccount(keyword == null ? "" : keyword.trim(), pageable)
+                : (keyword != null && !keyword.isBlank())
                 ? userRepository.findByFullNameContainingIgnoreCaseWithDetails(keyword.trim(), pageable)
                 : userRepository.findAllWithDetails(pageable);
 

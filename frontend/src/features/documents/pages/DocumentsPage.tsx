@@ -1,6 +1,7 @@
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { receivingApi } from '@/features/receiving/api/receivingApi';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TransactionSelector } from '../components/TransactionSelector';
 import { TransactionDocuments } from '../components/TransactionDocuments';
@@ -8,7 +9,11 @@ import './documents.css';
 
 export function DocumentsPage({receiving=false}:{receiving?:boolean}) {
   const { t } = useTranslation('documents');
-  const [transactionId, setTransactionId] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+  const requestedId = Number(searchParams.get('transactionId'));
+  const deepLinkedId = Number.isSafeInteger(requestedId) && requestedId > 0 ? requestedId : null;
+  const [transactionId, setTransactionId] = useState<number | null>(deepLinkedId);
+  useEffect(() => { setTransactionId(deepLinkedId); }, [deepLinkedId]);
   const { user } = useAuth();
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);

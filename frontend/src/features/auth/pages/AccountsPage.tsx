@@ -23,6 +23,7 @@ export function AccountsPage() {
   const [profileChoices, setProfileChoices] = useState<EmployeeProfile[]>([]);
   const [profilePage, setProfilePage] = useState(0);
   const [profilePages, setProfilePages] = useState(0);
+  const [profileTotal, setProfileTotal] = useState(0);
   const [profileLoading, setProfileLoading] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<EmployeeProfile | null>(null);
   const [username, setUsername] = useState('');
@@ -37,7 +38,7 @@ export function AccountsPage() {
     let active = true;
     setLoading(true); setError('');
     managementApi.accounts(keyword, page).then(({ data }) => {
-      if (active) { setAccounts(data.content); setPages(data.totalPages); setTotal(data.totalElements); }
+      if (active) { setAccounts(data.content); setPages(data.totalPages); setPage(current => Math.min(current, Math.max(0, data.totalPages - 1))); setTotal(data.totalElements); }
     }).catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : t('management.error')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -47,8 +48,8 @@ export function AccountsPage() {
     if (editing !== 'new') return;
     let active = true;
     setProfileLoading(true);
-    managementApi.profiles(profileKeyword, profilePage).then(({ data }) => {
-      if (active) { setProfileChoices(data.content.filter((profile) => !profile.hasAccount)); setProfilePages(data.totalPages); }
+    managementApi.profiles(profileKeyword, profilePage, true).then(({ data }) => {
+      if (active) { setProfileChoices(data.content); setProfilePages(data.totalPages); setProfileTotal(data.totalElements); setProfilePage(current => Math.min(current, Math.max(0, data.totalPages - 1))); }
     }).catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : t('management.error')); })
       .finally(() => { if (active) setProfileLoading(false); });
     return () => { active = false; };
@@ -87,7 +88,7 @@ export function AccountsPage() {
     <label className="management-search">{t('management.searchAccount')}<input className="form-input" value={keyword} maxLength={100} onChange={(e) => { setKeyword(e.target.value); setPage(0); }} /></label>
     {editing && <form className="management-editor" onSubmit={(e) => { e.preventDefault(); void save(); }}>
       <div className="management-heading"><h2>{editing === 'new' ? t('management.addAccount') : t('management.editAccount')}</h2><button type="button" className="btn btn-secondary" disabled={busy} onClick={close}>{t('management.close')}</button></div>
-      {editing === 'new' && <div className="management-profile-picker"><label>{t('management.findProfile')}<input className="form-input" value={profileKeyword} onChange={(e) => { setProfileKeyword(e.target.value); setProfilePage(0); }} /></label>{selectedProfile && <p>{t('management.selectedProfile')}: <strong>{selectedProfile.fullName} · {selectedProfile.employeeCode || '—'}</strong></p>}{profileLoading ? <p role="status">{t('management.loading')}</p> : <div className="management-choices">{profileChoices.map((profile) => <button type="button" key={profile.id} className="btn btn-secondary" onClick={() => setSelectedProfile(profile)}>{profile.fullName} · {profile.employeeCode || '—'}</button>)}</div>}<div className="management-pagination"><button type="button" className="btn btn-secondary" disabled={profilePage === 0} onClick={() => setProfilePage((v) => v - 1)}>{t('management.previous')}</button><span>{profilePage + 1} / {Math.max(1, profilePages)}</span><button type="button" className="btn btn-secondary" disabled={profilePage + 1 >= profilePages} onClick={() => setProfilePage((v) => v + 1)}>{t('management.next')}</button></div></div>}
+      {editing === 'new' && <div className="management-profile-picker"><label>{t('management.findProfile')}<input className="form-input" value={profileKeyword} onChange={(e) => { setProfileKeyword(e.target.value); setProfilePage(0); }} /></label>{selectedProfile && <p>{t('management.selectedProfile')}: <strong>{selectedProfile.fullName} · {selectedProfile.employeeCode || '—'}</strong></p>}{profileLoading ? <p role="status">{t('management.loading')}</p> : <div className="management-choices">{profileChoices.map((profile) => <button type="button" key={profile.id} className="btn btn-secondary" onClick={() => setSelectedProfile(profile)}>{profile.fullName} · {profile.employeeCode || '—'}</button>)}</div>}<div className="management-pagination"><button type="button" className="btn btn-secondary" disabled={profilePage === 0} onClick={() => setProfilePage((v) => v - 1)}>{t('management.previous')}</button><span>{t('documents:pagination.summary', { page: profilePages ? profilePage + 1 : 0, pages: profilePages, count: profileTotal })}</span><button type="button" className="btn btn-secondary" disabled={profilePage + 1 >= profilePages} onClick={() => setProfilePage((v) => v + 1)}>{t('management.next')}</button></div></div>}
       <div className="management-fields"><label>{t('management.username')}{editing === 'new' && ' *'}<input className="form-input" maxLength={255} required={editing === 'new'} readOnly={editing !== 'new'} value={username} onChange={(e) => setUsername(e.target.value)} /></label><label>{t('account.role')}<select className="form-input" value={roleCode} onChange={(e) => setRoleCode(e.target.value)}>{roles.map((role) => <option key={role} value={role}>{t(`roles.${role}`)}</option>)}</select></label>{roleCode === 'USER' && <label className="management-check"><input type="checkbox" checked={accessGranted} onChange={(e) => setAccessGranted(e.target.checked)} />{t('access.grant')}</label>}{editing !== 'new' && <label className="management-check"><input type="checkbox" checked={loginLocked} onChange={(e) => setLoginLocked(e.target.checked)} />{t('access.lock')}</label>}{editing === 'new' && <><label>{t('password')} *<input className="form-input" type="password" autoComplete="new-password" required minLength={8} maxLength={72} value={password} onChange={(e) => setPassword(e.target.value)} /></label><label>{t('management.confirmPassword')} *<input className="form-input" type="password" autoComplete="new-password" required minLength={8} maxLength={72} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></label></>}</div>
       <div className="management-actions"><button className="btn btn-primary" disabled={busy}>{t('management.save')}</button></div>
     </form>}

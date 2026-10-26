@@ -16,6 +16,7 @@ export function HandoversPage() {
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(0);
   const [pages, setPages] = useState(0);
+  const [total, setTotal] = useState(0);
   const [holders, setHolders] = useState<Holder[]>([]);
   const [items, setItems] = useState<DocumentTransaction[]>([]);
   const [holderId, setHolderId] = useState<number | null>(null);
@@ -40,7 +41,7 @@ export function HandoversPage() {
     const request = tab === 'holders' ? handoverApi.holders(keyword, page, heldOnly && !keyword.trim()) : documentApi.getTransactions({ type: 'HANDOVER', keyword, page, size: 10 });
     request.then(r => {
       if (!active) return;
-      setPages(r.data.totalPages);
+      setPages(r.data.totalPages); setTotal(r.data.totalElements); setPage(current => Math.min(current, Math.max(0, r.data.totalPages - 1)));
       if (tab === 'holders') setHolders(r.data.content as Holder[]);
       else setItems(r.data.content as DocumentTransaction[]);
     }).catch((e: unknown) => { if (active) setError(e instanceof Error ? e.message : t('error')); })
@@ -55,7 +56,7 @@ export function HandoversPage() {
     const request = tab === 'holders' ? handoverApi.holder(id, heldPage) : handoverApi.detail(id);
     request.then(r => {
       if (!active) return;
-      if (tab === 'holders') setHolderDetail(r.data as HolderDetail);
+      if (tab === 'holders') { setHolderDetail(r.data as HolderDetail); setHeldPage(p => Math.min(p, Math.max(0, (r.data as HolderDetail).assets.totalPages - 1))); }
       else setDetail(r.data as Handover);
     }).catch((e: unknown) => { if (active) setDetailError(e instanceof Error ? e.message : t('error')); })
       .finally(() => { if (active) setDetailLoading(false); });
@@ -119,7 +120,7 @@ export function HandoversPage() {
               <strong>{item.transactionCode}</strong><span>{t(`status.${item.status}`)}</span><span>{item.requesterName || item.processedByName}</span>
             </button>)}
         <div className="handover-pagination"><button className="btn btn-secondary" disabled={loading || page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
-          <span>{page + 1} / {Math.max(1, pages)}</span><button className="btn btn-secondary" disabled={loading || page + 1 >= pages} onClick={() => setPage(p => p + 1)}>{t('next')}</button></div>
+          <span>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span><button className="btn btn-secondary" disabled={loading || page + 1 >= pages} onClick={() => setPage(p => p + 1)}>{t('next')}</button></div>
       </section>
       <section>{detailLoading ? <p role="status">{t('loading')}</p> : detailError ? <p role="alert">{detailError} <button onClick={() => setReload(r => r + 1)}>{t('retry')}</button></p> : null}
         {!detailLoading && tab === 'holders' && holderDetail && <div className="handover-holder-detail">
@@ -130,7 +131,7 @@ export function HandoversPage() {
             {asset.category === 'LICENSE' ? ` · ${t('licenseSeatCount', { count: asset.seats })}` : ''}{asset.deviceTag ? ` · ${t('withParent', { id: asset.deviceTag })}` : ''}
           </li>)}</ul>}
           <div className="handover-pagination"><button className="btn btn-secondary" disabled={heldPage === 0} onClick={() => setHeldPage(p => p - 1)}>{t('previous')}</button>
-            <span>{heldPage + 1} / {Math.max(1, holderDetail.assets.totalPages)}</span><button className="btn btn-secondary" disabled={heldPage + 1 >= holderDetail.assets.totalPages} onClick={() => setHeldPage(p => p + 1)}>{t('next')}</button></div>
+            <span>{t('documents:pagination.summary', { page: holderDetail.assets.totalPages ? heldPage + 1 : 0, pages: holderDetail.assets.totalPages, count: holderDetail.assets.totalElements })}</span><button className="btn btn-secondary" disabled={heldPage + 1 >= holderDetail.assets.totalPages} onClick={() => setHeldPage(p => p + 1)}>{t('next')}</button></div>
           <button className="btn btn-primary" disabled={holderDetail.holder.accountStatus !== 'ACTIVE'} onClick={() => setCreating(true)}>{t('create')}</button>
         </div>}
         {!detailLoading && tab === 'holders' && !holderDetail && !detailError && <p>{t('selectHolder')}</p>}

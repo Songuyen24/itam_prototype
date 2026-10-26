@@ -82,7 +82,7 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated }: { 
         }
         setTransaction(transactionResponse.data);
         setDocuments(documentResponse.data.content);
-        setTotalPages(documentResponse.data.totalPages);
+        setTotalPages(documentResponse.data.totalPages); setPage(current => Math.min(current, Math.max(0, documentResponse.data.totalPages - 1)));
         setTotalElements(documentResponse.data.totalElements);
       })
       .catch((cause: unknown) => {
