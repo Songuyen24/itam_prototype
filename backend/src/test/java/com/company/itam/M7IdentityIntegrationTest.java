@@ -56,7 +56,12 @@ class M7IdentityIntegrationTest {
     org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.UserRequestPostProcessor as(String role) {
         return user(switch(role){case "ADMIN"->"admin@itam.example";case "IT_STAFF"->"it01@itam.example";default->"pur01@itam.example";}).authorities(new SimpleGrantedAuthority(role));
     }
-    Long profile() { return identities.saveProfile(null,new IdentityService.Profile(marker,marker,null,null,null)).getUserId(); }
+    Long profile() {
+        // The independently committed login audit must be able to reference this fixture actor.
+        var fixture = new org.springframework.transaction.support.TransactionTemplate(manager);
+        fixture.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return fixture.execute(status -> identities.saveProfile(null,new IdentityService.Profile(marker,marker,null,null,null)).getUserId());
+    }
     String body(Object value) throws Exception { return json.writeValueAsString(value); }
     String token(String identifier,String pass) throws Exception {
         SecurityContextHolder.clearContext();
@@ -69,7 +74,10 @@ class M7IdentityIntegrationTest {
         r.setConditionId(jdbc.queryForObject("SELECT min(condition_id) FROM asset_conditions WHERE is_active",Long.class));
         return assets.createHardwareAsset(r).getAssetId();
     }
-    Long location() { return jdbc.queryForObject("SELECT min(location_id) FROM locations WHERE is_active",Long.class); }
+    Long location() {
+        jdbc.update("INSERT INTO locations(code,name,is_active) VALUES (?,?,true) ON CONFLICT (code) DO NOTHING",marker,marker);
+        return jdbc.queryForObject("SELECT location_id FROM locations WHERE code=?",Long.class,marker);
+    }
     HandoverRequest request(Long person,Long device) { return new HandoverRequest(person,location(),LocalDate.now(),List.of(device),List.of(),marker,null); }
 
     @Test void profileWithoutEmailOrAccountCanBeSearchedByCodeAndPurReadsOnly() throws Exception {
@@ -122,11 +130,11 @@ class M7IdentityIntegrationTest {
             .allMatch(s->!s.contains(password)&&!s.contains("M7-new-password")&&!s.contains("$2"));
     }
     @Test void adminCannotChangeOwnPermissionsAndCannotBypassUsernameViaLegacyAccess() throws Exception {
+        Long id=profile();
         Long admin=jdbc.queryForObject("SELECT user_id FROM users WHERE email='admin@itam.example'",Long.class);
         mvc.perform(put("/v1/accounts/"+admin).with(as("ADMIN")).contentType("application/json").content("{\"roleCode\":\"USER\",\"accessGranted\":false,\"loginLocked\":true}"))
             .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ACCOUNT_SELF_PERMISSION_DENIED"));
         loginActor("admin@itam.example","ADMIN");
-        Long id=profile();
         mvc.perform(put("/v1/users/"+id+"/access").with(as("ADMIN")).contentType("application/json").content(body(Map.of("granted",true,"status","ACTIVE","password",password))))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("ACCOUNT_USERNAME_REQUIRED"));
         assertThat(jdbc.queryForObject("SELECT password_hash FROM users WHERE user_id=?",String.class,id)).isNull();

@@ -56,6 +56,8 @@ public class SecurityConfig {
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
                     .requestMatchers(HttpMethod.POST, "/v1/import-drafts/*/approve", "/v1/import-drafts/*/reject").hasAnyAuthority("ADMIN", "IT_STAFF")
                     .requestMatchers("/v1/import-drafts/**").hasAnyAuthority("ADMIN", "PUR_STAFF")
+                    .requestMatchers("/v1/transactions/*/adjustments/**", "/api/v1/transactions/*/adjustments/**")
+                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
                     // Document services also enforce transaction scope and report ownership.
                     .requestMatchers(HttpMethod.GET, "/v1/documents/*/download", "/api/v1/documents/*/download")
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")

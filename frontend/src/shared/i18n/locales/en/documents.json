@@ -1,8 +1,18 @@
 {
   "title": "Documents",
   "transactionsTitle": "Transactions",
-  "tabs": { "DRAFT": "Draft", "PENDING": "Pending", "FINAL": "Finished" },
-  "statusTags": { "DRAFT": "Draft", "PENDING": "Pending", "COMPLETED": "Successful", "REJECTED": "Rejected", "CANCELLED": "Cancelled" },
+  "tabs": {
+    "DRAFT": "Draft",
+    "PENDING": "Pending",
+    "FINAL": "Finished"
+  },
+  "statusTags": {
+    "DRAFT": "Draft",
+    "PENDING": "Pending",
+    "COMPLETED": "Successful",
+    "REJECTED": "Rejected",
+    "CANCELLED": "Cancelled"
+  },
   "listTitle": "Attached documents",
   "fields": {
     "transactionCode": "Transaction code",
@@ -139,7 +149,7 @@
     "processedBy": "Processed by",
     "reason": "Rejection reason",
     "requirements": "Before submitting: add valid assets, select hardware condition, and save notes. Attach documents when available.",
-    "importExcel": "Import Excel into draft",
+    "importExcel": "Excel / PDF into draft",
     "reuse": "Choose an existing asset awaiting import",
     "search": "Search by tag, serial or name",
     "noCandidates": "No eligible assets found.",
@@ -226,5 +236,41 @@
       "HANDOVER_COMPLETED": "Handover completed",
       "RECOVERY_COMPLETED": "Recovery completed"
     }
+  },
+  "adjustment": {
+    "new": "Submit a correction",
+    "approve": "Approve this version",
+    "reason": "Reason (also required for Admin acting on behalf)",
+    "version": "Version {{version}}",
+    "impact": "Subsequent transactions",
+    "workflow": "For wrong assets, recipient or status, describe the appropriate corrective workflow and link its transaction if available. No transaction is automatically created or reversed.",
+    "title": "Adjustment requests — Prototype template",
+    "text": "Correction text / resolution plan",
+    "kind": "Adjustment type",
+    "selfApproval": "Temporary rule: Admin may self-approve; a distinct audit event is recorded.",
+    "submit": "Submit and lock request",
+    "reviewed": "Transactions reviewed at decision time",
+    "notice": "The original transaction, snapshot and documents remain unchanged. A correction takes effect only after Admin approval.",
+    "link": "Corrective transaction ID (optional)",
+    "states": {
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "PENDING": "Pending"
+    },
+    "corrective": "Open corrective transaction",
+    "impactNotice": "Only transactions within your read scope are shown. Admin must review current impacts when deciding.",
+    "reject": "Reject this version",
+    "kinds": {
+      "DOCUMENT": "Document correction",
+      "WORKFLOW": "Wrong assets / recipient / status",
+      "DESCRIPTION": "Description correction"
+    },
+    "loading": "Loading…",
+    "lock": "Submitting locks the text and files. Changes require a new version.",
+    "decision": "Decision reason and acknowledgement of impact review",
+    "files": "Up to 5 PDF/PNG/JPEG files, maximum 10 MB each",
+    "error": "Unable to complete. Check permissions, files and current data, then retry.",
+    "none": "No subsequent transactions within your read scope.",
+    "retry": "Retry loading"
   }
 }

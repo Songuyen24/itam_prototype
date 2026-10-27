@@ -1,20 +1,20 @@
 {
-  "title": "Thêm tài sản từ file Excel",
+  "title": "Thêm tài sản từ Excel / PDF",
   "subtitle": "Hỗ trợ định dạng .xlsx, .xls tối đa 1,000 dòng",
   "steps": {
-    "upload": "1. Chọn file Excel",
+    "upload": "1. Chọn Excel / PDF",
     "preview": "2. Xem trước & Kiểm tra",
     "completed": "3. Kết quả Import"
   },
   "upload": {
-    "dragDrop": "Kéo thả file Excel vào đây hoặc",
+    "dragDrop": "Kéo thả file Excel / PDF vào đây hoặc",
     "browseFile": "Chọn file từ máy tính",
-    "supports": "Định dạng hỗ trợ: .xlsx, .xls (Tối đa 10MB, tối đa 1,000 dòng)",
+    "supports": "Excel: tối đa 1.000 dòng. PDF text/scan: tối đa 10 trang. Dung lượng tối đa 10 MB.",
     "fileSelected": "File đã chọn:",
     "downloadTemplate": "Tải file Excel mẫu chuẩn",
     "downloadHelp": "File mẫu đã có sẵn cấu trúc cột và hướng dẫn định dạng",
     "btnPreview": "Tiếp tục: Kiểm tra dữ liệu",
-    "analyzing": "Đang phân tích và kiểm tra file Excel...",
+    "analyzing": "Đang đọc và kiểm tra file…",
     "retryBatchId": "Mã đợt nhập trước (nếu đang gửi lại file đã sửa)",
     "retryBatchPlaceholder": "Để trống khi nhập lần đầu",
     "keepRowOrder": "Chỉ dùng mã đợt trước để sửa dòng lỗi; giữ nguyên nội dung các dòng đã nhập thành công. Tài sản mua mới cần tạo đợt nhập mới."
@@ -42,7 +42,9 @@
     "btnBack": "Chọn lại file khác",
     "btnConfirm": "Xác nhận Import ({{count}} dòng)",
     "importing": "Đang thực hiện import vào hệ thống...",
-    "previous": "Trang trước", "next": "Trang sau", "page": "Trang {{page}} / {{pages}}"
+    "previous": "Trang trước",
+    "next": "Trang sau",
+    "page": "Trang {{page}} / {{pages}}"
   },
   "completed": {
     "resultTitle": "Kết quả nhập từng dòng",
@@ -61,15 +63,55 @@
     "IMPORTED": "ĐÃ NHẬP"
   },
   "errors": {
-    "fileRequired": "Vui lòng chọn một file Excel",
-    "invalidFormat": "Chỉ chấp nhận định dạng file Excel (.xlsx hoặc .xls)",
+    "fileRequired": "Vui lòng chọn file Excel / PDF",
+    "invalidFormat": "Chọn file .xlsx, .xls hoặc .pdf",
     "noValidRows": "Không có dòng dữ liệu hợp lệ nào để import!",
     "downloadFailed": "Không thể tải file mẫu. Vui lòng thử lại sau.",
-    "previewFailed": "Không thể đọc và kiểm tra file Excel.",
+    "previewFailed": "Không thể đọc và kiểm tra file.",
     "importFailed": "Không thể import tài sản."
   },
   "openingInventory": "Import dữ liệu nền / tồn đầu kỳ mẫu. Mã trống được tự sinh khi xác nhận; mua mới phải qua phiếu nhập kho.",
-  "receivingTitle": "Nhập tài sản từ Excel vào phiếu nhập kho",
+  "receivingTitle": "Thêm tài sản từ Excel / PDF vào phiếu nhập nháp",
   "receivingHint": "Các dòng hợp lệ được thêm vào phiếu nháp. IT xác nhận phiếu trước khi tài sản vào kho.",
-  "guide": { "title": "Quy tắc nhập liệu", "required": "Tên tài sản và Loại tài sản là bắt buộc; Mã tài sản có thể để trống và sẽ được tự sinh khi xác nhận.", "unique": "Mã tài sản và Số Serial phải duy nhất, không trùng trong file hoặc cơ sở dữ liệu.", "status": "Tài sản thêm trực tiếp được đưa vào IN_STOCK (Đang lưu kho).", "license": "Với license, điền phần mềm, kiểu gán, thời hạn và số suất; thuê bao cần ngày hết hạn.", "preview": "Xem trước không ghi vào cơ sở dữ liệu cho đến khi xác nhận." }
+  "guide": {
+    "title": "Quy tắc nhập liệu",
+    "required": "Tên tài sản và Loại tài sản là bắt buộc; Mã tài sản có thể để trống và sẽ được tự sinh khi xác nhận.",
+    "unique": "Mã tài sản và Số Serial phải duy nhất, không trùng trong file hoặc cơ sở dữ liệu.",
+    "status": "Tài sản thêm trực tiếp được đưa vào IN_STOCK (Đang lưu kho).",
+    "license": "Với license, điền phần mềm, kiểu gán, thời hạn và số suất; thuê bao cần ngày hết hạn.",
+    "preview": "Xem trước không ghi vào cơ sở dữ liệu cho đến khi xác nhận."
+  },
+  "fields": {
+    "assetTag": "Mã tài sản",
+    "name": "Tên tài sản",
+    "type": "Loại tài sản (mã/tên danh mục)",
+    "model": "Model",
+    "serialNumber": "Số serial",
+    "status": "Trạng thái",
+    "condition": "Tình trạng",
+    "department": "Phòng ban",
+    "location": "Vị trí",
+    "supplier": "Nhà cung cấp",
+    "poNumber": "PO / Hóa đơn",
+    "purchaseDate": "Ngày mua (YYYY-MM-DD)",
+    "purchaseCost": "Giá mua",
+    "warrantyExpiration": "Hạn bảo hành (YYYY-MM-DD)",
+    "actualCpu": "CPU",
+    "actualRam": "RAM",
+    "actualStorage": "Ổ lưu trữ",
+    "actualGraphicsCard": "GPU",
+    "software": "Phần mềm",
+    "licenseAssignment": "Kiểu cấp phép",
+    "licenseTerm": "Thời hạn license",
+    "seatCount": "Số suất",
+    "licenseExpiry": "Hạn license (YYYY-MM-DD)"
+  },
+  "ocr": {
+    "source": "Nội dung nhận diện, trang {{page}}",
+    "validate": "Kiểm tra lại các dòng đã sửa",
+    "edit": "Sửa",
+    "hint": "PDF xử lý nội bộ. Mỗi trang cần tiêu đề bảng theo tên cột Excel hoặc mã trường, cách nhau bằng | (dùng - cho ô trống). Rà soát mọi giá trị đề xuất; không lưu PDF nguồn. Xác nhận chỉ thêm dòng hợp lệ, không tự hoàn tất phiếu nhập kho.",
+    "editRow": "Sửa dòng {{row}}",
+    "changed": "Dữ liệu đã sửa. Kiểm tra lại trước khi xác nhận."
+  }
 }

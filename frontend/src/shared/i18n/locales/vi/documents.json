@@ -1,8 +1,18 @@
 {
   "title": "Chứng từ",
   "transactionsTitle": "Danh sách phiếu",
-  "tabs": { "DRAFT": "Nháp", "PENDING": "Chờ xử lý", "FINAL": "Đã hoàn tất" },
-  "statusTags": { "DRAFT": "Nháp", "PENDING": "Chờ xử lý", "COMPLETED": "Thành công", "REJECTED": "Từ chối", "CANCELLED": "Đã hủy" },
+  "tabs": {
+    "DRAFT": "Nháp",
+    "PENDING": "Chờ xử lý",
+    "FINAL": "Đã hoàn tất"
+  },
+  "statusTags": {
+    "DRAFT": "Nháp",
+    "PENDING": "Chờ xử lý",
+    "COMPLETED": "Thành công",
+    "REJECTED": "Từ chối",
+    "CANCELLED": "Đã hủy"
+  },
   "listTitle": "Chứng từ đính kèm",
   "fields": {
     "transactionCode": "Mã phiếu",
@@ -139,7 +149,7 @@
     "processedBy": "Người xử lý",
     "reason": "Lý do từ chối",
     "requirements": "Trước khi gửi: thêm tài sản hợp lệ, chọn tình trạng phần cứng và lưu ghi chú. Có thể đính kèm chứng từ nếu có.",
-    "importExcel": "Nhập Excel vào phiếu",
+    "importExcel": "Nhập Excel / PDF vào phiếu",
     "reuse": "Chọn tài sản chờ nhập đã có",
     "search": "Tìm theo mã, serial hoặc tên",
     "noCandidates": "Không có tài sản phù hợp.",
@@ -226,5 +236,41 @@
       "HANDOVER_COMPLETED": "Bàn giao hoàn tất",
       "RECOVERY_COMPLETED": "Thu hồi hoàn tất"
     }
+  },
+  "adjustment": {
+    "new": "Lập yêu cầu đính chính",
+    "approve": "Phê duyệt phiên bản này",
+    "reason": "Lý do (bắt buộc cả khi Admin lập thay)",
+    "version": "Phiên bản {{version}}",
+    "impact": "Giao dịch tiếp theo",
+    "workflow": "Sai tài sản, người nhận hoặc trạng thái: ghi hướng xử lý bằng nghiệp vụ phù hợp và liên kết phiếu khắc phục nếu đã có. Không tự tạo hoặc đảo giao dịch.",
+    "title": "Yêu cầu điều chỉnh — Mẫu prototype",
+    "text": "Nội dung đính chính / hướng xử lý",
+    "kind": "Loại điều chỉnh",
+    "selfApproval": "Quy tắc tạm: Admin có thể tự duyệt; hệ thống ghi audit riêng.",
+    "submit": "Gửi và khóa yêu cầu",
+    "reviewed": "Giao dịch đã kiểm tra lúc quyết định",
+    "notice": "Phiếu, snapshot và chứng từ gốc luôn được giữ nguyên. Bản đính chính chỉ có hiệu lực sau khi Admin duyệt.",
+    "link": "ID phiếu khắc phục (tùy chọn)",
+    "states": {
+      "APPROVED": "Đã duyệt",
+      "REJECTED": "Đã từ chối",
+      "PENDING": "Chờ duyệt"
+    },
+    "corrective": "Xem phiếu khắc phục",
+    "impactNotice": "Chỉ hiện giao dịch trong quyền xem. Admin phải xem xét ảnh hưởng hiện tại khi quyết định.",
+    "reject": "Từ chối phiên bản này",
+    "kinds": {
+      "DOCUMENT": "Sai chứng từ",
+      "WORKFLOW": "Sai tài sản / người nhận / trạng thái",
+      "DESCRIPTION": "Sai mô tả"
+    },
+    "loading": "Đang tải…",
+    "lock": "Gửi sẽ khóa nội dung và file. Muốn thay đổi phải lập phiên bản mới.",
+    "decision": "Lý do quyết định và xác nhận đã xem ảnh hưởng",
+    "files": "Đính kèm tối đa 5 PDF/PNG/JPEG, mỗi file tối đa 10 MB",
+    "error": "Không thể thực hiện. Kiểm tra quyền, file và dữ liệu mới nhất rồi thử lại.",
+    "none": "Không có giao dịch tiếp theo trong quyền xem.",
+    "retry": "Thử tải lại"
   }
 }

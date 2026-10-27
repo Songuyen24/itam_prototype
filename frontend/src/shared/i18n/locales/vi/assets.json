@@ -8,7 +8,7 @@
   "actions": {
     "addAsset": "Thêm tài sản",
     "addBaselineAsset": "Thêm tài sản tồn đầu kỳ",
-    "importExcel": "Import Excel",
+    "importExcel": "Excel / PDF",
     "exportExcel": "Xuất Excel"
   },
   "fields": {

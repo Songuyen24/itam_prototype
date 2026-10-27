@@ -16,11 +16,13 @@ export const importApi = {
   preview: async (file: File): Promise<ApiResponse<ImportPreviewData>> => {
     const formData = new FormData();
     formData.append('file', file);
-    return httpClient<ApiResponse<ImportPreviewData>>('/v1/asset-imports/preview', {
+    return httpClient<ApiResponse<ImportPreviewData>>(file.name.toLowerCase().endsWith('.pdf') ? '/v1/asset-imports/pdf/preview' : '/v1/asset-imports/preview', {
       method: 'POST',
       body: formData,
     });
   },
+
+  validate: (payload: ImportConfirmPayload) => httpClient<ApiResponse<ImportPreviewData>>('/v1/asset-imports/validate', {method:'POST',body:JSON.stringify(payload)}),
 
   confirm: async (payload: ImportConfirmPayload): Promise<ApiResponse<ImportBatch>> => {
     return httpClient<ApiResponse<ImportBatch>>('/v1/asset-imports/confirm', {

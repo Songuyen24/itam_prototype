@@ -34,6 +34,9 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   const [requestId, setRequestId] = useState<string>();
   const [previewPage, setPreviewPage] = useState(0);
   const [resultPage, setResultPage] = useState(0);
+  const [editingRow, setEditingRow] = useState<number>();
+  const [needsValidation, setNeedsValidation] = useState(false);
+  const fields = ['assetTag','name','type','model','serialNumber','status','condition','department','location','supplier','poNumber','purchaseDate','purchaseCost','warrantyExpiration','actualCpu','actualRam','actualStorage','actualGraphicsCard','software','licenseAssignment','licenseTerm','seatCount','licenseExpiry'];
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,6 +57,8 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     setRequestId(undefined);
     setPreviewPage(0);
     setResultPage(0);
+    setEditingRow(undefined);
+    setNeedsValidation(false);
   };
 
   const handleClose = () => {
@@ -64,7 +69,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      if (!/\.(xlsx?|pdf)$/i.test(file.name)) {
         setErrorMessage(t('imports:errors.invalidFormat', 'Vui lòng chọn file định dạng Excel (.xlsx hoặc .xls)'));
         return;
       }
@@ -98,6 +103,8 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
       const res = await (receiving ? receivingApi.previewExcel(selectedFile) : importApi.preview(selectedFile));
       if (res.success && res.data) {
         setPreviewData(res.data);
+        setNeedsValidation(false);
+        setEditingRow(undefined);
         setStep('preview');
       } else {
         setErrorMessage(res.message || t('imports:errors.previewFailed'));
@@ -109,8 +116,19 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     }
   };
 
-  const handleConfirmImport = async () => {
+  const handleValidate = async () => {
     if (!previewData) return;
+    setIsUploading(true);
+    setErrorMessage(null);
+    try {
+      const res = await (receiving ? receivingApi.validate(importPayload(previewData)) : importApi.validate(importPayload(previewData)));
+      if (res.data) {setPreviewData(res.data);setNeedsValidation(false);setEditingRow(undefined);}
+    } catch (err) {setErrorMessage(err instanceof Error ? err.message : t('imports:errors.previewFailed'));}
+    finally {setIsUploading(false);}
+  };
+
+  const handleConfirmImport = async () => {
+    if (!previewData || needsValidation || isUploading) return;
 
     if (previewData.validRows === 0) {
       setErrorMessage(t('imports:errors.noValidRows', 'Không có dòng hợp lệ nào để import'));
@@ -272,6 +290,8 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
           <button
             type="button"
             onClick={handleClose}
+            disabled={isUploading || isImporting}
+            aria-label={t('common:buttons.close')}
             style={{
               background: 'none',
               border: 'none',
@@ -287,6 +307,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
         </div>
 
         <p style={{ padding: '0 24px' }}>{t(receiving ? 'imports:receivingHint' : 'imports:openingInventory')}</p>
+        <p style={{ padding: '0 24px', fontSize: 13 }}>{t('imports:ocr.hint')}</p>
         {/* Error Alert if any */}
         {errorMessage && (
           <div
@@ -371,9 +392,10 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
+                  if (isUploading || isImporting) return;
                   if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                     const f = e.dataTransfer.files[0];
-                    if (f.name.endsWith('.xlsx') || f.name.endsWith('.xls')) {
+                    if (/\.(xlsx?|pdf)$/i.test(f.name)) {
                       setSelectedFile(f);
                       setRequestId(crypto.randomUUID());
                       setPreviewPage(0);
@@ -387,9 +409,10 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
               >
                 <input
                   type="file"
+                  disabled={isUploading || isImporting}
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept=".xlsx, .xls"
+                  accept=".xlsx,.xls,.pdf"
                   style={{ display: 'none' }}
                 />
 
@@ -433,6 +456,23 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
           {/* STEP 2: PREVIEW */}
           {step === 'preview' && previewData && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {needsValidation && <p role="status">{t('imports:ocr.changed')}</p>}
+              <button type="button" className="btn btn-secondary" disabled={isUploading || isImporting} onClick={handleValidate}>{t('imports:ocr.validate')}</button>
+              {editingRow !== undefined && (() => {
+                const row = previewData.rows.find(item => item.rowNumber === editingRow);
+                if (!row) return null;
+                return <fieldset disabled={isUploading || isImporting} style={{minWidth:0,border:'1px solid #cbd5e1',borderRadius:8,padding:12}}>
+                  <legend>{t('imports:ocr.editRow',{row:editingRow})}</legend>
+                  {row.rawData.sourceText && <p style={{overflowWrap:'anywhere'}}>{t('imports:ocr.source',{page:row.rawData.sourcePage})}: {row.rawData.sourceText}</p>}
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+                    {fields.map(field => <label key={field}>{t(`imports:fields.${field}`)}<input className="form-input" value={String(row.rawData[field] ?? '')} maxLength={500} onChange={event => {
+                      const value=event.target.value;
+                      setPreviewData({...previewData,rows:previewData.rows.map(item=>item.rowNumber===editingRow?{...item,rawData:{...item.rawData,[field]:value}}:item)});
+                      setNeedsValidation(true);setRequestId(crypto.randomUUID());
+                    }}/></label>)}
+                  </div>
+                </fieldset>;
+              })()}
               {/* Metric Summary Cards */}
               <div
                 style={{
@@ -610,7 +650,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                               backgroundColor: isError ? (row.validationStatus === 'DUPLICATE' ? '#fffbeb' : '#fef2f2') : 'inherit',
                             }}
                           >
-                            <td style={{ textAlign: 'center', fontWeight: 600 }}>{row.rowNumber}</td>
+                            <td style={{ textAlign: 'center', fontWeight: 600 }}>{row.rowNumber}<button type="button" className="btn btn-secondary" disabled={isUploading || isImporting} onClick={()=>setEditingRow(row.rowNumber)}>{t('imports:ocr.edit')}</button></td>
                             <td style={{ textAlign: 'center' }}>{renderStatusBadge(row.validationStatus)}</td>
                             <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>
                               {row.rawData?.assetTag || <span style={{ color: '#64748b' }}>{t('imports:preview.generatedTag')}</span>}
@@ -731,7 +771,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setStep('upload')}
-                  disabled={isImporting}
+                  disabled={isImporting || isUploading}
                 >
                   {t('imports:preview.btnBack', '← Chọn lại file khác')}
                 </button>
@@ -741,7 +781,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     type="button"
                     className="btn btn-secondary"
                     onClick={handleClose}
-                    disabled={isImporting}
+                    disabled={isImporting || isUploading}
                   >
                     {t('common:buttons.close', 'Đóng')}
                   </button>
@@ -750,7 +790,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     type="button"
                     className="btn btn-primary"
                     onClick={handleConfirmImport}
-                    disabled={!previewData || previewData.validRows === 0 || isImporting}
+                    disabled={!previewData || previewData.validRows === 0 || isImporting || isUploading || needsValidation}
                     style={{
                       display: 'flex',
                       alignItems: 'center',

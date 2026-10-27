@@ -15,6 +15,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.mock.web.MockMultipartFile;
@@ -41,6 +42,10 @@ class P0AccessIntegrationTest {
     Long person;
     @BeforeEach void setup() {
         person=jdbc.queryForObject("INSERT INTO users(email,full_name,employee_code,role_id,account_status) SELECT ?,'P0 profile',? ,role_id,'ACTIVE' FROM roles WHERE code='USER' RETURNING user_id",Long.class,"p0-"+UUID.randomUUID()+"@example.test","TEST-"+UUID.randomUUID());
+        // Commit only fixture setup: login audit runs in its own transaction.
+        TestTransaction.flagForCommit();
+        TestTransaction.end();
+        TestTransaction.start();
     }
     @AfterEach void cleanup(){SecurityContextHolder.clearContext();}
     org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.UserRequestPostProcessor role(String role) {

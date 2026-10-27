@@ -31,6 +31,12 @@ public class ImportDraftController {
     @PostMapping(value="/excel/preview", consumes="multipart/form-data") public Object preview(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
         return ApiResponse.success(excel.preview(file));
     }
+    @PostMapping(value="/pdf/preview", consumes="multipart/form-data") public Object previewPdf(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return ApiResponse.success(excel.previewPdf(file));
+    }
+    @PostMapping("/validate") public Object validateRows(@Valid @RequestBody com.company.itam.importbatch.dto.request.ImportConfirmRequest request) {
+        return ApiResponse.success(excel.previewRows(request.getFileName(),request.getValidRows()));
+    }
     @PostMapping("/{id}/excel/confirm") public Object importExcel(@PathVariable Long id, @RequestParam Long expectedVersion,
             @Valid @RequestBody com.company.itam.importbatch.dto.request.ImportConfirmRequest request) {
         return ApiResponse.success(excel.confirmReceiving(id, expectedVersion, request));

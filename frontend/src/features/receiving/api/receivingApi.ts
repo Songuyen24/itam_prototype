@@ -20,7 +20,8 @@ export type Event = { revision: number; action: string; time: string; actor: str
 const base='/v1/import-drafts';
 export const receivingApi = {
   downloadTemplate:()=>downloadFile(`${base}/excel/template`,'itam_receiving_template.xlsx'),
-  previewExcel:(file:File)=>{const body=new FormData();body.append('file',file);return httpClient<ApiResponse<ImportPreviewData>>(`${base}/excel/preview`,{method:'POST',body});},
+  previewExcel:(file:File)=>{const body=new FormData();body.append('file',file);return httpClient<ApiResponse<ImportPreviewData>>(`${base}/${file.name.toLowerCase().endsWith('.pdf')?'pdf':'excel'}/preview`,{method:'POST',body});},
+  validate:(payload:ImportConfirmPayload)=>httpClient<ApiResponse<ImportPreviewData>>(`${base}/validate`,{method:'POST',body:JSON.stringify(payload)}),
   confirmExcel:(id:number,version:number,payload:ImportConfirmPayload)=>httpClient<ApiResponse<{transaction:DocumentTransaction;batch:ImportBatch}>>(`${base}/${id}/excel/confirm?expectedVersion=${version}`,{method:'POST',body:JSON.stringify(payload)}),
   content:(id:number)=>httpClient<ApiResponse<Content>>(`${base}/${id}/content`),
   revisions:(id:number)=>httpClient<ApiResponse<Revision[]>>(`${base}/${id}/revisions`),

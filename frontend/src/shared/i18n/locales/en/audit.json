@@ -25,6 +25,6 @@
     "ACCOUNT_CREATED": "Create account", "ACCOUNT_UPDATED": "Update account", "ACCESS_CHANGED": "Change access", "PASSWORD_CHANGED": "Change password", "PASSWORD_RESET": "Reset password",
     "HANDOVER_CREATED": "Create handover", "HANDOVER_UPDATED": "Update handover", "HANDOVER_SUBMITTED": "Submit handover", "HANDOVER_COMPLETED": "Complete handover",
     "RECOVERY_CREATED": "Create recovery", "RECOVERY_UPDATED": "Update recovery", "RECOVERY_SUBMITTED": "Submit recovery", "RECOVERY_COMPLETED": "Complete recovery",
-    "DISPOSAL_APPROVED": "Approve disposal", "IMPORT_EXCEL": "Import Excel", "REPORT_PERMISSION_UPDATED": "Change report permission"
+    "DISPOSAL_APPROVED": "Approve disposal", "IMPORT_PDF": "Import PDF", "IMPORT_EXCEL": "Import Excel", "REPORT_PERMISSION_UPDATED": "Change report permission"
   }
 }
