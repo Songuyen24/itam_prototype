@@ -960,3 +960,108 @@ body {
 .global-search-results button:hover, .global-search-results button:focus-visible { background: var(--primary-light); }
 .global-search-results button span { font-size: 12px; color: var(--text-muted); }
 @media (max-width: 1050px) { .app-navbar { flex-wrap: wrap; gap: 10px; } .navbar-actions, .global-search { width: 100%; } }
+
+/* Hallmark · modern-minimal · existing ITAM workbench · desktop refinement */
+:root {
+  --text-secondary: var(--text-muted);
+  --control-border: #94a3b8;
+  --focus-ring: #1e40af;
+  --danger: #b91c1c;
+  --danger-hover: #991b1b;
+  --surface-hover: #f1f5f9;
+}
+
+button, input, select, textarea { font-family: inherit; }
+:is(button, input, select, textarea, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+.app-sidebar :focus-visible { outline-color: var(--text-white); }
+.btn, .tab-button, .nav-link { transition: background-color 120ms ease-out, color 120ms ease-out; }
+.btn { min-height: 38px; justify-content: center; line-height: 1.4; white-space: nowrap; }
+.btn-sm { min-height: 30px; }
+.btn:disabled, .tab-button:disabled { opacity: .55; cursor: not-allowed; }
+.btn-primary:disabled:hover { background-color: var(--primary); }
+.btn-danger:disabled:hover { background-color: var(--danger); }
+.btn-secondary:disabled:hover { background-color: var(--bg-card); }
+.btn:not(:disabled):active { filter: brightness(.92); }
+.btn[aria-selected='true'], .btn[aria-pressed='true'] {
+  background: var(--primary-light); border-color: var(--primary); color: var(--primary-hover);
+}
+.form-input, .form-select, .form-textarea, .search-input, .select-filter {
+  min-height: 38px; border-color: var(--control-border); color: var(--text-main); line-height: 1.4;
+}
+:is(.form-input, .form-select, .form-textarea, .search-input, .select-filter):disabled {
+  background: var(--surface-hover); color: var(--text-muted); cursor: not-allowed;
+}
+:is(input, select, textarea)[aria-invalid='true'] { border-color: var(--danger); }
+input[type='checkbox'], input[type='radio'] { accent-color: var(--primary); }
+.text-muted, .page-subtitle { color: var(--text-muted); }
+.page-subtitle { font-size: 14px; margin-top: 4px; }
+.form-error { color: var(--danger); font-size: 13px; margin-top: 4px; }
+.card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); }
+.data-table { background: var(--bg-card); }
+.data-table td { vertical-align: top; }
+.data-table tbody tr:focus-within { background: var(--primary-light); }
+.data-table a { color: var(--primary-hover); text-underline-offset: 3px; }
+.badge { white-space: nowrap; }
+.table-container, .table-responsive { scroll-padding: 16px; }
+.pagination-wrapper { flex-wrap: wrap; gap: 12px; }
+.modal-header { gap: 16px; flex-shrink: 0; }
+.modal-footer { flex-wrap: wrap; }
+.btn-close {
+  display: inline-grid; place-items: center; width: 34px; height: 34px; flex: 0 0 34px;
+  background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color);
+  border-radius: var(--radius); cursor: pointer;
+}
+.btn-close:hover { background: var(--surface-hover); color: var(--text-main); }
+.btn-close:disabled { opacity: .55; cursor: not-allowed; }
+.asset-page-header { gap: 16px; flex-wrap: wrap; }
+.asset-page-actions { flex-wrap: wrap; }
+.asset-table { min-width: 1000px; }
+.asset-form-dialog { width: min(850px, calc(100% - 32px)); max-width: 850px; }
+.asset-tag-button {
+  border: 0; background: transparent; color: var(--primary-hover); font: inherit;
+  font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; white-space: nowrap;
+}
+.asset-filters { padding: 16px; margin-bottom: 20px; display: grid; gap: 12px; }
+.asset-search-row { display: flex; gap: 12px; align-items: end; }
+.asset-search-row > label { flex: 1; min-width: 0; margin-bottom: 0; }
+.asset-search-row input { margin-top: 4px; }
+.asset-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.asset-filter-grid label { margin-bottom: 4px; }
+@media (min-width: 769px) and (max-width: 1100px) {
+  .app-main { padding: 24px; }
+  .app-navbar { padding-inline: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* Hallmark · component: headbar · existing ITAM tokens · pre-emit: P4 H4 E4 S4 R5 V3 */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+.app-navbar { flex: 0 0 64px; height: 64px; flex-wrap: nowrap; }
+.app-navbar .navbar-actions { width: 100%; gap: 20px; }
+.app-navbar .global-search { flex: 1; width: auto; min-width: 0; max-width: 520px; margin-right: auto; }
+.global-search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; color: var(--text-muted); pointer-events: none;
+}
+.global-search .form-input { height: 40px; padding-left: 40px; background: var(--bg-main); }
+.global-search .form-input:focus { background: var(--bg-card); }
+.global-search-results { left: 0; right: auto; width: 100%; background: var(--bg-card); box-shadow: var(--shadow-lg); }
+.language-switcher {
+  display: inline-flex; align-items: center; flex-shrink: 0; gap: 2px; padding: 3px;
+  border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-main);
+}
+.language-switcher-button {
+  display: inline-grid; place-items: center; min-width: 40px; height: 32px; padding: 0 10px;
+  border: 0; border-radius: 5px; background: transparent; color: var(--text-muted);
+  font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer;
+}
+.language-switcher-button[aria-pressed='true'] { background: var(--primary); color: var(--text-white); }
+.language-switcher-button:hover:not([aria-pressed='true']) { background: var(--surface-hover); color: var(--text-main); }
+.language-switcher-button:active { filter: brightness(.92); }

@@ -17,11 +17,10 @@ public class UserAccessController {
     private final IdentityService identities;
     private final MessageHelper messages;
     public UserAccessController(IdentityService identities,MessageHelper messages) { this.identities=identities; this.messages=messages; }
-    public record Access(@NotNull Boolean granted,@NotNull AccountStatus status,@Size(min=8,max=128) String password,
-                         @Size(max=255) String username) {}
+    public record Access(@NotNull Boolean granted,@NotNull AccountStatus status,@Size(min=8,max=128) String password) {}
     @PutMapping("/{id}/access")
     public ApiResponse<UserResponse> update(@PathVariable Long id,@Valid @RequestBody Access request) {
         return ApiResponse.success(messages.getMessage("ACCESS_UPDATED"),UserResponse.fromEntity(
-            identities.legacyAccess(id,request.granted(),request.status(),request.password(),request.username())));
+            identities.legacyAccess(id,request.granted(),request.status(),request.password())));
     }
 }

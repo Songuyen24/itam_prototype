@@ -1,0 +1,10 @@
+[
+  {
+    "date": "2026-10-27",
+    "scope": "app",
+    "macrostructure": "Existing ITAM workbench",
+    "theme": "Existing ITAM slate/blue",
+    "enrichment": "none",
+    "brief": "Desktop UI refinement; preserve navigation, workflow, permissions, data and report calculations"
+  }
+]

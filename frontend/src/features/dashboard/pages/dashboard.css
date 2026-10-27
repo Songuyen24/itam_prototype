@@ -1,1 +1,81 @@
-.dashboard-page{display:flex;flex-direction:column;gap:20px;min-width:0}.dashboard-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.dashboard-filters{display:flex;gap:16px;align-items:end;padding:16px;flex-wrap:wrap}.dashboard-filters label{display:flex;flex-direction:column;gap:6px}.dashboard-filters input,.dashboard-filters select{padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-card);color:inherit}.dashboard-inventory{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:16px 0}.dashboard-movements{grid-template-columns:repeat(4,minmax(0,1fr))}.dashboard-total{font-size:30px;font-variant-numeric:tabular-nums}.dashboard-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:16px}.metric-group{padding:18px;min-width:0}.metric-group h2,.metric-group h3{font-size:16px;margin-bottom:10px}.metric-row,.dashboard-seats>div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--border-color)}.dashboard-seats dd{margin:0;font-weight:600;text-align:right}.dashboard-statuses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 24px}.dashboard-chart,.dashboard-table-wrap{overflow-x:auto;max-width:100%}.dashboard-chart-days{display:flex;align-items:end;gap:22px;padding-top:20px;min-height:200px}.dashboard-day{flex:0 0 110px;text-align:center}.dashboard-bars{display:flex;align-items:end;justify-content:center;height:170px;gap:4px}.dashboard-bar-slot{width:22px;display:flex;flex-direction:column;justify-content:end;align-items:center;font-size:11px}.dashboard-bar{width:18px;min-height:1px;border-radius:3px 3px 0 0}.dashboard-IMPORT{background:#287b63}.dashboard-HANDOVER{background:#3175aa}.dashboard-RECOVERY{background:#ae7425}.dashboard-DISPOSAL{background:#a04863}.dashboard-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px}.dashboard-legend span{display:flex;align-items:center;gap:5px}.dashboard-color{width:10px;height:10px;display:inline-block}.dashboard-table-wrap table{min-width:980px;width:100%}.dashboard-table-wrap td,.dashboard-table-wrap th{padding:10px;text-align:left;vertical-align:top}.dashboard-page h2{font-size:20px}.dashboard-page p{color:var(--text-secondary);margin:6px 0 12px}@media(max-width:1100px){.dashboard-movements{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-grid{grid-template-columns:1fr}}@media(max-width:720px){.dashboard-header{flex-direction:column}.dashboard-inventory,.dashboard-statuses{grid-template-columns:1fr}}
+/* Hallmark · ITAM workbench · desktop · pre-emit critique: P4 H4 E4 S4 R5 V3 */
+.dashboard-page {
+  --dashboard-import: #287b63;
+  --dashboard-handover: #3175aa;
+  --dashboard-recovery: #ae7425;
+  --dashboard-disposal: #a04863;
+  display: flex; flex-direction: column; gap: 24px; min-width: 0;
+}
+.dashboard-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.dashboard-header.page-header { margin-bottom: 0; }
+.dashboard-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.dashboard-period-trigger { max-width: 100%; }
+.dashboard-period-trigger svg { width: 16px; height: 16px; flex-shrink: 0; }
+.dashboard-period-dialog {
+  position: fixed; inset: 0; margin: auto; width: min(420px, calc(100% - 48px));
+  max-height: calc(100vh - 48px); overflow: auto; padding: 24px;
+  border: 1px solid var(--border-color); border-radius: var(--radius);
+  background: var(--bg-card); color: var(--text-main); box-shadow: var(--shadow-lg);
+}
+.dashboard-period-dialog::backdrop { background: rgb(15 23 42 / .45); }
+.dashboard-period-dialog h2 { margin-bottom: 20px; }
+.dashboard-filters { display: grid; gap: 16px; }
+.dashboard-filters label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; }
+.dashboard-filters input, .dashboard-filters select {
+  width: 100%; min-height: 40px; padding: 8px 12px; font: inherit; font-weight: 400;
+  border: 1px solid var(--control-border); border-radius: var(--radius);
+  background: var(--bg-card); color: var(--text-main);
+}
+.dashboard-filters > .dashboard-header-actions { justify-content: flex-end; margin-top: 4px; }
+.dashboard-page h2 { font-size: 18px; line-height: 1.4; }
+.dashboard-page p { color: var(--text-muted); font-size: 13px; }
+.dashboard-section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; }
+.dashboard-date-range { color: var(--text-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.dashboard-inventory { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 12px 0; align-items: stretch; }
+.metric-group { padding: 20px; min-width: 0; }
+.metric-group h2, .metric-group h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+.dashboard-inventory > .metric-group { display: flex; flex-direction: column; }
+.dashboard-inventory h3 { color: var(--text-muted); font-size: 13px; }
+.dashboard-total { font-size: 30px; line-height: 1.2; font-weight: 700; color: var(--text-main); }
+.dashboard-total, .metric-row strong, .dashboard-seats dd { font-variant-numeric: tabular-nums; }
+.dashboard-license-summary { padding: 16px 20px; margin-bottom: 16px; }
+.dashboard-license-summary .dashboard-seats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.dashboard-license-summary .dashboard-seats > div { flex-direction: column; align-items: flex-start; gap: 6px; padding: 0; border: 0; }
+.dashboard-license-summary dt { color: var(--text-muted); font-size: 12px; }
+.dashboard-license-summary dd { font-size: 18px; }
+.metric-row, .dashboard-seats > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+.dashboard-seats dd { margin: 0; font-weight: 600; text-align: right; flex-shrink: 0; }
+.dashboard-seats dt, .metric-row span { min-width: 0; overflow-wrap: anywhere; }
+.metric-row strong { flex-shrink: 0; }
+.dashboard-seats > div:last-child, .metric-row:last-child { border-bottom: 0; }
+.dashboard-statuses { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; }
+.dashboard-status-card > p { margin: 0 0 12px; }
+.dashboard-movements { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 0; }
+.dashboard-voucher-total { display: flex; align-items: baseline; gap: 6px; margin-bottom: 16px; color: var(--text-muted); font-size: 13px; }
+.dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr); gap: 16px; }
+.dashboard-attention h3 { margin-top: 16px; margin-bottom: 4px; font-size: 13px; color: var(--text-muted); }
+.dashboard-attention p { margin: 8px 0 12px; }
+.dashboard-chart, .dashboard-table-wrap { overflow-x: auto; max-width: 100%; }
+.dashboard-chart-days { display: flex; align-items: end; gap: 16px; padding-top: 12px; min-height: 220px; }
+.dashboard-day { flex: 0 0 100px; text-align: center; }
+.dashboard-day small { display: block; margin-top: 8px; font-size: 11px; color: var(--text-muted); }
+.dashboard-bars { display: flex; align-items: end; justify-content: center; height: 170px; gap: 4px; }
+.dashboard-bar-slot { width: 20px; display: flex; flex-direction: column; justify-content: end; align-items: center; font-size: 11px; color: var(--text-muted); }
+.dashboard-bar { width: 16px; min-height: 1px; border-radius: 3px 3px 0 0; }
+.dashboard-IMPORT { background: var(--dashboard-import); }
+.dashboard-HANDOVER { background: var(--dashboard-handover); }
+.dashboard-RECOVERY { background: var(--dashboard-recovery); }
+.dashboard-DISPOSAL { background: var(--dashboard-disposal); }
+.dashboard-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; }
+.dashboard-legend span { display: flex; align-items: center; gap: 6px; }
+.dashboard-color { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.dashboard-empty { padding: 24px 0; }
+.dashboard-table-wrap table { min-width: 980px; width: 100%; }
+.dashboard-table-wrap td, .dashboard-table-wrap th { padding: 12px; text-align: left; vertical-align: top; }
+@media (max-width: 1100px) {
+  .dashboard-movements { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .dashboard-header { flex-direction: column; }
+  .dashboard-inventory, .dashboard-statuses { grid-template-columns: 1fr; }
+}

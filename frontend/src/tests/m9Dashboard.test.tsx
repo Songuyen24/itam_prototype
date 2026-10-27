@@ -24,12 +24,23 @@ it('shows distinct units, unknown historical seats and a voucher deep link',asyn
   await act(async()=>{page=create(<DashboardPage/>); await Promise.resolve();});
   expect(page.root.findByType('a').props.href).toBe('/documents?transactionId=42');
   const text=JSON.stringify(page.toJSON());
-  for(const label of ['currentHint','periodHint','packages','seats','unavailable','reserved_seats','damagedCondition','IT worker']) expect(text).toContain(label);
+  for(const label of ['packages','seats','unavailable','reserved_seats','damagedCondition','IT worker']) expect(text).toContain(label);
+  for(const hint of ['description','currentHint','statusHint','periodHint','seatsHint','chartHint','actionsHint','recentHint']) expect(page.root.findAllByType('p').some(p=>p.children.includes(hint))).toBe(false);
   expect(page.root.findAllByType('button').some(b=>b.children.includes('export'))).toBe(false);
+  await act(async()=>{page.root.findByProps({className:'btn btn-secondary dashboard-period-trigger'}).props.onClick();});
+  expect(client).toHaveBeenCalledTimes(1);
   await act(async()=>{page.root.findByType('select').props.onChange({target:{value:'lastMonth'}});});
+  await act(async()=>{page.root.findByType('dialog').findByProps({className:'dashboard-header-actions'}).findAllByType('button')[0].props.onClick();});
+  expect(client).toHaveBeenCalledTimes(1);
+  await act(async()=>{page.root.findByProps({className:'btn btn-secondary dashboard-period-trigger'}).props.onClick();});
+  expect(page.root.findByType('select').props.value).toBe('thisMonth');
+  await act(async()=>{page.root.findByType('select').props.onChange({target:{value:'custom'}});});
+  const dates=page.root.findAllByType('input').filter(input=>input.props.type==='date');
+  await act(async()=>{dates[0].props.onChange({target:{value:'2026-10-01'}});});
+  await act(async()=>{dates[1].props.onChange({target:{value:'2026-10-26'}});});
   await act(async()=>{page.root.findByType('form').props.onSubmit({preventDefault:()=>{}});});
-  expect(client.mock.calls[client.mock.calls.length - 1]?.[0]).toBe('/v1/dashboard/summary?period=lastMonth');
-  expect(JSON.stringify(page.toJSON())).toContain('currentHint');
+  expect(client.mock.calls[client.mock.calls.length - 1]?.[0]).toBe('/v1/dashboard/summary?period=custom&from=2026-10-01&to=2026-10-26');
+  expect(page.root.findByProps({className:'btn btn-secondary dashboard-period-trigger'}).children).toContain('2026-10-01 – 2026-10-26');
   act(()=>page.unmount());
 });
 it('keeps both languages complete for the dashboard',()=>{

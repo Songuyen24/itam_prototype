@@ -259,7 +259,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
       )}
 
       {/* Page Header */}
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="page-header asset-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 className="page-title">💻 {t(myAssets ? 'assets:myAssetsTitle' : 'assets:title')}</h1>
           {!myAssets && <p className="page-subtitle">
@@ -267,7 +267,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
           </p>}
         </div>
 
-        {canManageAssets && <div style={{ display: 'flex', gap: '10px' }}>
+        {canManageAssets && <div className="asset-page-actions" style={{ display: 'flex', gap: '10px' }}>
           <button
             type="button"
             className="btn btn-secondary"
@@ -349,7 +349,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
       {/* Data Table */}
       <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
         <div className="table-container">
-          <table className="data-table">
+          <table className="data-table asset-table">
             <thead>
               <tr>
                 <th style={{ width: '130px' }}>{t('assets:fields.assetTag', 'Asset Tag')}</th>
@@ -380,7 +380,9 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                   <tr key={asset.assetId}>
                     {/* Asset Tag */}
                     <td>
-                      <span
+                      <button
+                        type="button"
+                        className="asset-tag-button"
                         onClick={() => handleOpenDetail(asset.assetId)}
                         style={{
                           fontWeight: 700,
@@ -391,7 +393,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                         title={t('assets:modal.detailTitle')}
                       >
                         {asset.assetTag}
-                      </span>
+                      </button>
                     </td>
 
                     {/* Name */}

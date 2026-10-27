@@ -24,3 +24,11 @@
 .handover-details .table-container { overflow-x: auto; }
 .handover-details table { width: 100%; min-width: 550px; }
 @media (max-width: 800px) { .handover-grid, .handover-history { grid-template-columns: 1fr; } .handover-confirm { padding: 16px; } }
+.handover-page-header h1 { font-size: 24px; letter-spacing: -.02em; }
+.handover-confirm { color: var(--text-main); box-shadow: var(--shadow-lg); }
+.handover-modal-header { padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
+.handover-confirm h2 { font-size: 18px; }
+.handover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.handover-picker { background: var(--bg-main); }
+.handover-picker h2 { margin-bottom: 12px; }
+.handover-confirm > p, .handover-confirm form > p { color: var(--text-muted); font-size: 14px; }

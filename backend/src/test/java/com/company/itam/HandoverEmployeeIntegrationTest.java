@@ -94,7 +94,7 @@ class HandoverEmployeeIntegrationTest {
         assertThat(assets.getAssetById(device).getAssignedToUserId()).isEqualTo(person.getUserId());
         String frozen=jdbc.queryForObject("SELECT snapshot::text FROM handover_snapshots WHERE transaction_id=?",String.class,transaction.transactionId());
         long count=jdbc.queryForObject("SELECT count(*) FROM users",Long.class);
-        identities.createAccount(new IdentityService.CreateAccount(person.getUserId(),marker,"LocalTestPassword!45",Role.USER,true));
+        identities.createAccount(new IdentityService.CreateAccount(person.getUserId(),"LocalTestPassword!45",Role.USER,true));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM users",Long.class)).isEqualTo(count);
         identities.saveProfile(person.getUserId(),new IdentityService.Profile(person.getFullName(),marker+"-corrected",person.getEmail(),null,"Correct a test entry"));
         assertThat(json.valueToTree(handovers.get(transaction.transactionId())).path("recipientEmployeeCode").asText()).isEqualTo(marker);

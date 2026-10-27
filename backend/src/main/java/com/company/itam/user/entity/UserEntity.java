@@ -23,12 +23,8 @@ public class UserEntity {
 
     @Column(name = "employee_code", length = 100)
     private String employeeCode;
-    @Column(name = "username", length = 255)
-    private String username;
     public String getEmployeeCode() { return employeeCode; }
     public void setEmployeeCode(String value) { employeeCode = value; }
-    public String getUsername() { return username; }
-    public void setUsername(String value) { username = value; }
 
     @Column(name = "password_hash", length = 255)
     private String passwordHash;

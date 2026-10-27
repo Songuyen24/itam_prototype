@@ -68,5 +68,5 @@
   "lastMonth": "Tháng trước",
   "code": "Mã phiếu",
   "transactions": "phiếu",
-  "damagedCondition": "Thiết bị có tình trạng vật lý hư hỏng (có thể trùng trạng thái)"
+  "damagedCondition": "Thiết bị hư hỏng"
 }

@@ -44,15 +44,16 @@ function renderRoute(path: string) {
 }
 
 describe('Role-specific routes and navigation', () => {
-  it('allows only Admin to manage accounts, including USER access', () => {
+  it('lets staff open unified accounts while keeping USER out', () => {
     signIn('ADMIN');
     expect(renderRoute('/user-access')).toContain('data-redirect="/accounts"');
     expect(renderRoute('/accounts')).toContain('management.accounts');
-    for (const role of ['IT_STAFF','PUR_STAFF','USER']) {
+    for (const role of ['IT_STAFF','PUR_STAFF']) {
       signIn(role);
-      expect(renderRoute('/accounts')).toContain('data-redirect=');
-      expect(renderRoute('/employee-profiles')).not.toContain('href="/accounts"');
+      expect(renderRoute('/accounts')).toContain('management.accounts');
     }
+    signIn('USER');
+    expect(renderRoute('/accounts')).toContain('data-redirect="/my-assets"');
   });
   beforeEach(() => {
     session.user = null;
@@ -88,14 +89,14 @@ describe('Role-specific routes and navigation', () => {
   it('orders management links by role and gives collapsed controls accessible names', () => {
     signIn('ADMIN');
     const admin = renderRoute('/catalogs');
-    const paths = ['/employee-profiles', '/catalogs', '/accounts', '/organization-catalogs'];
+    const paths = ['/accounts', '/catalogs', '/organization-catalogs'];
     expect(paths.map(path => admin.indexOf(`href="${path}"`))).toEqual([...paths.map(path => admin.indexOf(`href="${path}"`))].sort((a, b) => a - b));
     expect(paths.every(path => admin.includes(`href="${path}"`))).toBe(true);
     signIn('PUR_STAFF');
-    const pur = renderRoute('/employee-profiles');
-    expect(pur).toContain('href="/employee-profiles"');
+    const pur = renderRoute('/accounts');
+    expect(pur).toContain('href="/accounts"');
     expect(pur).not.toContain('href="/catalogs"');
-    expect(pur).not.toContain('href="/accounts"');
+    expect(pur).not.toContain('management.addProfile');
     expect(pur).not.toContain('href="/organization-catalogs"');
 
     signIn('ADMIN');
@@ -111,7 +112,7 @@ describe('Role-specific routes and navigation', () => {
 
   it.each(['PUR_STAFF', 'USER'])('%s cannot open shared inventory or catalogs directly', (role) => {
     signIn(role);
-    const destination = role === 'USER' ? '/my-assets' : '/employee-profiles';
+    const destination = role === 'USER' ? '/my-assets' : '/accounts';
     for (const path of ['/assets?assignedTo=1', '/catalogs', '/handovers', '/disposals', '/dashboard']) {
       const html = renderRoute(path);
       expect(html).toContain(`data-redirect="${destination}"`);
@@ -130,14 +131,15 @@ describe('Role-specific routes and navigation', () => {
     expect(html).toContain('href="/my-assets"');
   });
 
-  it('PUR can read profiles without account management', () => {
+  it('PUR can read accounts without editing', () => {
     signIn('PUR_STAFF');
-    expect(renderRoute('/')).toContain('data-redirect="/employee-profiles"');
-    expect(renderRoute('/my-assets')).toContain('data-redirect="/employee-profiles"');
-    const html = renderRoute('/employee-profiles');
-    expect(html).toContain('management.profiles');
+    expect(renderRoute('/')).toContain('data-redirect="/accounts"');
+    expect(renderRoute('/my-assets')).toContain('data-redirect="/accounts"');
+    const html = renderRoute('/accounts');
+    expect(html).toContain('management.accounts');
     expect(html).not.toContain('management.addProfile');
     expect(html).not.toContain('data-redirect=');
+    expect(renderRoute('/employee-profiles?keyword=E-7')).toContain('data-redirect="/accounts?keyword=E-7"');
   });
 
   it('unknown roles are sent to login without opening management routes', () => {

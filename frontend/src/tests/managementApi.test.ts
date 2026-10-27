@@ -15,10 +15,10 @@ describe('profile and account API contract', () => {
   });
 
   it('creates an account on an existing profile and never sends a profile duplicate', async () => {
-    await managementApi.createAccount({ userId: 42, username: 'nv42', password: 'Example123', roleCode: 'USER', accessGranted: true });
+    await managementApi.createAccount({ userId: 42, password: 'Example123', roleCode: 'USER', accessGranted: true });
     expect(httpClient).toHaveBeenCalledWith('/v1/accounts', {
       method: 'POST',
-      body: JSON.stringify({ userId: 42, username: 'nv42', password: 'Example123', roleCode: 'USER', accessGranted: true }),
+      body: JSON.stringify({ userId: 42, password: 'Example123', roleCode: 'USER', accessGranted: true }),
     });
   });
 

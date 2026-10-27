@@ -18,7 +18,7 @@ function MainLayout() {
   const location = useLocation();
   const [accountOpen, setAccountOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const managementActive = ['/employee-profiles', '/catalogs', '/accounts', '/organization-catalogs'].includes(location.pathname);
+  const managementActive = ['/catalogs', '/accounts', '/organization-catalogs'].includes(location.pathname);
   const [managementOpen, setManagementOpen] = useState(managementActive);
   const canViewInventory = canManageInventory(user?.role);
   const canViewProfiles = ['ADMIN', 'IT_STAFF', 'PUR_STAFF'].includes(user?.role || '');
@@ -55,9 +55,8 @@ function MainLayout() {
               <span className="sidebar-chevron" aria-hidden="true">{managementOpen ? '⌄' : '›'}</span>
             </button>
             {managementOpen && <div id="management-links" className="sidebar-subnav">
-              {iconLink('/employee-profiles', '◉', t('auth:management.profiles'))}
+              {iconLink('/accounts', '◉', t('auth:management.accounts'))}
               {canViewInventory && iconLink('/catalogs', '▣', t('nav.assetCatalogs'))}
-              {user?.role === 'ADMIN' && iconLink('/accounts', '♙', t('auth:management.accounts'))}
               {canViewInventory && iconLink('/organization-catalogs', '⌘', t('nav.organizationCatalogs'))}
             </div>}
           </div>}

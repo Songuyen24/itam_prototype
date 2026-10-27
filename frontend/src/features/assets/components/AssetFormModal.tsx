@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Department,
   LocationItem,
@@ -52,6 +52,17 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 }) => {
   const { t } = useTranslation('assets');
   const isEdit = !!initialData;
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!isOpen || !dialog) return;
+    const opener = document.activeElement;
+    dialog.showModal();
+    return () => {
+      dialog.close();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  }, [isOpen]);
 
   const [categories, setCategories] = useState<AssetCategoryItem[]>([]);
   const [license, setLicense] = useState<LicenseInput>({softwareCatalogId:0,assignmentTypeId:0,termTypeId:0,seatCount:1});
@@ -255,14 +266,15 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-content" style={{ maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+    <dialog ref={dialogRef} className="catalog-dialog modal-content asset-form-dialog" aria-labelledby="asset-form-title"
+      onCancel={event => { event.preventDefault(); if (!isSaving) onClose(); }}>
+      <div style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div className="modal-header">
-          <div className="modal-title">
+          <div className="modal-title" id="asset-form-title">
             {isEdit ? `${t('modal.editTitle')}: ${initialData.assetTag}` : t('modal.createTitle')}
           </div>
-          <button type="button" className="btn-close" onClick={onClose} disabled={isSaving}>
+          <button type="button" className="btn-close" aria-label={t('common:buttons.close')} onClick={onClose} disabled={isSaving}>
             ✕
           </button>
         </div>
@@ -601,6 +613,6 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 };

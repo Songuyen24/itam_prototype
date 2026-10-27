@@ -55,10 +55,12 @@ export function GlobalSearch() {
 
   return <div className="global-search">
     <label className="sr-only" htmlFor="global-search-input">{t('search.title')}</label>
+    <svg className="global-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
     <input id="global-search-input" className="form-input" type="search" maxLength={100}
+      aria-controls="global-search-results" aria-expanded={search.length >= 2}
       placeholder={t('search.placeholder')} value={query} onChange={event => setQuery(event.target.value)}
       onKeyDown={event => { if (event.key === 'Escape') setQuery(''); }} />
-    {search.length >= 2 && <div className="global-search-results" role="region" aria-label={t('search.title')}>
+    {search.length >= 2 && <div id="global-search-results" className="global-search-results" role="region" aria-label={t('search.title')}>
       {loading ? <p role="status">{t('search.loading')}</p> : error ? <p role="alert">{t('search.error')}</p> : <>
         {assets.length === 0 && profiles.length === 0 && <p>{t('search.empty')}</p>}
         {assets.map(asset => <button type="button" key={`a-${asset.assetId}`}
@@ -67,10 +69,10 @@ export function GlobalSearch() {
         </button>)}
         {assetTotal > assets.length && <button type="button" onClick={() => open(`${user?.role === 'USER' ? '/my-assets' : '/assets'}?keyword=${encodeURIComponent(search)}`)}>{t('search.allAssets', { count: assetTotal })}</button>}
         {profiles.map(profile => <button type="button" key={`p-${profile.id}`}
-          onClick={() => open(`/employee-profiles?keyword=${encodeURIComponent(profile.employeeCode || profile.fullName)}`)}>
+          onClick={() => open(`/accounts?keyword=${encodeURIComponent(profile.employeeCode || profile.fullName)}`)}>
           <strong>{profile.fullName}</strong><span>{[profile.employeeCode, profile.email].filter(Boolean).join(' · ')}</span>
         </button>)}
-        {profileTotal > profiles.length && <button type="button" onClick={() => open(`/employee-profiles?keyword=${encodeURIComponent(search)}`)}>{t('search.allProfiles', { count: profileTotal })}</button>}
+        {profileTotal > profiles.length && <button type="button" onClick={() => open(`/accounts?keyword=${encodeURIComponent(search)}`)}>{t('search.allProfiles', { count: profileTotal })}</button>}
       </>}
     </div>}
   </div>;

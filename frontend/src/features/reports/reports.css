@@ -1,0 +1,20 @@
+.t18-page.reports-page { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.reports-page .page-header { margin-bottom: 0; }
+.reports-page h2 { font-size: 18px; margin: 0; }
+.reports-group { max-width: 280px; }
+.reports-group label, .reports-filters label, .reports-account-fields label { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text-main); }
+.reports-group select, .reports-filters select, .reports-filters input, .reports-account-fields select, .reports-account-fields input { width: 100%; min-width: 0; }
+.reports-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding: 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); }
+.reports-export { align-self: flex-start; width: auto; }
+.reports-results { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.reports-results > p { margin: 0; color: var(--text-muted); }
+.reports-table-wrap { overflow-x: auto; max-width: 100%; }
+.reports-table-wrap .data-table { min-width: max-content; }
+.reports-message { padding: 16px; margin: 0; color: var(--text-muted); background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius); }
+.reports-alert { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--danger); border-radius: var(--radius); background: var(--danger-light); color: var(--danger); }
+.reports-permissions { display: flex; flex-direction: column; gap: 16px; padding-top: 20px; border-top: 1px solid var(--border-color); }
+.reports-account-fields { display: grid; grid-template-columns: repeat(2, minmax(160px, 1fr)); gap: 12px; }
+.reports-grant { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+.reports-grant strong { min-width: 180px; }
+.reports-grant label { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 800px) { .reports-account-fields { grid-template-columns: 1fr; } }

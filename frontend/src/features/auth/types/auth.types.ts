@@ -5,8 +5,8 @@ export interface LoginPayload {
 
 export interface AuthUser {
   id: number;
+  employeeCode?: string | null;
   email: string | null;
-  username?: string | null;
   fullName: string;
   role: string;
   roleName?: string;
@@ -22,8 +22,8 @@ export interface LoginResponse {
 
 export interface CurrentUserResponse {
   id: number;
+  employeeCode?: string | null;
   email: string | null;
-  username?: string | null;
   fullName: string;
   roleCode: string;
   roleName?: string;

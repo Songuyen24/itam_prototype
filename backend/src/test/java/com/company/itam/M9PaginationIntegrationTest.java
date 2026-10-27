@@ -81,7 +81,7 @@ class M9PaginationIntegrationTest {
         try {
             for (int i = 0; i < 5; i++) {
                 var profile = identities.saveProfile(null, new IdentityService.Profile(marker + i, marker + i, null, null, null));
-                if (i < 3) identities.createAccount(new IdentityService.CreateAccount(profile.getUserId(), marker + i, "M9-test-password", i == 0 ? Role.USER : Role.IT_STAFF, true));
+                if (i < 3) identities.createAccount(new IdentityService.CreateAccount(profile.getUserId(), "M9-test-password", i == 0 ? Role.USER : Role.IT_STAFF, true));
             }
             em.flush(); em.clear();
             mvc.perform(get("/v1/users").with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN")))

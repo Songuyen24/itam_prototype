@@ -49,7 +49,7 @@ public class AuthService {
     }
 
     /**
-     * Xác thực username hoặc email/password, sinh JWT và trả về thông tin người dùng.
+     * Xác thực mã nhân viên hoặc email/password, sinh JWT và trả về thông tin người dùng.
      *
      * @param request yêu cầu đăng nhập
      * @return JWT kèm thông tin user
@@ -104,7 +104,6 @@ public class AuthService {
                 user.getFullName(),
                 roleCode
         );
-        info.setUsername(user.getUsername());
         info.setEmployeeCode(user.getEmployeeCode());
         authenticationAudit.record(user, "LOGIN_SUCCESS");
         return new LoginResponse(token, info);

@@ -68,5 +68,5 @@
   "lastMonth": "Last month",
   "code": "Voucher",
   "transactions": "vouchers",
-  "damagedCondition": "Devices in damaged physical condition (may overlap statuses)"
+  "damagedCondition": "Damaged devices"
 }

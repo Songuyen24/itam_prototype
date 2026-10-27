@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Department,
@@ -53,44 +53,22 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
   locations,
 }) => {
   const { t } = useTranslation(['assets', 'common']);
+  const id = useId();
 
   return (
-    <div
-      style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '8px',
-        padding: '16px',
-        boxShadow: 'var(--shadow-sm)',
-        marginBottom: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-      }}
-    >
+    <div className="content-card asset-filters">
       {/* Row 1: Search input */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flexGrow: 1 }}>
-          <span
-            style={{
-              position: 'absolute',
-              left: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--text-muted)',
-              fontSize: '14px',
-            }}
-          >
-            🔍
-          </span>
+      <div className="asset-search-row">
+        <label className="form-label">
+          {t('common:buttons.search')}
           <input
             type="text"
-            className="form-control"
-            style={{ paddingLeft: '36px' }}
+            className="form-input"
             placeholder={t('assets:filters.searchPlaceholder', 'Tìm kiếm theo Asset Tag, Serial Number, Tên thiết bị...')}
             value={keyword}
             onChange={(e) => onKeywordChange(e.target.value)}
           />
-        </div>
+        </label>
         <button
           type="button"
           className="btn btn-secondary"
@@ -102,20 +80,15 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
       </div>
 
       {/* Row 2: Filter selects */}
-      {showCatalogFilters && <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '12px',
-        }}
-      >
+      {showCatalogFilters && <div className="asset-filter-grid">
         {/* Status filter */}
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+          <label className="form-label" htmlFor={`${id}-status`}>
             {t('assets:fields.status', 'Trạng thái')}
           </label>
           <select
-            className="form-control"
+            className="form-select"
+            id={`${id}-status`}
             value={statusId ?? ''}
             onChange={(e) => onStatusChange(e.target.value ? Number(e.target.value) : undefined)}
           >
@@ -130,11 +103,12 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
 
         {/* Type filter */}
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+          <label className="form-label" htmlFor={`${id}-type`}>
             {t('assets:fields.type', 'Loại thiết bị')}
           </label>
           <select
-            className="form-control"
+            className="form-select"
+            id={`${id}-type`}
             value={typeId ?? ''}
             onChange={(e) => onTypeChange(e.target.value ? Number(e.target.value) : undefined)}
           >
@@ -149,11 +123,12 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
 
         {/* Model filter */}
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+          <label className="form-label" htmlFor={`${id}-model`}>
             {t('assets:fields.model', 'Model')}
           </label>
           <select
-            className="form-control"
+            className="form-select"
+            id={`${id}-model`}
             value={modelId ?? ''}
             onChange={(e) => onModelChange(e.target.value ? Number(e.target.value) : undefined)}
           >
@@ -168,11 +143,12 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
 
         {/* Department filter */}
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+          <label className="form-label" htmlFor={`${id}-department`}>
             {t('assets:fields.department', 'Phòng ban')}
           </label>
           <select
-            className="form-control"
+            className="form-select"
+            id={`${id}-department`}
             value={departmentId ?? ''}
             onChange={(e) => onDepartmentChange(e.target.value ? Number(e.target.value) : undefined)}
           >
@@ -187,11 +163,12 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
 
         {/* Location filter */}
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+          <label className="form-label" htmlFor={`${id}-location`}>
             {t('assets:fields.location', 'Vị trí')}
           </label>
           <select
-            className="form-control"
+            className="form-select"
+            id={`${id}-location`}
             value={locationId ?? ''}
             onChange={(e) => onLocationChange(e.target.value ? Number(e.target.value) : undefined)}
           >
