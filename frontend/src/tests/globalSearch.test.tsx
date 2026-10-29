@@ -64,4 +64,31 @@ describe('global search scope and race', () => {
     expect(JSON.stringify(tree!.toJSON())).toContain('NEW');
     expect(JSON.stringify(tree!.toJSON())).not.toContain('OLD');
   });
+
+  it('closes on Escape and reopens on click or ArrowDown without losing the query', async () => {
+    mocks.getMyAssets.mockResolvedValue(page([{ assetId: 4, assetTag: 'A-4', name: 'Asset' }]));
+    await render(); await type('A-4');
+    const input = tree!.root.findByType('input');
+    expect(input.props['aria-expanded']).toBe(true);
+    act(() => input.props.onKeyDown({ key: 'Escape' }));
+    expect(input.props.value).toBe('A-4');
+    expect(input.props['aria-expanded']).toBe(false);
+    act(() => input.props.onClick());
+    expect(input.props['aria-expanded']).toBe(true);
+    act(() => input.props.onKeyDown({ key: 'Escape' }));
+    act(() => input.props.onKeyDown({ key: 'ArrowDown' }));
+    expect(input.props['aria-expanded']).toBe(true);
+    expect(mocks.getMyAssets).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries the same scoped request after an error', async () => {
+    mocks.getMyAssets.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce(page([{ assetId: 5, assetTag: 'A-5', name: 'Recovered' }]));
+    await render(); await type('A-5');
+    const retry = tree!.root.findAllByType('button').find(button => button.children.includes('search.retry'))!;
+    act(() => retry.props.onClick());
+    await act(async () => { vi.advanceTimersByTime(251); });
+    expect(mocks.getMyAssets).toHaveBeenCalledTimes(2);
+    expect(mocks.getMyAssets).toHaveBeenLastCalledWith({ keyword: 'A-5', page: 0, size: 5 });
+    expect(JSON.stringify(tree!.toJSON())).toContain('Recovered');
+  });
 });
