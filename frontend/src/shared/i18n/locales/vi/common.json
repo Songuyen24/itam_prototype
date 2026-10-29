@@ -9,6 +9,8 @@
   },
   "nav": {
     "mainMenu": "Điều hướng chính",
+    "openMenu": "Mở menu điều hướng",
+    "closeMenu": "Đóng menu điều hướng",
     "management": "Quản lý",
     "assetCatalogs": "Danh mục tài sản",
     "organizationCatalogs": "Danh mục tổ chức",

@@ -9,6 +9,8 @@
   },
   "nav": {
     "mainMenu": "Main navigation",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu",
     "management": "Management",
     "assetCatalogs": "Asset catalogs",
     "organizationCatalogs": "Organization catalogs",

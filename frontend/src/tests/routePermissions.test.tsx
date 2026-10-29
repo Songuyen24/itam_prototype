@@ -108,7 +108,38 @@ describe('Role-specific routes and navigation', () => {
     expect(tree.root.findByProps({ 'aria-label': 'nav.expandSidebar' })).toBeTruthy();
     expect(tree.root.findByProps({ 'aria-label': 'nav.management' }).props['aria-expanded']).toBe(true);
     expect(tree.root.findAllByType('a').filter(link => link.props['aria-label'] === 'nav.assetCatalogs')).toHaveLength(1);
+    act(() => tree.root.findByProps({ 'aria-label': 'nav.management' }).props.onClick());
+    expect(tree.root.findByProps({ 'aria-label': 'nav.collapseSidebar' })).toBeTruthy();
+    expect(tree.root.findByProps({ 'aria-label': 'nav.management' }).props['aria-expanded']).toBe(true);
     act(() => tree.unmount());
+  });
+
+  it('uses a labelled mobile drawer whose links and account action close it', () => {
+    signIn('ADMIN');
+    const previousWindow = globalThis.window;
+    const listeners: Array<() => void> = [];
+    let narrow = true;
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+      matchMedia: () => ({ get matches() { return narrow; }, addEventListener: (_: string, listener: () => void) => listeners.push(listener), removeEventListener: () => {} }),
+    } });
+    let tree!: ReturnType<typeof create>;
+    try {
+      act(() => { tree = create(<MemoryRouter initialEntries={['/catalogs']}><MainLayout /></MemoryRouter>); });
+      const trigger = tree.root.findByProps({ 'aria-label': 'nav.openMenu' });
+      act(() => trigger.props.onClick());
+      expect(tree.root.findByProps({ 'aria-label': 'nav.closeMenu' })).toBeTruthy();
+      act(() => tree.root.findAllByType('a').find(link => link.props.href === '/assets')!.props.onClick({ button: 0, defaultPrevented: false, preventDefault: () => {}, metaKey: false, altKey: false, ctrlKey: false, shiftKey: false }));
+      expect(trigger.props['aria-expanded']).toBe(false);
+      act(() => trigger.props.onClick());
+      act(() => tree.root.findByProps({ 'aria-label': 'nav.account: Current Account' }).props.onClick());
+      expect(trigger.props['aria-expanded']).toBe(false);
+      narrow = false;
+      act(() => listeners.forEach(listener => listener()));
+      expect(tree.root.findByProps({ 'aria-label': 'nav.collapseSidebar' })).toBeTruthy();
+    } finally {
+      act(() => tree?.unmount());
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: previousWindow });
+    }
   });
 
   it.each(['PUR_STAFF', 'USER'])('%s cannot open shared inventory or catalogs directly', (role) => {
