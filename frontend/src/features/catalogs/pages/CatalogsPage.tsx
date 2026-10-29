@@ -26,6 +26,8 @@ import { CatalogModal, CatalogFormData } from '../components/CatalogModal';
 import { ModelModal } from '../components/ModelModal';
 import { SupplierModal } from '../components/SupplierModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { CatalogImportModal } from '../components/CatalogImportModal';
+import { importableCatalogs, type ImportableCatalog } from '../api/catalogImportApi';
 import { ApiError } from '@/shared/api/httpClient';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 
@@ -105,11 +107,13 @@ export const CatalogsPage: React.FC<{ mode?: 'asset' | 'organization' }> = ({ mo
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [modalErrorMessage, setModalErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const importable = canManageCatalogs && importableCatalogs.includes(activeTab as ImportableCatalog);
   const requestVersion = useRef(0);
 
   // Load auxiliary data (categories & types)
@@ -660,9 +664,12 @@ export const CatalogsPage: React.FC<{ mode?: 'asset' | 'organization' }> = ({ mo
           </p>
         </div>
         {canManageCatalogs && (
+          <div className="catalog-header-actions">
+          {importable && <button className="btn btn-secondary" onClick={() => setIsImportOpen(true)}>{t('catalogs:import.title')}</button>}
           <button className="btn btn-primary" onClick={handleOpenAdd}>
             + {t('common:buttons.add', 'Thêm')} {getActiveTabLabel()}
           </button>
+          </div>
         )}
       </div>
 
@@ -805,6 +812,7 @@ export const CatalogsPage: React.FC<{ mode?: 'asset' | 'organization' }> = ({ mo
         onConfirm={handleConfirmDelete}
         onClose={() => setIsDeleteModalOpen(false)}
       />
+      {isImportOpen && importable && <CatalogImportModal kind={activeTab as ImportableCatalog} onClose={() => setIsImportOpen(false)} onImported={() => void fetchTabItems()} />}
     </div>
   );
 };

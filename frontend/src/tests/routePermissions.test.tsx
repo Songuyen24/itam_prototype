@@ -89,9 +89,10 @@ describe('Role-specific routes and navigation', () => {
   it('orders management links by role and gives collapsed controls accessible names', () => {
     signIn('ADMIN');
     const admin = renderRoute('/catalogs');
-    const paths = ['/accounts', '/catalogs', '/organization-catalogs'];
+    const paths = ['/dashboard', '/assets', '/receivings', '/handovers', '/recoveries', '/disposals', '/reports', '/accounts', '/documents', '/catalogs', '/organization-catalogs'];
     expect(paths.map(path => admin.indexOf(`href="${path}"`))).toEqual([...paths.map(path => admin.indexOf(`href="${path}"`))].sort((a, b) => a - b));
     expect(paths.every(path => admin.includes(`href="${path}"`))).toBe(true);
+    expect(admin).not.toContain('sidebar-demo-switch');
     signIn('PUR_STAFF');
     const pur = renderRoute('/accounts');
     expect(pur).toContain('href="/accounts"');

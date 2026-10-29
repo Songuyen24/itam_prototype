@@ -157,7 +157,9 @@ async function fetchFileBlob(endpoint: string): Promise<Blob> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, { headers });
+  let response: Response;
+  try { response = await fetch(url, { headers }); }
+  catch { throw new ApiError(currentLang === 'en' ? 'Unable to connect to the file server. Try again.' : 'Không kết nối được máy chủ tệp. Vui lòng thử lại.', 0, 'NETWORK_ERROR'); }
   assertCurrentSession(token, revision, currentLang);
 
   if (response.status === 401) {
@@ -173,10 +175,8 @@ async function fetchFileBlob(endpoint: string): Promise<Blob> {
   }
 
   if (!response.ok) {
-    throw new ApiError(
-      currentLang === 'en' ? 'Unable to download file' : 'Không thể tải file',
-      response.status
-    );
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.message || (currentLang === 'en' ? 'Unable to load file' : 'Không thể tải tệp'), response.status, body?.code);
   }
 
   const blob = await response.blob();

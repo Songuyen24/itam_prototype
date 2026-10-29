@@ -1,5 +1,7 @@
 {
-  "title": "Chứng từ",
+  "title": "Biên bản & chứng từ",
+  "library": { "title": "Biên bản & chứng từ", "search": "Tìm tên file hoặc mã phiếu", "documentType": "Loại chứng từ", "allDocumentTypes": "Tất cả chứng từ", "source": "Phiếu nguồn", "sourceFilter": "Chứng từ của phiếu #{{id}}", "empty": "Không có chứng từ phù hợp." },
+  "pdfPage": "Trang PDF {{page}}",
   "transactionsTitle": "Danh sách phiếu",
   "tabs": {
     "DRAFT": "Nháp",
@@ -53,6 +55,7 @@
     "OTHER": "Khác"
   },
   "actions": {
+    "openReceipt": "Mở phiếu",
     "download": "Tải xuống",
     "preview": "Xem trước",
     "close": "Đóng",
@@ -79,6 +82,7 @@
     "next": "Trang sau"
   },
   "errors": {
+    "previewPdf": "Không thể hiển thị trang PDF.",
     "transactions": "Không thể tải danh sách phiếu.",
     "transaction": "Không thể tải thông tin phiếu.",
     "documents": "Không thể tải danh sách chứng từ.",
@@ -115,6 +119,12 @@
     "cancelConfirm": "Hủy phiếu này? Lịch sử vẫn được giữ."
   },
   "receiving": {
+    "createdRange": "Khoảng ngày tạo", "allDates": "Tất cả ngày", "previousMonth": "Tháng trước", "nextMonth": "Tháng sau", "applyRange": "Áp dụng", "clearRange": "Xóa",
+    "createdFrom": "Ngày tạo từ", "createdTo": "Ngày tạo đến", "invalidDateRange": "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.",
+    "requestAdjustment": "Yêu cầu điều chỉnh",
+    "viewAsset": "Xem chi tiết",
+    "sections": { "identity": "Thông tin tài sản", "purchase": "Mua hàng và vị trí", "hardware": "Phần cứng và bảo hành", "configuration": "Cấu hình thực tế (tùy chọn)", "license": "Thông tin license" },
+    "receiptModal": "Phiếu nhập kho",
     "title": "Nhập kho",
     "name": "Tên tài sản",
     "typeId": "Loại tài sản",

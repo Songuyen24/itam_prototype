@@ -98,4 +98,19 @@ describe('Receiving draft interactions',()=>{
     expect(changed).toHaveBeenCalledTimes(1);
     tree.unmount();
   });
+  it('keeps compact receipt asset editing and history in separate dialogs',async()=>{
+    const tree=create(<ImportDraftPanel compact transaction={transaction} onChanged={vi.fn()}/>);
+    await flush();
+    expect(tree.root.findAllByProps({className:'receiving-form'})).toHaveLength(0);
+    expect(words(tree)).not.toContain('receiving.sections.identity');
+    await act(async()=>button(tree,'draft.addAsset').props.onClick());
+    expect(tree.root.findAllByProps({role:'dialog'})).toHaveLength(1);
+    expect(words(tree)).toContain('receiving.sections.identity');
+    await act(async()=>tree.root.findAllByProps({role:'dialog'})[0].findAllByType('button').find(node=>node.props['aria-label']==='actions.close')!.props.onClick());
+    expect(tree.root.findAllByProps({role:'dialog'})).toHaveLength(0);
+    await act(async()=>button(tree,'draft.history').props.onClick());
+    expect(tree.root.findAllByProps({role:'dialog'})).toHaveLength(1);
+    expect(words(tree)).toContain('draft.noHistory');
+    tree.unmount();
+  });
 });

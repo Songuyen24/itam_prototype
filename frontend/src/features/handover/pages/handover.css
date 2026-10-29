@@ -8,7 +8,23 @@
 .handover-selected { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #ddd; }
 .handover-selected > span { flex: 1; min-width: 180px; overflow-wrap: anywhere; }
 .handover-selected input { max-width: 110px; }
-.handover-history { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr); gap: 24px; margin-top: 24px; }
+.handover-history { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; margin-top: 24px; }
+.handover-list-section { min-width: 0; }
+.handover-list-section h2 { font-size: 18px; margin: 0 0 12px; }
+.handover-list-section .form-label { display: block; max-width: 400px; }
+.handover-list-section .form-label input { display: block; margin-top: 6px; }
+.handover-list-section .table-container { margin-top: 14px; }
+.handover-list-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.handover-list-filters .form-label { min-width: min(260px, 100%); }
+.handover-list-filters .form-select { display: block; width: 100%; margin-top: 6px; }
+.handover-list-filters .receiving-date-range { min-width: min(260px, 100%); }
+.handover-list-section .data-table { width: 100%; table-layout: fixed; font-size: 14px; }
+.handover-list-section .data-table th,.handover-list-section .data-table td { padding: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.handover-list-section .data-table th:last-child,.handover-list-section .data-table td:last-child { width: 100px; }
+.handover-list-section .data-table td:last-child { overflow: visible; }
+.handover-list-section .data-table .btn { padding: 5px 9px; }
+.handover-detail-dialog { min-width: min(760px, 94vw); }
+.handover-details { display: block; margin-top: 20px; }
 .handover-history > section { min-width: 0; }
 .handover-page-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; }
 .handover-recipient-detail { margin: 12px 0; padding: 12px; border-top: 1px solid var(--border-color, #ddd); }

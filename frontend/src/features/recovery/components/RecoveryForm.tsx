@@ -360,7 +360,7 @@ export function SmartCheckDialog({
   );
 }
 
-export function RecoveryForm({ onCompleted, initialValue }: { onCompleted: (value: Recovery) => void; initialValue?: Recovery }) {
+export function RecoveryForm({ onCompleted, initialValue, onBusyChange }: { onCompleted: (value: Recovery) => void; initialValue?: Recovery; onBusyChange?: (busy: boolean) => void }) {
   const { t } = useTranslation('recovery');
   const [selected, setSelected] = useState<AssetCandidate[]>(() => {
     if (!initialValue?.request) return [];
@@ -384,6 +384,7 @@ export function RecoveryForm({ onCompleted, initialValue }: { onCompleted: (valu
   const [error, setError] = useState('');
   const previewTrigger = useRef<HTMLElement | null>(null);
   const frozen = busy || smartCheck !== null;
+  useEffect(() => { onBusyChange?.(frozen); return () => onBusyChange?.(false); }, [frozen, onBusyChange]);
 
   useEffect(() => {
     if (!returner || selected.length === 0) { setLiveCheck(null); setChecking(false); setCheckError(''); return; }

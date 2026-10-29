@@ -3,6 +3,9 @@
   "description": "Lập phiếu và xử lý tài sản đủ điều kiện thanh lý.",
   "createTitle": "Tạo phiếu thanh lý",
   "pendingTitle": "Phiếu thanh lý",
+  "groups": { "PENDING": "Chờ xử lý", "DRAFT": "Nháp", "FINAL": "Đã xử lý" },
+  "statuses": { "PENDING": "Chờ xử lý", "DRAFT": "Nháp", "COMPLETED": "Hoàn tất", "REJECTED": "Từ chối", "CANCELLED": "Đã hủy" },
+  "actions": "Thao tác",
   "assets": "Tài sản đủ điều kiện",
   "reason": "Lý do thanh lý",
   "date": "Ngày thanh lý",
@@ -46,6 +49,7 @@
   "saving": "Đang xử lý...",
   "empty": "Không có tài sản đủ điều kiện.",
   "noPending": "Không có phiếu thanh lý ở trạng thái này.",
+  "noRows": "Không có phiếu trong nhóm này.",
   "created": "Đã tạo phiếu thanh lý.",
   "changed": "Phiếu đã thay đổi. Chi tiết mới nhất đã được tải lại; hãy kiểm tra trước khi thao tác lại.",
   "categories": {

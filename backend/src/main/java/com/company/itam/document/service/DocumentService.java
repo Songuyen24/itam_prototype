@@ -5,11 +5,15 @@ import com.company.itam.common.exception.AppException;
 import com.company.itam.common.pagination.PageResponse;
 import com.company.itam.document.dto.DocumentDownload;
 import com.company.itam.document.dto.DocumentResponse;
+import com.company.itam.document.dto.DocumentLibraryRow;
 import com.company.itam.document.entity.DocumentEntity;
 import com.company.itam.document.repository.DocumentRepository;
 import com.company.itam.workflow.core.entity.TransactionEntity;
+import com.company.itam.workflow.core.enums.TransactionType;
 import com.company.itam.workflow.core.repository.TransactionRepository;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +49,29 @@ public class DocumentService {
         validatePage(page, size);
         return PageResponse.of(documentRepository.findLinked(transactionId, PageRequest.of(page, size))
                 .map(DocumentResponse::fromEntity));
+    }
+
+    public PageResponse<DocumentLibraryRow> library(String keyword, DocumentType documentType,
+            TransactionType transactionType, Long transactionId, int page, int size) {
+        accessService.requireTransactionReader();
+        validatePage(page, size);
+        if (keyword != null && keyword.length() > 100 || transactionId != null && transactionId <= 0) throw invalidRequest();
+        if (accessService.isPurchasingReader() && transactionType != null && transactionType != TransactionType.IMPORT)
+            throw new AccessDeniedException("Access denied");
+        TransactionType permittedType = accessService.isPurchasingReader() ? TransactionType.IMPORT : transactionType;
+        String search = keyword == null ? "" : keyword.trim().toLowerCase(java.util.Locale.ROOT)
+            .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        return PageResponse.of(documentRepository.findAll((root, query, builder) -> {
+            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            var transaction = root.join("transaction");
+            if (permittedType != null) predicates.add(builder.equal(transaction.get("type"), permittedType));
+            if (documentType != null) predicates.add(builder.equal(root.get("documentType"), documentType));
+            if (transactionId != null) predicates.add(builder.equal(transaction.get("transactionId"), transactionId));
+            if (!search.isEmpty()) predicates.add(builder.or(
+                builder.like(builder.lower(root.get("originalFileName")), "%" + search + "%", '\\'),
+                builder.like(builder.lower(transaction.get("transactionCode")), "%" + search + "%", '\\')));
+            return builder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        }, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt", "documentId"))).map(DocumentLibraryRow::fromEntity));
     }
 
     public DocumentResponse getDocument(Long documentId) {

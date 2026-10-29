@@ -3,22 +3,30 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { PublicationPanel } from '@/features/documents/components/PublicationPanel';
+import { ReceivingDateRangePicker } from '@/features/documents/components/ReceivingDateRangePicker';
+import { documentApi } from '@/features/documents/api/documentApi';
+import type { DocumentTransaction, TransactionStatus } from '@/features/documents/types/document.types';
 import { RecoveryForm } from '../components/RecoveryForm';
 import { Recovery, recoveryApi } from '../api/recoveryApi';
+import './recoveries.css';
 
 export function RecoveriesPage() {
-  const { t } = useTranslation('recovery');
+  const { t, i18n } = useTranslation('recovery');
   const { user } = useAuth();
-  const [tab, setTab] = useState<'form' | 'history'>('form');
   const [keyword, setKeyword] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState<TransactionStatus | ''>('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [page, setPage] = useState(0);
   const [pages, setPages] = useState(0);
   const [total, setTotal] = useState(0);
-  const [history, setHistory] = useState<Recovery[]>([]);
+  const [history, setHistory] = useState<DocumentTransaction[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<Recovery | null>(null);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formBusy, setFormBusy] = useState(false);
   const [acting, setActing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -26,24 +34,26 @@ export function RecoveriesPage() {
   const [detailError, setDetailError] = useState('');
   const [reload, setReload] = useState(0);
   const confirmRef = useRef<HTMLDialogElement>(null);
+  const formRef = useRef<HTMLDialogElement>(null);
+  const detailRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    if (tab !== 'history') return;
     let active = true;
     setLoading(true); setError('');
-    recoveryApi.list(keyword, status, page).then(r => {
+    documentApi.getTransactions({ type: 'RECOVERY', keyword, status: status || undefined, from: from || undefined, to: to || undefined, page, size: 20 }).then(r => {
       if (active) { setHistory(r.data.content); setPages(r.data.totalPages); setTotal(r.data.totalElements); setPage(current => Math.min(current, Math.max(0, r.data.totalPages - 1))); }
     }).catch(e => { if (active) setError(e instanceof Error ? e.message : t('error')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [tab, keyword, status, page, reload, t]);
+  }, [keyword, status, from, to, page, reload, t]);
 
   useEffect(() => {
     if (selectedId == null) return;
     let active = true;
-    setDetail(null); setDetailError('');
+    setDetail(null); setDetailError(''); setDetailLoading(true);
     recoveryApi.detail(selectedId).then(r => { if (active) setDetail(r.data); })
-      .catch(e => { if (active) setDetailError(e instanceof Error ? e.message : t('error')); });
+      .catch(e => { if (active) setDetailError(e instanceof Error ? e.message : t('error')); })
+      .finally(() => { if (active) setDetailLoading(false); });
     return () => { active = false; };
   }, [selectedId, reload, t]);
 
@@ -55,8 +65,23 @@ export function RecoveriesPage() {
     return () => { dialog.close(); if (opener instanceof HTMLElement && opener.isConnected) opener.focus(); };
   }, [confirming]);
 
+  useEffect(() => {
+    const dialog = formRef.current;
+    if ((!creating && !editing) || !dialog) return;
+    const opener = document.activeElement;
+    dialog.showModal();
+    return () => { dialog.close(); if (opener instanceof HTMLElement && opener.isConnected) opener.focus(); };
+  }, [creating, editing]);
+  useEffect(() => {
+    const dialog = detailRef.current;
+    if (selectedId == null || !dialog) return;
+    const opener = document.activeElement;
+    dialog.showModal();
+    return () => { dialog.close(); if (opener instanceof HTMLElement && opener.isConnected) opener.focus(); };
+  }, [selectedId]);
+
   function saved(result: Recovery) {
-    setEditing(false); setSelectedId(result.transactionId); setDetail(result); setTab('history'); setReload(n => n + 1);
+    setFormBusy(false); setCreating(false); setEditing(false); setSelectedId(result.transactionId); setDetail(result); setReload(n => n + 1);
   }
 
   async function act(action: 'submit' | 'withdraw' | 'cancel' | 'confirm') {
@@ -74,28 +99,27 @@ export function RecoveriesPage() {
 
   const owner = user?.id === detail?.creatorUserId;
   const admin = user?.role === 'ADMIN';
-  return <div className="page-container">
-    <div className="page-header"><h1>{t('title')}</h1></div>
-    <div className="page-tabs">
-      <button className={tab === 'form' ? 'tab active' : 'tab'} onClick={() => { setTab('form'); setEditing(false); }}>{t('tabForm')}</button>
-      <button className={tab === 'history' ? 'tab active' : 'tab'} onClick={() => setTab('history')}>{t('tabHistory')}</button>
-    </div>
-    {tab === 'form' ? <div className="page-content"><RecoveryForm onCompleted={saved} /></div> : <div className="page-content">
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+  return <div className="page-container recovery-page">
+    <div className="page-header recovery-page-header"><h1>{t('title')}</h1><button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>{t('tabForm')}</button></div>
+    <div className="page-content">
+      <div className="recovery-list-filters">
         <label className="form-label">{t('searchHistory')}<input className="form-input" type="search" value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} /></label>
-        <label className="form-label">{t('filterStatus')}<select className="form-input" value={status} onChange={e => { setStatus(e.target.value); setPage(0); }}>
+        <label className="form-label">{t('filterStatus')}<select className="form-input" value={status} onChange={e => { setStatus(e.target.value as TransactionStatus | ''); setPage(0); }}>
           <option value="">{t('allStatuses')}</option>{['DRAFT', 'PENDING', 'COMPLETED', 'CANCELLED'].map(s => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
         </select></label>
+        <ReceivingDateRangePicker from={from} to={to} label={t('createdRange')} onChange={(nextFrom,nextTo) => { setFrom(nextFrom); setTo(nextTo); setPage(0); }} />
       </div>
       {loading ? <p role="status">{t('loading')}</p> : error ? <p role="alert">{error} <button type="button" onClick={() => setReload(n => n + 1)}>{t('retry')}</button></p>
-        : history.length === 0 ? <p>{t('noHistory')}</p> : <table className="data-table"><thead><tr>
-          <th>{t('colCode')}</th><th>{t('colReturner')}</th><th>{t('colDate')}</th><th>{t('filterStatus')}</th><th>{t('colActions')}</th>
-        </tr></thead><tbody>{history.map(r => <tr key={r.transactionId}><td>{r.transactionCode}</td><td>{r.returnerName}</td><td>{r.recoveryDate}</td><td>{t(`status.${r.status}`)}</td>
-          <td><button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectedId(r.transactionId)}>{t('details')}</button></td></tr>)}</tbody></table>}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><button className="btn btn-secondary" disabled={loading || page === 0} onClick={() => setPage(n => n - 1)}>{t('previous')}</button>
+        : <div className="table-container"><table className="data-table"><thead><tr>
+          <th>{t('colCode')}</th><th>{t('creator')}</th><th>{t('createdAt')}</th><th>{t('filterStatus')}</th><th>{t('colActions')}</th>
+        </tr></thead><tbody>{history.map(r => <tr key={r.transactionId}><td>{r.transactionCode}</td><td>{r.requesterName || '—'}</td><td>{new Date(r.createdAt).toLocaleDateString(i18n.language)}</td><td>{t(`status.${r.status}`)}</td>
+          <td><button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectedId(r.transactionId)}>{t('details')}</button></td></tr>)}</tbody></table>{history.length === 0 && <p>{t('noHistory')}</p>}</div>}
+      <div className="recovery-pagination"><button className="btn btn-secondary" disabled={loading || page === 0} onClick={() => setPage(n => n - 1)}>{t('previous')}</button>
         <span>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span><button className="btn btn-secondary" disabled={loading || page + 1 >= pages} onClick={() => setPage(n => n + 1)}>{t('next')}</button></div>
-      {detailError && <p role="alert">{detailError} <button type="button" onClick={() => setReload(n => n + 1)}>{t('retry')}</button></p>}
-      {detail && <section style={{ marginTop: 20 }}><h2>{detail.transactionCode} · {t(`status.${detail.status}`)}</h2>
+      {selectedId !== null && <dialog ref={detailRef} className="recovery-dialog" aria-label={t('details')} onCancel={e => { if (acting || editing || confirming || formBusy) e.preventDefault(); else { setSelectedId(null); setDetail(null); } }}>
+      <div className="recovery-dialog-heading"><h2>{t('details')}</h2><button type="button" className="btn btn-secondary" disabled={acting || editing || confirming || formBusy} onClick={() => { setSelectedId(null); setDetail(null); }}>{t('back')}</button></div>
+      {detailLoading ? <p role="status">{t('loading')}</p> : detailError ? <p role="alert">{detailError} <button type="button" onClick={() => setReload(n => n + 1)}>{t('retry')}</button></p> : null}
+      {detail && <section><h2>{detail.transactionCode} · {t(`status.${detail.status}`)}</h2>
         <p>{detail.returnerName} · {detail.receivingLocationName} · {detail.recoveryDate}</p><p>{detail.reason}</p>
         <PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <ul>{lines.map(line => <li key={line.assetId}>{line.assetTag} · {line.name} · {line.category}</li>)}</ul>}</PaginatedContent>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -106,9 +130,10 @@ export function RecoveriesPage() {
         </div>
         {detail.status === 'COMPLETED' && detail.transactionId != null && <PublicationPanel transactionId={detail.transactionId} canManage />}
       </section>}
-      {editing && detail && <dialog ref={el => { if (el && !el.open) el.showModal(); }} aria-labelledby="recovery-edit-title" onCancel={e => { e.preventDefault(); setEditing(false); }} style={{ margin: 'auto', width: 'min(1000px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
-        <h2 id="recovery-edit-title">{t('edit')}</h2><button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>{t('back')}</button>
-        <RecoveryForm initialValue={detail} onCompleted={saved} />
+      </dialog>}
+      {(creating || editing && detail) && <dialog ref={formRef} className="recovery-dialog" aria-labelledby="recovery-edit-title" onCancel={e => { if (formBusy) e.preventDefault(); else { setCreating(false); setEditing(false); } }}>
+        <div className="recovery-dialog-heading"><h2 id="recovery-edit-title">{t(editing ? 'edit' : 'tabForm')}</h2><button type="button" className="btn btn-secondary" disabled={formBusy} onClick={() => { setCreating(false); setEditing(false); }}>{t('back')}</button></div>
+        <RecoveryForm initialValue={editing ? detail ?? undefined : undefined} onCompleted={saved} onBusyChange={setFormBusy} />
       </dialog>}
       {confirming && detail && <dialog ref={confirmRef} aria-labelledby="recovery-confirm-title" onCancel={e => { if (acting) e.preventDefault(); else setConfirming(false); }} style={{ margin: 'auto', padding: 24, width: 'min(700px, calc(100vw - 32px))' }}>
         <h2 id="recovery-confirm-title">{t('confirmPhysical')}</h2><p>{t('confirmPhysicalHint')}</p>
@@ -117,6 +142,6 @@ export function RecoveriesPage() {
         <button className="btn btn-secondary" disabled={acting} onClick={() => setConfirming(false)}>{t('back')}</button>
         <button className="btn btn-primary" disabled={acting} onClick={() => void act('confirm')}>{acting ? t('loading') : t('confirmPhysical')}</button>
       </dialog>}
-    </div>}
+    </div>
   </div>;
 }

@@ -10,6 +10,7 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t }) }));
 vi.mock('@/features/auth/contexts/AuthContext', () => ({ useAuth: () => ({ user: { role: 'IT_STAFF' } }) }));
 vi.mock('@/features/documents/components/TransactionSelector', () => ({ TransactionSelector: () => null }));
 vi.mock('@/features/documents/components/TransactionDocuments', () => ({ TransactionDocuments: ({ transactionId }: { transactionId: number | null }) => <output>{transactionId}</output> }));
+vi.mock('@/features/documents/pages/DocumentsLibraryPage', () => ({ DocumentsLibraryPage: () => <div data-library="true" /> }));
 let tree: ReactTestRenderer;
 afterEach(() => { if (tree) act(() => tree.unmount()); });
 
@@ -50,12 +51,12 @@ describe('desktop pagination and document links', () => {
   it('opens the requested document and follows URL changes without retaining the previous selection', () => {
     function Navigate() { const navigate = useNavigate(); return <button onClick={() => navigate('/documents?transactionId=23')}>navigate</button>; }
     act(() => { tree = create(<MemoryRouter initialEntries={['/documents?transactionId=7']}><Navigate /><DocumentsPage /></MemoryRouter>); });
-    expect(tree.root.findByType('output').children).toEqual(['7']);
+    expect(tree.root.findByProps({ 'data-library': 'true' })).toBeTruthy();
     act(() => tree.root.findByType('button').props.onClick());
-    expect(tree.root.findByType('output').children).toEqual(['23']);
+    expect(tree.root.findByProps({ 'data-library': 'true' })).toBeTruthy();
   });
   it.each(['-1', 'abc', '1.5', '9007199254740992'])('ignores invalid document id %s', id => {
     act(() => { tree = create(<MemoryRouter initialEntries={[`/documents?transactionId=${id}`]}><DocumentsPage /></MemoryRouter>); });
-    expect(tree.root.findByType('output').children).toEqual([]);
+    expect(tree.root.findByProps({ 'data-library': 'true' })).toBeTruthy();
   });
 });

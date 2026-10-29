@@ -3,6 +3,9 @@
   "create": "Create handover",
   "holders": "Current asset holders",
   "holderFilter": "Employee filter",
+  "allStatuses": "All statuses",
+  "createdRange": "Created date range",
+  "assetTag": "Asset tag", "assetName": "Asset name", "category": "Category", "deviceTag": "Device tag",
   "heldOnly": "Current holders",
   "allEmployees": "All employees",
   "searchHolders": "Search employee code, name or email",
@@ -73,5 +76,6 @@
     "Storage": "Storage",
     "GraphicsCard": "Graphics"
   },
-  "employeeCode": "Employee code"
+  "employeeCode": "Employee code",
+  "name": "Full name", "email": "Email", "devices": "Devices", "components": "Components", "licenseSeats": "License seats", "action": "Action", "view": "View", "code": "Receipt code", "statusLabel": "Status", "createdAt": "Created at", "requester": "Requester"
 }

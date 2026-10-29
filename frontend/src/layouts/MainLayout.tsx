@@ -2,13 +2,11 @@ import { useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
-import { RoleSwitcher } from '@/shared/components/RoleSwitcher/RoleSwitcher';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { canManageInventory } from '@/features/auth/permissions';
 import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
 import { OverrideReasonDialog } from '@/features/auth/components/OverrideReasonDialog';
 import { AccountModal } from '@/features/auth/pages/AccountPage';
-import { demoLoginEnabled } from '@/features/auth/demo';
 import { GlobalSearch } from './GlobalSearch';
 
 function MainLayout() {
@@ -18,7 +16,7 @@ function MainLayout() {
   const location = useLocation();
   const [accountOpen, setAccountOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const managementActive = ['/catalogs', '/accounts', '/organization-catalogs'].includes(location.pathname);
+  const managementActive = ['/catalogs', '/accounts', '/documents', '/organization-catalogs'].includes(location.pathname);
   const [managementOpen, setManagementOpen] = useState(managementActive);
   const canViewInventory = canManageInventory(user?.role);
   const canViewProfiles = ['ADMIN', 'IT_STAFF', 'PUR_STAFF'].includes(user?.role || '');
@@ -45,6 +43,12 @@ function MainLayout() {
 
         <nav className="sidebar-nav" aria-label={t('nav.mainMenu')}>
           {canViewInventory && iconLink('/dashboard', '▦', t('nav.overview'))}
+          {canViewInventory && iconLink('/assets', '▧', t('nav.assets'))}
+          {user?.role === 'USER' && iconLink('/my-assets', '▧', t('nav.myAssets'))}
+          {user?.role && DOCUMENT_ROLES.includes(user.role) && iconLink('/receivings', '↓', t('documents:receiving.title'))}
+          {canViewInventory && iconLink('/handovers', '→', t('nav.handover'))}
+          {canViewInventory && iconLink('/recoveries', '←', t('nav.recovery'))}
+          {canViewInventory && iconLink('/disposals', '×', t('nav.disposal'))}
           {canViewProfiles && iconLink('/reports', '▤', t('nav.reports'))}
           {canViewProfiles && <div className="sidebar-group">
             <button type="button" className={`nav-link sidebar-group-toggle ${managementActive ? 'active' : ''}`}
@@ -56,17 +60,11 @@ function MainLayout() {
             </button>
             {managementOpen && <div id="management-links" className="sidebar-subnav">
               {iconLink('/accounts', '◉', t('auth:management.accounts'))}
+              {user?.role && DOCUMENT_ROLES.includes(user.role) && iconLink('/documents', '▤', t('documents:title'))}
               {canViewInventory && iconLink('/catalogs', '▣', t('nav.assetCatalogs'))}
               {canViewInventory && iconLink('/organization-catalogs', '⌘', t('nav.organizationCatalogs'))}
             </div>}
           </div>}
-          {canViewInventory && iconLink('/assets', '▧', t('nav.assets'))}
-          {user?.role === 'USER' && iconLink('/my-assets', '▧', t('nav.myAssets'))}
-          {user?.role && DOCUMENT_ROLES.includes(user.role) && iconLink('/documents', '▤', t('documents:title'))}
-          {user?.role && DOCUMENT_ROLES.includes(user.role) && iconLink('/receivings', '↓', t('documents:receiving.title'))}
-          {canViewInventory && iconLink('/handovers', '→', t('nav.handover'))}
-          {canViewInventory && iconLink('/recoveries', '←', t('nav.recovery'))}
-          {canViewInventory && iconLink('/disposals', '×', t('nav.disposal'))}
           {user?.role === 'ADMIN' && iconLink('/audit-logs', '≡', t('audit:title'))}
         </nav>
 
@@ -80,7 +78,6 @@ function MainLayout() {
             <button className="sidebar-logout" type="button" title={t('auth:logout')} aria-label={t('auth:logout')}
               onClick={() => { void logout().then(() => navigate('/login', { replace: true })); }}>↪</button>
           </div>
-          {demoLoginEnabled && <div className="sidebar-demo-switch"><RoleSwitcher /></div>}
         </div>
       </aside>
 

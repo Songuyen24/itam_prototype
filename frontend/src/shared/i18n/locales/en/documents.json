@@ -1,5 +1,7 @@
 {
-  "title": "Documents",
+  "title": "Reports & documents",
+  "library": { "title": "Reports & documents", "search": "Search filename or receipt code", "documentType": "Document type", "allDocumentTypes": "All document types", "source": "Source receipt", "sourceFilter": "Documents for receipt #{{id}}", "empty": "No matching documents." },
+  "pdfPage": "PDF page {{page}}",
   "transactionsTitle": "Transactions",
   "tabs": {
     "DRAFT": "Draft",
@@ -53,6 +55,7 @@
     "OTHER": "Other"
   },
   "actions": {
+    "openReceipt": "Open receipt",
     "download": "Download",
     "preview": "Preview",
     "close": "Close",
@@ -79,6 +82,7 @@
     "next": "Next page"
   },
   "errors": {
+    "previewPdf": "Unable to render the PDF page.",
     "transactions": "Unable to load transactions.",
     "transaction": "Unable to load this transaction.",
     "documents": "Unable to load documents.",
@@ -115,6 +119,12 @@
     "cancelConfirm": "Cancel this transaction? History will be retained."
   },
   "receiving": {
+    "createdRange": "Created date range", "allDates": "All dates", "previousMonth": "Previous month", "nextMonth": "Next month", "applyRange": "Apply", "clearRange": "Clear",
+    "createdFrom": "Created from", "createdTo": "Created to", "invalidDateRange": "Start date must be on or before end date.",
+    "requestAdjustment": "Request adjustment",
+    "viewAsset": "View details",
+    "sections": { "identity": "Asset details", "purchase": "Purchase and location", "hardware": "Hardware and warranty", "configuration": "Actual configuration (optional)", "license": "License details" },
+    "receiptModal": "Receiving receipt",
     "title": "Receiving",
     "name": "Asset name",
     "typeId": "Asset type",

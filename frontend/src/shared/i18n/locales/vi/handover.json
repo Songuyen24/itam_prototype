@@ -3,6 +3,9 @@
   "create": "Tạo bàn giao",
   "holders": "Người đang giữ tài sản",
   "holderFilter": "Lọc nhân viên",
+  "allStatuses": "Tất cả trạng thái",
+  "createdRange": "Khoảng ngày tạo",
+  "assetTag": "Mã tài sản", "assetName": "Tên tài sản", "category": "Loại", "deviceTag": "Mã thiết bị",
   "heldOnly": "Đang giữ",
   "allEmployees": "Tất cả nhân viên",
   "searchHolders": "Tìm mã nhân viên, tên hoặc email",
@@ -73,5 +76,6 @@
     "Storage": "Ổ lưu trữ",
     "GraphicsCard": "Đồ họa"
   },
-  "employeeCode": "Mã nhân viên"
+  "employeeCode": "Mã nhân viên",
+  "name": "Họ tên", "email": "Email", "devices": "Thiết bị", "components": "Linh kiện", "licenseSeats": "Suất license", "action": "Thao tác", "view": "Xem", "code": "Mã phiếu", "statusLabel": "Trạng thái", "createdAt": "Ngày tạo", "requester": "Người lập"
 }

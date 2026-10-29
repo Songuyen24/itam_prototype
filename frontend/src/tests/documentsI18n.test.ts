@@ -18,7 +18,7 @@ describe('Document translations', () => {
         expect(i18n.t(`documents:${key}`, { lng })).not.toBe(key);
       }
     }
-    expect(i18n.t('documents:title', { lng: 'vi' })).toBe('Chứng từ');
-    expect(i18n.t('documents:title', { lng: 'en' })).toBe('Documents');
+    expect(i18n.t('documents:title', { lng: 'vi' })).toBe('Biên bản & chứng từ');
+    expect(i18n.t('documents:title', { lng: 'en' })).toBe('Reports & documents');
   });
 });

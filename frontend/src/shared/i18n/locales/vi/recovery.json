@@ -2,6 +2,7 @@
   "title": "Thu hồi tài sản",
   "tabForm": "Tạo phiếu thu hồi",
   "tabHistory": "Lịch sử thu hồi",
+  "creator": "Người lập", "createdAt": "Ngày tạo", "createdRange": "Khoảng ngày tạo",
   "noHistory": "Chưa có phiếu thu hồi nào",
   "colCode": "Mã phiếu",
   "colReturner": "Người trả",

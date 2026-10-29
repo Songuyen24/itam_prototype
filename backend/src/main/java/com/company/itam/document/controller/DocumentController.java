@@ -6,6 +6,8 @@ import com.company.itam.common.response.ApiResponse;
 import com.company.itam.common.util.MessageHelper;
 import com.company.itam.document.dto.DocumentDownload;
 import com.company.itam.document.dto.DocumentResponse;
+import com.company.itam.document.dto.DocumentLibraryRow;
+import com.company.itam.workflow.core.enums.TransactionType;
 import com.company.itam.document.service.DocumentService;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.CacheControl;
@@ -54,6 +56,19 @@ public class DocumentController {
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'PUR_STAFF')")
+    @GetMapping("/library")
+    public ResponseEntity<ApiResponse<PageResponse<DocumentLibraryRow>>> library(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(required = false) DocumentType documentType,
+            @RequestParam(required = false) TransactionType transactionType,
+            @RequestParam(required = false) Long transactionId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(ApiResponse.success(messageHelper.getMessage("DOCUMENT_LIST_SUCCESS"),
+            documentService.library(keyword, documentType, transactionType, transactionId, page, size)));
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'PUR_STAFF')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<DocumentResponse>> getDocument(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(messageHelper.getMessage("DOCUMENT_GET_SUCCESS"),
@@ -79,6 +94,24 @@ public class DocumentController {
                 .header("X-Content-Type-Options", "nosniff")
                 .body(new ByteArrayResource(download.content()));
     }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'PUR_STAFF')")
+    @GetMapping("/{id}/preview")
+    public ResponseEntity<ApiResponse<PreviewData>> preview(@PathVariable Long id) {
+        DocumentDownload preview = documentService.download(id);
+        String mimeType = preview.document().mimeType();
+        if (mimeType == null || !DOWNLOAD_TYPES.contains(mimeType)) {
+            throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "DOCUMENT_PREVIEW_UNSUPPORTED", "Preview unavailable for this file type");
+        }
+        downloads.record("DOCUMENT", id, "DOCUMENT_PREVIEWED");
+        return ResponseEntity.ok()
+            .cacheControl(CacheControl.noStore())
+            .header("X-Content-Type-Options", "nosniff")
+            .body(ApiResponse.success(messageHelper.getMessage("DOCUMENT_GET_SUCCESS"),
+                new PreviewData(mimeType, java.util.Base64.getEncoder().encodeToString(preview.content()))));
+    }
+    public record PreviewData(String mimeType, String contentBase64) {}
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'PUR_STAFF')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

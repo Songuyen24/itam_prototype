@@ -3,6 +3,9 @@
   "description": "Create and process requests for assets eligible for disposal.",
   "createTitle": "Create disposal request",
   "pendingTitle": "Disposal requests",
+  "groups": { "PENDING": "Pending", "DRAFT": "Draft", "FINAL": "Processed" },
+  "statuses": { "PENDING": "Pending", "DRAFT": "Draft", "COMPLETED": "Completed", "REJECTED": "Rejected", "CANCELLED": "Cancelled" },
+  "actions": "Actions",
   "assets": "Eligible assets",
   "reason": "Disposal reason",
   "date": "Disposal date",
@@ -46,6 +49,7 @@
   "saving": "Processing...",
   "empty": "No assets are eligible.",
   "noPending": "No disposal requests with this status.",
+  "noRows": "No requests in this group.",
   "created": "Disposal request created.",
   "changed": "This request changed. The latest details have been loaded; review them before trying again.",
   "categories": {

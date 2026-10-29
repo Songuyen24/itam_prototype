@@ -1,4 +1,5 @@
 {
+  "import": { "title": "Import Excel", "template": "Tải mẫu", "file": "Tệp Excel", "preview": "Xem trước", "confirm": "Xác nhận import", "completed": "Đã xử lý import.", "loading": "Đang xử lý...", "close": "Đóng", "empty": "Không có dòng dữ liệu.", "error": "Không thể xử lý tệp.", "required": "Thiếu {{column}}", "tooLong": "{{column}} quá dài", "key": "Mã / tên", "name": "Tên", "reference": "Mã tham chiếu", "status": "Trạng thái", "errors": "Lỗi", "previous": "Trước", "next": "Sau", "states": { "VALID": "Hợp lệ", "INVALID": "Lỗi", "CREATED": "Đã tạo" }, "codes": { "FILE_DUPLICATE": "Trùng trong tệp", "ALREADY_EXISTS": "Đã tồn tại", "REFERENCE_NOT_FOUND": "Mã tham chiếu không tồn tại hoặc ngừng hoạt động", "EMAIL_INVALID": "Email không hợp lệ", "FORMULA_OR_CELL_ERROR": "Ô công thức hoặc lỗi", "CREATE_FAILED": "Không thể tạo dòng này" } },
   "title": "Quản lý Danh mục",
   "assetTitle": "Danh mục tài sản",
   "assetSubtitle": "Danh mục tài sản, phần mềm và giấy phép",

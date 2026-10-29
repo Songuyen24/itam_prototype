@@ -41,11 +41,19 @@ export interface DocumentItem {
   locked: boolean;
 }
 
+export interface DocumentLibraryItem extends DocumentItem {
+  transactionCode: string;
+  transactionType: TransactionType;
+  transactionStatus: TransactionStatus;
+}
+
 export interface TransactionFilters {
   type?: TransactionType;
   status?: TransactionStatus;
   statuses?: TransactionStatus[];
   keyword?: string;
+  from?: string;
+  to?: string;
   page?: number;
   size?: number;
 }

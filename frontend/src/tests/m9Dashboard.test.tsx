@@ -15,7 +15,7 @@ it('sends an explicit custom completion period to the API',async()=>{
   expect(client).toHaveBeenCalledWith('/v1/dashboard/summary?period=custom&from=2026-10-01&to=2026-10-26');
 });
 it('shows distinct units, unknown historical seats and a voucher deep link',async()=>{
-  client.mockResolvedValue({data:{from:'2026-10-01',to:'2026-10-26',byStatus:{IN_STOCK:5},damagedDevices:2,
+  client.mockResolvedValue({data:{from:'2026-10-01',to:'2026-10-26',byStatus:{IN_STOCK:5,IN_USE:0},damagedDevices:2,
     inventory:[{category:'LICENSE',count:1,total_seats:10,active_seats:2,reserved_seats:3,available_seats:5}],
     movements:[{type:'IMPORT',transactions:1,devices:0,components:0,packages:1,seats:null,recipients:0}],daily:[{day:'2026-10-12',type:'IMPORT',transactions:1}],
     pending:{IMPORT:2},drafts:{HANDOVER:1},failedEmails:0,failedPdfs:1,
@@ -25,6 +25,7 @@ it('shows distinct units, unknown historical seats and a voucher deep link',asyn
   expect(page.root.findByType('a').props.href).toBe('/documents?transactionId=42');
   const text=JSON.stringify(page.toJSON());
   for(const label of ['packages','seats','unavailable','reserved_seats','damagedCondition','IT worker']) expect(text).toContain(label);
+  expect(page.root.findAllByProps({className:'dashboard-status-track'}).map(track=>track.children[0]).map(bar=>typeof bar==='string' ? '' : bar.props.style.width)).toEqual(['100%','0%']);
   for(const hint of ['description','currentHint','statusHint','periodHint','seatsHint','chartHint','actionsHint','recentHint']) expect(page.root.findAllByType('p').some(p=>p.children.includes(hint))).toBe(false);
   expect(page.root.findAllByType('button').some(b=>b.children.includes('export'))).toBe(false);
   await act(async()=>{page.root.findByProps({className:'btn btn-secondary dashboard-period-trigger'}).props.onClick();});

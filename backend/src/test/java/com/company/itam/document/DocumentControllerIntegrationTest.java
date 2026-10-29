@@ -186,6 +186,30 @@ class DocumentControllerIntegrationTest {
     }
 
     @Test
+    void libraryFiltersRealFilesBeforePagingAndScopesPurchasing() throws Exception {
+        jdbc.update("INSERT INTO transaction_document_links(transaction_id,document_id) VALUES (?,?)",otherImportId,invoiceId);
+        mockMvc.perform(as("ADMIN",get("/v1/documents/library").param("keyword",fixturePrefix).param("page","0").param("size","1")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(8))
+            .andExpect(jsonPath("$.data.totalPages").value(8))
+            .andExpect(jsonPath("$.data.content[0].storagePath").doesNotExist())
+            .andExpect(jsonPath("$.data.content[0].checksum").doesNotExist());
+        mockMvc.perform(as("ADMIN",get("/v1/documents/library").param("keyword",fixturePrefix).param("transactionType","HANDOVER")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(4));
+        mockMvc.perform(as("ADMIN",get("/v1/documents/library").param("keyword",fixturePrefix).param("documentType","INVOICE")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(3));
+        mockMvc.perform(as("ADMIN",get("/v1/documents/library").param("transactionId",String.valueOf(importId))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(2));
+        mockMvc.perform(as("ADMIN",get("/v1/documents/library").param("keyword",fixturePrefix+"-HANDOVER1")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(3));
+        mockMvc.perform(as("PUR2",get("/v1/documents/library").param("keyword",fixturePrefix)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(3))
+            .andExpect(jsonPath("$.data.content[*].transactionType",everyItem(is("IMPORT"))));
+        mockMvc.perform(as("PUR2",get("/v1/documents/library").param("transactionType","HANDOVER"))).andExpect(status().isForbidden());
+        mockMvc.perform(as("USER",get("/v1/documents/library"))).andExpect(status().isForbidden());
+        mockMvc.perform(as("ADMIN",get("/v1/documents/library").param("size","0"))).andExpect(status().isBadRequest());
+    }
+
+    @Test
     void purchaserCannotUseForeignIdsOrAccessWarehouseAndUserLists() throws Exception {
         for (String path : List.of("/v1/transactions/" + handoverId,
                 "/v1/documents?transactionId=" + handoverId,
@@ -261,6 +285,21 @@ class DocumentControllerIntegrationTest {
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("attachment")))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("sample.pdf")))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+    }
+
+    @Test
+    void previewReturnsJsonBytesAndExistingScopeWithoutChangingDownload() throws Exception {
+        String response = mockMvc.perform(as("IT", get("/v1/documents/{id}/preview", invoiceId)))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.data.mimeType").value("application/pdf"))
+            .andExpect(header().doesNotExist(HttpHeaders.CONTENT_DISPOSITION))
+            .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+            .andReturn().getResponse().getContentAsString();
+        assertThat(java.util.Base64.getDecoder().decode(objectMapper.readTree(response).at("/data/contentBase64").asText())).isEqualTo(SAMPLE_PDF);
+        mockMvc.perform(as("PUR2", get("/v1/documents/{id}/preview", handoverReportId))).andExpect(status().isForbidden());
+        mockMvc.perform(as("USER", get("/v1/documents/{id}/preview", invoiceId))).andExpect(status().isForbidden());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_logs WHERE entity_type='DOCUMENT' AND entity_id=? AND action='DOCUMENT_PREVIEWED'",Long.class,invoiceId)).isGreaterThanOrEqualTo(1);
     }
 
     @Test

@@ -81,4 +81,13 @@ describe('Document API contract', () => {
     await documentApi.download({ documentId: 7, originalFileName: 'sample.pdf' });
     expect(download).toHaveBeenCalledWith('/v1/documents/7/download', 'sample.pdf');
   });
+  it('previews from JSON bytes without asking the browser to download PDF', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ data: { mimeType: 'application/pdf', contentBase64: 'JVBERg==' } }) });
+    vi.stubGlobal('fetch', fetch);
+    const blob = await documentApi.preview(7);
+    expect(new URL(fetch.mock.calls[0][0]).pathname).toBe('/api/v1/documents/7/preview');
+    expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer pur-token');
+    expect(blob.type).toBe('application/pdf');
+    expect(await blob.text()).toBe('%PDF');
+  });
 });

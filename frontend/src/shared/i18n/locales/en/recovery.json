@@ -2,6 +2,7 @@
   "title": "Asset Recovery",
   "tabForm": "Create Recovery",
   "tabHistory": "History",
+  "creator": "Created by", "createdAt": "Created at", "createdRange": "Created date range",
   "noHistory": "No recovery records yet",
   "colCode": "Code",
   "colReturner": "Returner",

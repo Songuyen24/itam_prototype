@@ -1,4 +1,5 @@
 {
+  "import": { "title": "Import Excel", "template": "Download template", "file": "Excel file", "preview": "Preview", "confirm": "Confirm import", "completed": "Import processed.", "loading": "Processing...", "close": "Close", "empty": "No data rows.", "error": "Unable to process file.", "required": "Missing {{column}}", "tooLong": "{{column}} is too long", "key": "Code / name", "name": "Name", "reference": "Reference code", "status": "Status", "errors": "Errors", "previous": "Previous", "next": "Next", "states": { "VALID": "Valid", "INVALID": "Invalid", "CREATED": "Created" }, "codes": { "FILE_DUPLICATE": "Duplicate in file", "ALREADY_EXISTS": "Already exists", "REFERENCE_NOT_FOUND": "Reference code missing or inactive", "EMAIL_INVALID": "Invalid email", "FORMULA_OR_CELL_ERROR": "Formula or error cell", "CREATE_FAILED": "Could not create this row" } },
   "title": "Catalog Management",
   "assetTitle": "Asset catalogs",
   "assetSubtitle": "Asset, software and license catalogs",
