@@ -7,6 +7,7 @@ import { TransactionSelector } from '../components/TransactionSelector';
 import { TransactionDocuments } from '../components/TransactionDocuments';
 import { DocumentsLibraryPage } from './DocumentsLibraryPage';
 import './documents.css';
+import './receiving-list.css';
 
 export function DocumentsPage({receiving=false}:{receiving?:boolean}) {
   const { t } = useTranslation('documents');
@@ -55,9 +56,9 @@ export function DocumentsPage({receiving=false}:{receiving?:boolean}) {
   }
 
   if (receiving) return <div className="documents-page receiving-page">
-    <div className="page-header"><h1 className="page-title">{t('receiving.title')}</h1></div>
+    <div className="page-header receiving-page-header"><h1 className="page-title">{t('receiving.title')}</h1>{(user?.role === 'ADMIN' || user?.role === 'PUR_STAFF') && <button className="btn btn-primary" disabled={busy} onClick={() => void createDraft()}>{t('draft.create')}</button>}</div>
     {error && <p role="alert">{error}</p>}
-    <TransactionSelector receiving actions={(user?.role === 'ADMIN' || user?.role === 'PUR_STAFF') && <button className="btn btn-primary" disabled={busy} onClick={() => void createDraft()}>{t('draft.create')}</button>} selectedId={transactionId} refresh={refresh} onSelect={selectTransaction} />
+    <TransactionSelector receiving selectedId={transactionId} refresh={refresh} onSelect={selectTransaction} />
     {transactionId !== null && <div className="receiving-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setTransactionId(null); }}><div ref={modal} className="receiving-modal" role="dialog" aria-modal="true" aria-label={t('receiving.receiptModal')} tabIndex={-1}><div className="receiving-modal-heading"><button type="button" className="btn btn-secondary" onClick={() => setTransactionId(null)}>{t('actions.close')}</button></div><TransactionDocuments key={transactionId} transactionId={transactionId} compact onCreated={selectTransaction} onUpdated={() => setRefresh(value => value + 1)} /></div></div>}
   </div>;
 

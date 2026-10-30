@@ -71,6 +71,17 @@ describe('receiving list and receipt modal', () => {
     await act(async () => buttons().find(button => button.props['aria-expanded'] === false)!.props.onClick());
     await act(async () => buttons().find(button => button.children.includes('receiving.clearRange'))!.props.onClick());
     expect(mocks.getTransactions).toHaveBeenLastCalledWith(expect.objectContaining({ from: undefined, to: undefined, page: 0 }));
+    await act(async () => buttons().find(button => button.children.includes('receiving.resetFilters'))!.props.onClick());
+    expect(mocks.getTransactions).toHaveBeenLastCalledWith({ keyword: '', type: 'IMPORT', status: undefined, from: undefined, to: undefined, page: 0, size: 20 });
+  });
+
+  it('opens the receipt from its code and shows pending status', async () => {
+    const onSelect = vi.fn();
+    mocks.getTransactions.mockReset().mockResolvedValue(response());
+    await act(async () => { tree = create(<TransactionSelector receiving selectedId={null} onSelect={onSelect} />); });
+    expect(JSON.stringify(tree!.toJSON())).toContain('statuses.PENDING');
+    await act(async () => buttons().find(button => button.children.includes('IMP-P'))!.props.onClick());
+    expect(onSelect).toHaveBeenCalledWith(2);
   });
 
   it('opens a receiving receipt in a modal while documents retains the split workspace', async () => {
@@ -92,5 +103,15 @@ describe('receiving list and receipt modal', () => {
     await act(async () => { tree = create(<MemoryRouter><DocumentsPage /></MemoryRouter>); });
     expect(tree!.root.findAllByProps({ role: 'tab' })).toHaveLength(0);
     expect(tree!.root.findAllByProps({ role: 'dialog' })).toHaveLength(0);
+  });
+
+  it('does not offer draft creation to IT staff', async () => {
+    const role = mocks.user.role;
+    mocks.user.role = 'IT_STAFF';
+    mocks.getTransactions.mockReset().mockResolvedValue(response());
+    try {
+      await act(async () => { tree = create(<MemoryRouter><DocumentsPage receiving /></MemoryRouter>); });
+      expect(buttons().some(button => button.children.includes('draft.create'))).toBe(false);
+    } finally { mocks.user.role = role; }
   });
 });

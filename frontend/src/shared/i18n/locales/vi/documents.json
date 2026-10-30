@@ -119,6 +119,7 @@
     "cancelConfirm": "Hủy phiếu này? Lịch sử vẫn được giữ."
   },
   "receiving": {
+    "resetFilters": "Đặt lại bộ lọc",
     "createdRange": "Khoảng ngày tạo", "allDates": "Tất cả ngày", "previousMonth": "Tháng trước", "nextMonth": "Tháng sau", "applyRange": "Áp dụng", "clearRange": "Xóa",
     "createdFrom": "Ngày tạo từ", "createdTo": "Ngày tạo đến", "invalidDateRange": "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.",
     "requestAdjustment": "Yêu cầu điều chỉnh",

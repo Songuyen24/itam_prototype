@@ -1,0 +1,27 @@
+.receiving-page .receiving-page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.receiving-page .receiving-transactions { padding-top: 0; }
+.receiving-page .receiving-list-filters { display: flex; align-items: flex-end; gap: 12px; margin: 18px 0; }
+.receiving-page .receiving-list-filters label { min-width: 0; flex: 1 1 180px; }
+.receiving-page .receiving-list-filters .receiving-date-range { flex: 1 1 250px; min-width: 0; }
+.receiving-page .receiving-list-filters .receiving-reset { flex: 0 0 auto; min-height: 40px; }
+.receiving-page .receiving-transactions .table-container { overflow-x: auto; min-height: 0; border: 1px solid var(--border-color); border-radius: 6px; }
+.receiving-page .receiving-transactions .data-table { width: 100%; min-width: 650px; }
+.receiving-page .receiving-transactions .data-table th:last-child,
+.receiving-page .receiving-transactions .data-table td:last-child { text-align: right; }
+.receiving-page .receiving-transactions .data-table td { vertical-align: middle; }
+.receiving-page .receiving-code-button { border: 0; padding: 0; background: transparent; color: var(--primary); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+.receiving-page .receiving-code-button:hover { text-decoration: underline; }
+.receiving-page .receiving-code-button:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.receiving-page .receiving-transactions .document-status { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; line-height: 1.4; white-space: nowrap; }
+.receiving-page .document-status-draft { color: #4b5563; background: #f1f3f5; }
+.receiving-page .document-status-pending { color: #8a5700; background: #fff0c2; }
+.receiving-page .document-status-completed { color: #166534; background: #dcfce7; }
+.receiving-page .document-status-rejected { color: #a12424; background: #fee2e2; }
+.receiving-page .document-status-cancelled { color: #52525b; background: #e4e4e7; }
+.receiving-page .receiving-list-state { margin: 0; padding: 20px; min-height: 64px; }
+@media (max-width: 700px) {
+  .receiving-page .receiving-list-filters { align-items: stretch; }
+  .receiving-page .receiving-list-filters label,
+  .receiving-page .receiving-list-filters .receiving-date-range { flex: 1 1 100%; }
+  .receiving-page .receiving-list-filters .receiving-reset { flex: 1 1 100%; }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { documentApi } from '../api/documentApi';
@@ -9,12 +9,11 @@ import { ReceivingDateRangePicker } from './ReceivingDateRangePicker';
 interface TransactionSelectorProps {
   receiving?: boolean;
   refresh?: number;
-  actions?: ReactNode;
   selectedId: number | null;
   onSelect: (transactionId: number) => void;
 }
 
-export function TransactionSelector({ selectedId, onSelect, receiving=false, refresh=0, actions }: TransactionSelectorProps) {
+export function TransactionSelector({ selectedId, onSelect, receiving=false, refresh=0 }: TransactionSelectorProps) {
   const { t, i18n } = useTranslation('documents');
   const { user } = useAuth();
   const [keyword, setKeyword] = useState('');
@@ -59,11 +58,11 @@ export function TransactionSelector({ selectedId, onSelect, receiving=false, ref
       <label>{t('fields.transactionCode')}<input className="form-input" type="search" maxLength={100} value={keyword} onChange={event => { setKeyword(event.target.value); setPage(0); }} /></label>
       <label>{t('fields.status')}<select className="form-select" value={receivingStatus} onChange={event => { setReceivingStatus(event.target.value as TransactionStatus | ''); setPage(0); }}><option value="">{t('filters.allStatuses')}</option>{(['DRAFT', 'PENDING', 'COMPLETED', 'REJECTED', 'CANCELLED'] as const).map(status => <option key={status} value={status}>{t(`statuses.${status}`)}</option>)}</select></label>
       <ReceivingDateRangePicker from={from} to={to} onChange={(start, end) => { setFrom(start); setTo(end); setPage(0); }} />
-      {actions && <div className="receiving-list-actions">{actions}</div>}
+      <button type="button" className="btn btn-secondary receiving-reset" onClick={() => { setKeyword(''); setReceivingStatus(''); setFrom(''); setTo(''); setPage(0); }}>{t('receiving.resetFilters')}</button>
     </div>
     {invalidRange && <p role="alert">{t('receiving.invalidDateRange')}</p>}
-    <div aria-busy={loading} className="table-container">{loading ? <p role="status">{t('states.loading')}</p> : error ? <div className="document-error"><p role="alert">{error}</p><button type="button" className="btn btn-secondary" onClick={() => setReload(value => value + 1)}>{t('actions.retry')}</button></div> : !invalidRange ? <><table className="data-table"><thead><tr><th>{t('fields.transactionCode')}</th><th>{t('fields.status')}</th><th>{t('fields.createdAt')}</th><th>{t('receiving.createdBy')}</th><th>{t('fields.actions')}</th></tr></thead><tbody>{transactions.map(transaction => <tr key={transaction.transactionId}><td>{transaction.transactionCode}</td><td><span className={`document-status document-status-${transaction.status.toLowerCase()}`}>{t(`statuses.${transaction.status}`)}</span></td><td>{new Date(transaction.createdAt).toLocaleDateString(i18n.language)}</td><td>{transaction.requesterName || '—'}</td><td><button type="button" className="btn btn-secondary" onClick={() => onSelect(transaction.transactionId)}>{t('actions.openReceipt')}</button></td></tr>)}</tbody></table>{transactions.length === 0 && <p className="empty-state">{t('states.noTransactions')}</p>}</> : null}</div>
-    {!error && <DocumentPagination page={page} totalPages={totalPages} totalElements={totalElements} loading={loading} onPageChange={setPage} />}
+    <div aria-busy={loading} className="table-container"><table className="data-table"><thead><tr><th>{t('fields.transactionCode')}</th><th>{t('fields.status')}</th><th>{t('fields.createdAt')}</th><th>{t('receiving.createdBy')}</th><th>{t('fields.actions')}</th></tr></thead><tbody>{!loading && !error && !invalidRange && transactions.map(transaction => <tr key={transaction.transactionId}><td><button type="button" className="receiving-code-button" onClick={() => onSelect(transaction.transactionId)}>{transaction.transactionCode}</button></td><td><span className={`document-status document-status-${transaction.status.toLowerCase()}`}>{t(`statuses.${transaction.status}`)}</span></td><td>{new Date(transaction.createdAt).toLocaleDateString(i18n.language)}</td><td>{transaction.requesterName || '—'}</td><td><button type="button" className="btn btn-secondary" onClick={() => onSelect(transaction.transactionId)}>{t('actions.openReceipt')}</button></td></tr>)}</tbody></table>{loading ? <p role="status" className="receiving-list-state">{t('states.loading')}</p> : error ? <div className="document-error receiving-list-state"><p role="alert">{error}</p><button type="button" className="btn btn-secondary" onClick={() => setReload(value => value + 1)}>{t('actions.retry')}</button></div> : !invalidRange && transactions.length === 0 ? <p className="receiving-list-state">{t('states.noTransactions')}</p> : null}</div>
+    {!loading && !error && !invalidRange && <DocumentPagination page={page} totalPages={totalPages} totalElements={totalElements} loading={loading} onPageChange={setPage} />}
   </section>;
 
   return (

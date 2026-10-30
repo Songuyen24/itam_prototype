@@ -119,6 +119,7 @@
     "cancelConfirm": "Cancel this transaction? History will be retained."
   },
   "receiving": {
+    "resetFilters": "Reset filters",
     "createdRange": "Created date range", "allDates": "All dates", "previousMonth": "Previous month", "nextMonth": "Next month", "applyRange": "Apply", "clearRange": "Clear",
     "createdFrom": "Created from", "createdTo": "Created to", "invalidDateRange": "Start date must be on or before end date.",
     "requestAdjustment": "Request adjustment",
