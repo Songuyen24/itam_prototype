@@ -27,6 +27,7 @@ import { AssetImportModal } from '../components/AssetImportModal';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { canManageInventory } from '@/features/auth/permissions';
 import { useSearchParams } from 'react-router-dom';
+import './assets.css';
 
 export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false }) => {
   const { t } = useTranslation(['assets', 'common']);
@@ -227,7 +228,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
   const otherCount = assets.filter((a) => a.statusCode !== 'IN_STOCK' && a.statusCode !== 'IN_USE').length;
 
   return (
-    <div>
+    <div className="assets-page">
       {/* Toast alert */}
       {toastMessage && (
         <div
@@ -247,81 +248,39 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
             gap: '8px',
           }}
         >
-          <span>{toastMessage.type === 'success' ? '✅' : '❌'}</span>
           <span>{toastMessage.text}</span>
           <button
             onClick={() => setToastMessage(null)}
             style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', marginLeft: '12px', fontSize: '14px' }}
           >
-            ✕
+            ×
           </button>
         </div>
       )}
 
       {/* Page Header */}
-      <div className="page-header asset-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="page-header asset-page-header">
         <div>
-          <h1 className="page-title">💻 {t(myAssets ? 'assets:myAssetsTitle' : 'assets:title')}</h1>
+          <h1 className="page-title">{t(myAssets ? 'assets:myAssetsTitle' : 'assets:title')}</h1>
           {!myAssets && <p className="page-subtitle">
             {t('assets:subtitle', 'Theo dõi danh sách thiết bị, mã Asset Tag, Serial Number, cấu hình Default/Actual và trạng thái sử dụng')}
           </p>}
         </div>
 
-        {canManageAssets && <div className="asset-page-actions" style={{ display: 'flex', gap: '10px' }}>
+        {canManageAssets && <div className="asset-page-actions">
           <button
             type="button"
             className="btn btn-secondary"
             onClick={() => setIsImportModalOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
           >
-            <span>📥</span>
             <span>{t('assets:actions.importExcel', 'Import Excel')}</span>
           </button>
 
-          {canCreateBaseline && <button type="button" className="btn btn-primary" onClick={handleOpenCreate} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>➕</span>
+          {canCreateBaseline && <button type="button" className="btn btn-primary" onClick={handleOpenCreate}>
             <span>{t('assets:actions.addBaselineAsset', 'Thêm tài sản tồn đầu kỳ')}</span>
           </button>}
         </div>}
       </div>
-
-      {/* Quick Stats Metric Cards */}
-      {!myAssets && <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '16px',
-          marginBottom: '24px',
-        }}
-      >
-        <div className="card" style={{ padding: '16px', borderLeft: '4px solid var(--primary)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>{t('common:labels.all', 'TỔNG SỐ TÀI SẢN').toUpperCase()}</div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-main)', marginTop: '4px' }}>
-            {totalElements}
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '16px', borderLeft: '4px solid #10b981' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>{t('common:status.IN_STOCK', 'ĐANG LƯU KHO')} (IN STOCK)</div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
-            {inStockCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>({t('common:pagination.page', 'trang này')})</span>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '16px', borderLeft: '4px solid #3b82f6' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>{t('common:status.IN_USE', 'ĐANG SỬ DỤNG')} (IN USE)</div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#3b82f6', marginTop: '4px' }}>
-            {inUseCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>({t('common:pagination.page', 'trang này')})</span>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '16px', borderLeft: '4px solid #f59e0b' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>{t('assets:list.otherStatuses')}</div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#f59e0b', marginTop: '4px' }}>
-            {otherCount} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>({t('common:pagination.page', 'trang này')})</span>
-          </div>
-        </div>
-      </div>}
 
       {/* Filter Bar */}
       <AssetFilterBar
@@ -346,33 +305,41 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
         locations={locations}
       />
 
+      {!myAssets && <div className="asset-summary" aria-label={t('assets:list.summary')}>
+        <div><span>{t('assets:list.matchingTotal')}</span><strong>{isLoading ? '—' : totalElements}</strong></div>
+        <div className="asset-summary-page"><span>{t('assets:list.currentPageBreakdown')}</span></div>
+        <div><span>{t('common:status.IN_STOCK')}</span><strong>{isLoading ? '—' : inStockCount}</strong></div>
+        <div><span>{t('common:status.IN_USE')}</span><strong>{isLoading ? '—' : inUseCount}</strong></div>
+        <div><span>{t('assets:list.otherStatusesLabel')}</span><strong>{isLoading ? '—' : otherCount}</strong></div>
+      </div>}
+
       {/* Data Table */}
-      <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+      <div className="asset-table-shell">
         <div className="table-container">
           <table className="data-table asset-table">
             <thead>
               <tr>
-                <th style={{ width: '130px' }}>{t('assets:fields.assetTag', 'Asset Tag')}</th>
+                <th>{t('assets:fields.assetTag', 'Asset Tag')}</th>
                 <th>{t('assets:fields.name', 'Tên thiết bị')}</th>
-                <th style={{ width: '140px' }}>{t('assets:fields.serialNumber', 'Số Serial')}</th>
-                <th style={{ width: '160px' }}>{t('assets:fields.type', 'Loại & Model')}</th>
+                <th>{t('assets:fields.serialNumber', 'Số Serial')}</th>
+                <th>{t('assets:fields.type', 'Loại & Model')}</th>
                 <th>{t('assets:fields.specs', 'Cấu hình hiệu lực (Effective)')}</th>
-                <th style={{ width: '120px' }}>{t('assets:fields.status', 'Trạng thái')}</th>
-                <th style={{ width: '160px' }}>{t('assets:fields.assignedTo', 'Người dùng / Vị trí')}</th>
-                <th style={{ width: '140px', textAlign: 'center' }}>{t('common:labels.action', 'Thao tác')}</th>
+                <th>{t('assets:fields.status', 'Trạng thái')}</th>
+                <th>{t('assets:fields.assignedTo', 'Người dùng / Vị trí')}</th>
+                <th>{t('common:labels.action', 'Thao tác')}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                    ⏳ {t('common:labels.loading', 'Đang tải dữ liệu tài sản...')}
+                    {t('common:labels.loading', 'Đang tải dữ liệu tài sản...')}
                   </td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                    🔍 {t('common:labels.noData', 'Không tìm thấy tài sản phần cứng nào phù hợp.')}
+                    {t('common:labels.noData', 'Không tìm thấy tài sản phần cứng nào phù hợp.')}
                   </td>
                 </tr>
               ) : (
@@ -384,12 +351,6 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                         type="button"
                         className="asset-tag-button"
                         onClick={() => handleOpenDetail(asset.assetId)}
-                        style={{
-                          fontWeight: 700,
-                          color: 'var(--primary)',
-                          cursor: 'pointer',
-                          textDecoration: 'underline',
-                        }}
                         title={t('assets:modal.detailTitle')}
                       >
                         {asset.assetTag}
@@ -422,7 +383,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     {/* Effective Specs summary */}
                     <td style={{ fontSize: '12px' }}>
                       {asset.categoryCode==='LICENSE' ? t('assets:license.detailHint') : <>
-                      <div>💻 {asset.effectiveCpu || '—'}</div>
+                      <div>{asset.effectiveCpu || '—'}</div>
                       <div style={{ color: 'var(--text-muted)' }}>
                         RAM: {asset.effectiveRam || '—'} | {t('assets:fields.storage')}: {asset.effectiveStorage || '—'}
                       </div></>}
@@ -435,37 +396,27 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     <td style={{ fontSize: '12px' }}>
                       {asset.assignedToFullName ? (
                         <div style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                          👤 {asset.assignedToFullName}
+                          {asset.assignedToFullName}
                         </div>
                       ) : (
                         <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t(asset.categoryCode==='LICENSE'?'assets:license.allocations':'assets:detail.unassigned')}</div>
                       )}
                       <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-                        📍 {asset.locationName || asset.departmentName || '—'}
+                        {asset.locationName || asset.departmentName || '—'}
                       </div>
                     </td>
 
                     {/* Actions */}
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '4px 8px', fontSize: '12px' }}
-                          onClick={() => handleOpenDetail(asset.assetId)}
-                          title={t('assets:modal.detailTitle')}
-                        >
-                          👁️
-                        </button>
                         {canManageAssets && asset.statusCode !== 'PENDING_IMPORT' && !asset.pendingHandover && !asset.pendingDisposal && (
                           <button
                             type="button"
-                            className="btn btn-secondary"
-                            style={{ padding: '4px 8px', fontSize: '12px' }}
+                            className="btn btn-secondary asset-edit-button"
                             onClick={() => handleOpenEdit(asset)}
                             title={t('assets:modal.editTitle')}
                           >
-                            ✏️
+                            {t('common:buttons.edit')}
                           </button>
                         )}
                       </div>

@@ -131,7 +131,11 @@
     "noModel": "Chưa gắn model",
     "showing": "Hiển thị {{count}} trên tổng số {{total}} tài sản",
     "imported": "Đã import {{count}} tài sản từ Excel.",
-    "otherStatuses": "Trạng thái khác (trang này)"
+    "otherStatuses": "Trạng thái khác (trang này)",
+    "otherStatusesLabel": "Trạng thái khác",
+    "summary": "Tổng quan tài sản",
+    "matchingTotal": "Tổng khớp bộ lọc",
+    "currentPageBreakdown": "Trong trang hiện tại"
   },
   "license": {
     "title": "Gói license",

@@ -75,7 +75,7 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
           onClick={onReset}
           title={t('assets:filters.resetFilter', 'Đặt lại tất cả bộ lọc')}
         >
-          🔄 {t('common:buttons.reset', 'Đặt lại')}
+          {t('common:buttons.reset', 'Đặt lại')}
         </button>
       </div>
 

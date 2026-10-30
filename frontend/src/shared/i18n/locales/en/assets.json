@@ -131,7 +131,11 @@
     "noModel": "No model",
     "showing": "Showing {{count}} of {{total}} assets",
     "imported": "Imported {{count}} assets from Excel.",
-    "otherStatuses": "Other statuses (this page)"
+    "otherStatuses": "Other statuses (this page)",
+    "otherStatusesLabel": "Other statuses",
+    "summary": "Asset summary",
+    "matchingTotal": "Total matching filters",
+    "currentPageBreakdown": "In current page"
   },
   "license": {
     "title": "License package",
