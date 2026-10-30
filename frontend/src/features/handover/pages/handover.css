@@ -15,6 +15,18 @@
 .handover-list-section .form-label input { display: block; margin-top: 6px; }
 .handover-list-section .table-container { margin-top: 14px; }
 .handover-list-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.handover-list-filters > .btn { align-self: end; min-height: 38px; }
+.handover-filter-hint { margin: 8px 0 0; color: var(--text-muted); font-size: 13px; }
+.handover-list-state { min-height: 96px; display: flex; align-items: center; gap: 12px; padding: 16px; margin: 0; color: var(--text-muted); }
+.handover-row-link { border: 0; background: none; color: var(--primary); padding: 0; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.handover-holders-table th:nth-child(n+4):nth-child(-n+6), .handover-holders-table td:nth-child(n+4):nth-child(-n+6) { text-align: right; }
+.handover-row-link:hover { text-decoration: underline; }
+.handover-row-link:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.handover-status { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+.handover-status-draft { background: #edf0f2; color: #4b5563; }
+.handover-status-pending { background: #fff4d6; color: #795900; }
+.handover-status-completed { background: #e5f4ed; color: #176344; }
+.handover-status-cancelled, .handover-status-rejected { background: #f3e8e8; color: #8a4141; }
 .handover-list-filters .form-label { min-width: min(260px, 100%); }
 .handover-list-filters .form-select { display: block; width: 100%; margin-top: 6px; }
 .handover-list-filters .receiving-date-range { min-width: min(260px, 100%); }

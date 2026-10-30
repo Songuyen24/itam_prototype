@@ -3,6 +3,8 @@
   "create": "Tạo bàn giao",
   "holders": "Người đang giữ tài sản",
   "holderFilter": "Lọc nhân viên",
+  "holderSearchScope": "Khi tìm kiếm, kết quả gồm mọi nhân viên bất kể bộ lọc đang chọn.",
+  "resetFilters": "Đặt lại bộ lọc",
   "allStatuses": "Tất cả trạng thái",
   "createdRange": "Khoảng ngày tạo",
   "assetTag": "Mã tài sản", "assetName": "Tên tài sản", "category": "Loại", "deviceTag": "Mã thiết bị",

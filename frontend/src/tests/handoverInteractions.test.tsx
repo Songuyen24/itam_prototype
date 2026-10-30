@@ -66,20 +66,42 @@ describe('handover page interactions', () => {
     await act(async () => tree.root.findAllByType('select')[1].props.onChange({ target: { value: 'PENDING' } }));
     expect(client.mock.calls.some(call => String(call[0]).includes('/transactions?') && String(call[0]).includes('status=PENDING'))).toBe(true);
     expect(client.mock.calls.filter(call => String(call[0]).includes('/holders?'))).toHaveLength(holderCalls);
-    const holderRow = tree.root.findAllByType('tr').find(row => row.findAllByType('td').some(cell => cell.children.includes('Mai')))!
-    await act(async () => holderRow.findByType('button').props.onClick());
+    await act(async () => button(tree, 'Mai').props.onClick());
     expect(client.mock.calls.some(call => String(call[0]).startsWith('/v1/handovers/holders/7?'))).toBe(true);
     expect(tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })).toHaveLength(1);
     await act(async () => tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })[0].findAllByType('button').find(item => item.children.includes('close'))!.props.onClick());
     expect(tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })).toHaveLength(0);
-    const receiptRow = tree.root.findAllByType('tr').find(row => row.findAllByType('td').some(cell => cell.children.includes('HO-11')))!
-    await act(async () => receiptRow.findByType('button').props.onClick());
+    await act(async () => button(tree, 'HO-11').props.onClick());
     expect(tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })).toHaveLength(1);
     await act(async () => tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })[0].findAllByType('button').find(item => item.children.includes('close'))!.props.onClick());
     expect(tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })).toHaveLength(0);
     expect(tree.root.findAllByType('input').filter(input => input.props.type === 'search').map(input => input.props.value)).toEqual(['Mai', 'HO-11']);
     expect(tree.root.findAllByType('select')[1].props.value).toBe('PENDING');
     expect(JSON.stringify(tree.toJSON())).toContain('HO-11');
+  });
+  it('opens details from holder name and receipt code and resets each filter set independently', async () => {
+    const tree = await renderPage();
+    await act(async () => button(tree, 'Mai').props.onClick());
+    expect(client.mock.calls.some(call => String(call[0]).startsWith('/v1/handovers/holders/7?'))).toBe(true);
+    await act(async () => button(tree, 'close').props.onClick());
+    await act(async () => button(tree, 'HO-11').props.onClick());
+    expect(client.mock.calls.some(call => call[0] === '/v1/handovers/11')).toBe(true);
+    await act(async () => button(tree, 'close').props.onClick());
+
+    const searches = tree.root.findAllByType('input').filter(input => input.props.type === 'search');
+    await act(async () => searches[0].props.onChange({ target: { value: 'Mai' } }));
+    await act(async () => searches[1].props.onChange({ target: { value: 'HO' } }));
+    await act(async () => tree.root.findAllByType('select')[1].props.onChange({ target: { value: 'PENDING' } }));
+    expect(JSON.stringify(tree.toJSON())).toContain('holderSearchScope');
+    const resets = tree.root.findAllByType('button').filter(item => item.children.includes('resetFilters'));
+    expect(resets).toHaveLength(2);
+    await act(async () => resets[0].props.onClick());
+    expect(tree.root.findAllByType('input').filter(input => input.props.type === 'search').map(input => input.props.value)).toEqual(['', 'HO']);
+    expect(tree.root.findAllByType('select')[0].props.value).toBe('held');
+    expect(tree.root.findAllByType('select')[1].props.value).toBe('PENDING');
+    await act(async () => resets[1].props.onClick());
+    expect(tree.root.findAllByType('input').filter(input => input.props.type === 'search').map(input => input.props.value)).toEqual(['', '']);
+    expect(tree.root.findAllByType('select')[1].props.value).toBe('');
   });
   it('filters receipts by created date without changing the holder query and shows holdings as a table', async () => {
     client.mockImplementation((url: string) => {
@@ -96,7 +118,7 @@ describe('handover page interactions', () => {
     await act(async () => button(tree, 'receiving.applyRange').props.onClick());
     expect(client.mock.calls.some(call => String(call[0]).includes('/transactions?') && String(call[0]).includes('from=') && String(call[0]).includes('to='))).toBe(true);
     expect(client.mock.calls.filter(call => String(call[0]).includes('/holders?'))).toHaveLength(holderCalls);
-    await act(async () => tree.root.findAllByType('tr').find(row => row.findAllByType('td').some(cell => cell.children.includes('Mai')))!.findByType('button').props.onClick());
+    await act(async () => button(tree, 'Mai').props.onClick());
     const dialog = tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })[0];
     expect(dialog.findAllByType('th').map(th => th.children[0])).toEqual(['assetTag','assetName','category','serial','deviceTag','seats']);
     expect(tree.root.findAllByType('td').some(cell => cell.children.includes('SER-8'))).toBe(true);
@@ -104,7 +126,7 @@ describe('handover page interactions', () => {
 
   it('requires the review dialog before confirming a pending physical handover', async () => {
     const tree = await renderPage();
-    await act(async () => tree.root.findAllByType('tr').find(row => row.findAllByType('td').some(cell => cell.children.includes('HO-11')))!.findByType('button').props.onClick());
+    await act(async () => button(tree, 'HO-11').props.onClick());
     expect(tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })).toHaveLength(1);
     expect(client.mock.calls.some(call => String(call[0]).endsWith('/confirm'))).toBe(false);
     await act(async () => button(tree, 'confirmPhysical').props.onClick());
@@ -116,7 +138,7 @@ describe('handover page interactions', () => {
 
   it('offers pending cancellation only to Admin, while the creator may withdraw', async () => {
     const tree = await renderPage();
-    await act(async () => tree.root.findAllByType('tr').find(row => row.findAllByType('td').some(cell => cell.children.includes('HO-11')))!.findByType('button').props.onClick());
+    await act(async () => button(tree, 'HO-11').props.onClick());
     expect(button(tree, 'withdraw')).toBeTruthy();
     expect(button(tree, 'cancel')).toBeUndefined();
     actor.id = 2; actor.role = 'ADMIN';

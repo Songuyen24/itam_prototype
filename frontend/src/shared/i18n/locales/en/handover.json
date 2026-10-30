@@ -3,6 +3,8 @@
   "create": "Create handover",
   "holders": "Current asset holders",
   "holderFilter": "Employee filter",
+  "holderSearchScope": "Search includes all employees regardless of the selected filter.",
+  "resetFilters": "Reset filters",
   "allStatuses": "All statuses",
   "createdRange": "Created date range",
   "assetTag": "Asset tag", "assetName": "Asset name", "category": "Category", "deviceTag": "Device tag",
