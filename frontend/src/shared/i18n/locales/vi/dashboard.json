@@ -8,7 +8,7 @@
   "unassigned": "Chưa phân bổ",
   "pendingReceivings": "Phiếu nhập chờ xử lý",
   "pendingDisposals": "Phiếu thanh lý chờ duyệt",
-  "export": "Xuất Excel",
+  "export": "Xuất tồn kho hiện tại",
   "exporting": "Đang xuất...",
   "loading": "Đang tải dashboard",
   "ready": "Dashboard đã sẵn sàng",
@@ -47,6 +47,8 @@
     "DISPOSAL": "Thanh lý"
   },
   "daily": "Phiếu hoàn tất theo ngày",
+  "dailyDetails": "Số phiếu từng ngày",
+  "day": "Ngày",
   "total_seats": "Tổng suất",
   "recipients": "Người nhận riêng biệt",
   "current": "Tổng quan hiện tại",

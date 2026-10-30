@@ -8,7 +8,7 @@
   "unassigned": "Unassigned",
   "pendingReceivings": "Pending receiving requests",
   "pendingDisposals": "Pending disposal requests",
-  "export": "Export Excel",
+  "export": "Export current inventory",
   "exporting": "Exporting...",
   "loading": "Loading dashboard",
   "ready": "Dashboard is ready",
@@ -47,6 +47,8 @@
     "DISPOSAL": "Disposal"
   },
   "daily": "Completed vouchers by day",
+  "dailyDetails": "Daily counts",
+  "day": "Day",
   "total_seats": "Total seats",
   "recipients": "Distinct recipients",
   "current": "Current inventory",

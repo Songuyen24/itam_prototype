@@ -26,7 +26,10 @@ it('shows distinct units, unknown historical seats and a voucher deep link',asyn
   const text=JSON.stringify(page.toJSON());
   for(const label of ['packages','seats','unavailable','reserved_seats','damagedCondition','IT worker']) expect(text).toContain(label);
   expect(page.root.findAllByProps({className:'dashboard-status-track'}).map(track=>track.children[0]).map(bar=>typeof bar==='string' ? '' : bar.props.style.width)).toEqual(['100%','0%']);
-  for(const hint of ['description','currentHint','statusHint','periodHint','seatsHint','chartHint','actionsHint','recentHint']) expect(page.root.findAllByType('p').some(p=>p.children.includes(hint))).toBe(false);
+  for(const hint of ['currentHint','statusHint','chartHint','actionsHint','recentHint']) expect(page.root.findAllByType('p').some(p=>p.children.includes(hint))).toBe(true);
+  expect(text).toContain('periodHint');
+  expect(text).toContain('seatsHint');
+  expect(text).toContain('dailyDetails');
   expect(page.root.findAllByType('button').some(b=>b.children.includes('export'))).toBe(false);
   await act(async()=>{page.root.findByProps({className:'btn btn-secondary dashboard-period-trigger'}).props.onClick();});
   expect(client).toHaveBeenCalledTimes(1);
@@ -47,6 +50,22 @@ it('shows distinct units, unknown historical seats and a voucher deep link',asyn
 it('keeps both languages complete for the dashboard',()=>{
   expect(Object.keys(vn).sort()).toEqual(Object.keys(en).sort());
   expect(vn.seatsHint).not.toEqual(en.seatsHint);
+});
+it('clears prior figures while a new period is loading and keeps its section frames',async()=>{
+  const initial={from:'2026-10-01',to:'2026-10-26',byStatus:{IN_STOCK:5},damagedDevices:2,inventory:[{category:'DEVICE',count:9}],movements:[],daily:[],pending:{},drafts:{},failedEmails:0,failedPdfs:0,recent:[]};
+  client.mockResolvedValueOnce({data:initial});
+  let resolveNext!: (value:unknown)=>void;
+  client.mockImplementationOnce(()=>new Promise(resolve=>{resolveNext=resolve;}));
+  let page!:ReturnType<typeof create>;
+  await act(async()=>{page=create(<DashboardPage/>); await Promise.resolve();});
+  expect(JSON.stringify(page.toJSON())).toContain('dashboard-total');
+  await act(async()=>{page.root.findByProps({className:'btn btn-secondary dashboard-period-trigger'}).props.onClick();});
+  await act(async()=>{page.root.findByType('select').props.onChange({target:{value:'lastMonth'}});});
+  await act(async()=>{page.root.findByType('form').props.onSubmit({preventDefault:()=>{}});});
+  expect(JSON.stringify(page.toJSON())).not.toContain('dashboard-total');
+  expect(page.root.findAllByProps({className:'dashboard-loading'})).toHaveLength(1);
+  await act(async()=>{resolveNext({data:initial});});
+  act(()=>page.unmount());
 });
 
 
