@@ -56,7 +56,7 @@ export const AssetFilterBar: React.FC<AssetFilterBarProps> = ({
   const id = useId();
 
   return (
-    <div className="content-card asset-filters">
+    <div className="content-card asset-filters" role="search">
       {/* Row 1: Search input */}
       <div className="asset-search-row">
         <label className="form-label">

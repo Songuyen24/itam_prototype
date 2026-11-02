@@ -84,3 +84,12 @@ describe('T14 receiving',()=>{
     expect(en.receiving.approveConfirm).toContain('all');expect(vn.receiving.approveConfirm).toContain('toàn bộ');
   });
 });
+
+it('keeps supplied details visible once across identity, purchase and technical groups',()=>{
+  const html=renderToStaticMarkup(<ReceivingAssetDetails line={{assetId:1,assetTag:'IT-01',name:'Laptop',category:'DEVICE',input:{name:'Laptop',typeId:1,serialNumber:'SN-01',poNumber:'PO-01',actualCpu:'Core i7',purchaseCost:250},labels:{type:'Laptop type',supplier:'Supplier A',location:'Office B'}}}/>);
+  for (const value of ['SN-01','PO-01','Core i7','Supplier A','Office B','Laptop type']) expect(html.split(value)).toHaveLength(2);
+  expect(html.indexOf('receiving.sections.identity')).toBeLessThan(html.indexOf('SN-01'));
+  expect(html.indexOf('receiving.sections.purchase')).toBeLessThan(html.indexOf('PO-01'));
+  expect(html.indexOf('receiving.sections.purchase')).toBeLessThan(html.indexOf('Supplier A'));
+  expect(html.indexOf('receiving.sections.configuration')).toBeLessThan(html.indexOf('Core i7'));
+});

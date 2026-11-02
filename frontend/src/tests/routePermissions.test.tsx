@@ -72,13 +72,17 @@ describe('Role-specific routes and navigation', () => {
 
   it.each(['ADMIN', 'IT_STAFF'])('%s can open inventory and catalogs', (role) => {
     signIn(role);
-    expect(renderRoute('/')).toContain('data-redirect="/assets"');
+    expect(renderRoute('/')).toContain('data-redirect="/dashboard"');
     expect(renderRoute('/assets')).toContain('data-page="assets"');
     expect(renderRoute('/catalogs')).toContain('data-page="catalogs"');
     expect(renderRoute('/organization-catalogs')).toContain('data-page="organization-catalogs"');
     const menu = renderRoute('/catalogs');
     expect(menu).toContain('href="/assets"');
-    expect(menu).toContain('href="/catalogs"');
+    if (role === 'ADMIN') expect(menu).toContain('href="/catalogs"');
+    else {
+      expect(menu).not.toContain('href="/catalogs"');
+      expect(menu).not.toContain('href="/organization-catalogs"');
+    }
     expect(menu).toContain('href="/handovers"');
     expect(menu).toContain('href="/disposals"');
     expect(menu).toContain('href="/dashboard"');
@@ -95,7 +99,8 @@ describe('Role-specific routes and navigation', () => {
     expect(admin).not.toContain('sidebar-demo-switch');
     signIn('PUR_STAFF');
     const pur = renderRoute('/accounts');
-    expect(pur).toContain('href="/accounts"');
+    expect(pur).not.toContain('href="/accounts"');
+    expect(pur).not.toContain('href="/reports"');
     expect(pur).not.toContain('href="/catalogs"');
     expect(pur).not.toContain('management.addProfile');
     expect(pur).not.toContain('href="/organization-catalogs"');
@@ -144,7 +149,7 @@ describe('Role-specific routes and navigation', () => {
 
   it.each(['PUR_STAFF', 'USER'])('%s cannot open shared inventory or catalogs directly', (role) => {
     signIn(role);
-    const destination = role === 'USER' ? '/my-assets' : '/accounts';
+    const destination = role === 'USER' ? '/my-assets' : '/receivings';
     for (const path of ['/assets?assignedTo=1', '/catalogs', '/handovers', '/disposals', '/dashboard']) {
       const html = renderRoute(path);
       expect(html).toContain(`data-redirect="${destination}"`);
@@ -165,8 +170,8 @@ describe('Role-specific routes and navigation', () => {
 
   it('PUR can read accounts without editing', () => {
     signIn('PUR_STAFF');
-    expect(renderRoute('/')).toContain('data-redirect="/accounts"');
-    expect(renderRoute('/my-assets')).toContain('data-redirect="/accounts"');
+    expect(renderRoute('/')).toContain('data-redirect="/receivings"');
+    expect(renderRoute('/my-assets')).toContain('data-redirect="/receivings"');
     const html = renderRoute('/accounts');
     expect(html).toContain('management.accounts');
     expect(html).not.toContain('management.addProfile');

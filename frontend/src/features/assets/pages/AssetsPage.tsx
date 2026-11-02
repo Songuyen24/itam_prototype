@@ -346,20 +346,23 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                 assets.map((asset) => (
                   <tr key={asset.assetId}>
                     {/* Asset Tag */}
-                    <td>
+                    <td className="asset-identity-cell">
                       <button
                         type="button"
                         className="asset-tag-button"
                         onClick={() => handleOpenDetail(asset.assetId)}
-                        title={t('assets:modal.detailTitle')}
+                        title={asset.assetTag}
+                        aria-label={asset.assetTag}
                       >
-                        {asset.assetTag}
+                        {asset.assetTag.length > 16
+                          ? `${asset.assetTag.slice(0, 7)}...${asset.assetTag.slice(-5)}`
+                          : asset.assetTag}
                       </button>
                     </td>
 
                     {/* Name */}
                     <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{asset.name}</div>
+                      <div className="asset-name">{asset.name}</div>
                       {asset.conditionName && (
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                           {t('assets:fields.condition')}: {asset.conditionName}
@@ -368,7 +371,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     </td>
 
                     {/* Serial Number */}
-                    <td style={{ fontFamily: 'monospace', fontSize: '12px', color: '#475569' }}>
+                    <td className="asset-serial">
                       {asset.serialNumber || '—'}
                     </td>
 
@@ -407,7 +410,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     </td>
 
                     {/* Actions */}
-                    <td style={{ textAlign: 'center' }}>
+                    <td className="asset-actions-cell">
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                         {canManageAssets && asset.statusCode !== 'PENDING_IMPORT' && !asset.pendingHandover && !asset.pendingDisposal && (
                           <button

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { canManageInventory } from '@/features/auth/permissions';
+import { httpClient } from '@/shared/api/httpClient';
 import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
 import { OverrideReasonDialog } from '@/features/auth/components/OverrideReasonDialog';
 import { AccountModal } from '@/features/auth/pages/AccountPage';
@@ -50,6 +51,19 @@ function MainLayout() {
   const canViewInventory = canManageInventory(user?.role);
   const canViewProfiles = ['ADMIN', 'IT_STAFF', 'PUR_STAFF'].includes(user?.role || '');
 
+  const [reportAccess, setReportAccess] = useState<{ userId: number; allowed: boolean } | null>(null);
+  const canViewReports = user?.role === 'ADMIN' || (canViewProfiles && reportAccess?.userId === user?.id && reportAccess?.allowed === true);
+  useEffect(() => {
+    let active = true;
+    setReportAccess(null);
+    if (!user || !['IT_STAFF', 'PUR_STAFF'].includes(user.role)) return;
+    const userId = user.id;
+    httpClient<{ data: Record<string, { view: boolean }> }>('/v1/reports/permissions')
+      .then(({ data }) => { if (active) setReportAccess({ userId, allowed: Object.values(data).some(permission => permission.view) }); })
+      .catch(() => { if (active) setReportAccess({ userId, allowed: false }); });
+    return () => { active = false; };
+  }, [user]);
+
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
     const query = window.matchMedia('(max-width: 768px)');
@@ -89,7 +103,7 @@ function MainLayout() {
       {canViewInventory && iconLink('/handovers', 'handover', t('nav.handover'))}
       {canViewInventory && iconLink('/recoveries', 'recovery', t('nav.recovery'))}
       {canViewInventory && iconLink('/disposals', 'disposal', t('nav.disposal'))}
-      {canViewProfiles && iconLink('/reports', 'reports', t('nav.reports'))}
+      {canViewReports && iconLink('/reports', 'reports', t('nav.reports'))}
       {canViewProfiles && <div className="sidebar-group">
         <button type="button" className={`nav-link sidebar-group-toggle ${managementActive ? 'has-active-child' : ''}`}
           onClick={() => { if (collapsed && !mobile) { setCollapsed(false); setManagementOpen(true); } else setManagementOpen(!managementOpen); }} aria-expanded={managementOpen}
@@ -98,10 +112,10 @@ function MainLayout() {
           <span className="sidebar-chevron"><Icon name="chevron" /></span>
         </button>
         {managementOpen && <div id="management-links" className="sidebar-subnav">
-          {iconLink('/accounts', 'accounts', t('auth:management.accounts'))}
+          {user?.role !== 'PUR_STAFF' && iconLink('/accounts', 'accounts', t('auth:management.accounts'))}
           {user?.role && DOCUMENT_ROLES.includes(user.role) && iconLink('/documents', 'documents', t('documents:title'))}
-          {canViewInventory && iconLink('/catalogs', 'catalogs', t('nav.assetCatalogs'))}
-          {canViewInventory && iconLink('/organization-catalogs', 'organization', t('nav.organizationCatalogs'))}
+          {user?.role === 'ADMIN' && iconLink('/catalogs', 'catalogs', t('nav.assetCatalogs'))}
+          {user?.role === 'ADMIN' && iconLink('/organization-catalogs', 'organization', t('nav.organizationCatalogs'))}
         </div>}
       </div>}
       {user?.role === 'ADMIN' && iconLink('/audit-logs', 'audit', t('audit:title'))}

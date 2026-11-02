@@ -24,20 +24,20 @@ export function AdjustmentPanel({transactionId,isAdmin}:{transactionId:number;is
     if(!value)return;setBusy(true);setError('');
     try{await adjustmentApi.decide(transactionId,request,approve,decision[request.id]||'',value.subsequentTransactions);await reload();}catch(cause){setError(cause instanceof Error?cause.message:t('adjustment.error')); await reload().catch(()=>{});}finally{setBusy(false);}
   }
-  return <section className="adjustment-panel" aria-label={t('adjustment.title')}>
-    <h3>{t('adjustment.title')}</h3><p>{t('adjustment.notice')}</p>
+  return <section aria-busy={busy} className="adjustment-panel" aria-label={t('adjustment.title')}>
+    <h3>{t('adjustment.title')}</h3><aside className="adjustment-notice">{t('adjustment.notice')}</aside>
     {error&&<p role="alert">{error}</p>}
     {!value?<p>{error?<button onClick={()=>void reload().then(()=>setError('')).catch(cause=>setError(cause instanceof Error?cause.message:t('adjustment.error')))}>{t('adjustment.retry')}</button>:t('adjustment.loading')}</p>:<>
-      <h4>{t('adjustment.impact')}</h4><p>{t('adjustment.impactNotice')}</p>
-      {value.subsequentTransactions.length===0?<p>{t('adjustment.none')}</p>:<ul>{value.subsequentTransactions.map(i=><li key={i.transactionId}><Link to={`/documents?transactionId=${i.transactionId}`}>{i.transactionCode}</Link> — {t(`transactionTypes.${i.type}`,{defaultValue:i.type})} / {t(`statuses.${i.status}`,{defaultValue:i.status})}</li>)}</ul>}
+      <div className="adjustment-impact"><h4>{t('adjustment.impact')}</h4><p>{t('adjustment.impactNotice')}</p>
+      {value.subsequentTransactions.length===0?<p>{t('adjustment.none')}</p>:<ul>{value.subsequentTransactions.map(i=><li key={i.transactionId}><Link to={`/documents?transactionId=${i.transactionId}`}>{i.transactionCode}</Link> — {t(`transactionTypes.${i.type}`,{defaultValue:i.type})} / {t(`statuses.${i.status}`,{defaultValue:i.status})}</li>)}</ul>}</div>
       {value.canRequest&&<form onSubmit={submit}>
         <fieldset disabled={busy}><legend>{t('adjustment.new')}</legend>
           <label>{t('adjustment.kind')}<select className="form-input" name="kind" value={kind} onChange={e=>setKind(e.target.value)}>{['DESCRIPTION','DOCUMENT','WORKFLOW'].map(k=><option key={k} value={k}>{t(`adjustment.kinds.${k}`)}</option>)}</select></label>
-          <label>{t('adjustment.reason')}<textarea className="form-textarea" name="reason" required maxLength={4000}/></label>
-          <label>{t('adjustment.text')}<textarea className="form-textarea" name="proposedText" required maxLength={8000}/></label>
+          <label className="adjustment-reason">{t('adjustment.reason')}<textarea className="form-textarea" name="reason" required maxLength={4000}/></label>
+          <label className="adjustment-proposed">{t('adjustment.text')}<textarea className="form-textarea" name="proposedText" required maxLength={8000}/></label>
           {kind==='WORKFLOW'&&<><p>{t('adjustment.workflow')}</p><label>{t('adjustment.link')}<input className="form-input" name="correctiveTransactionId" type="number" min="1" step="1"/></label></>}
           <label>{t('adjustment.files')}<input name="files" type="file" multiple accept=".pdf,.png,.jpg,.jpeg" required={kind==='DOCUMENT'}/></label>
-          <p>{t('adjustment.lock')}</p><button className="btn btn-primary" type="submit">{t('adjustment.submit')}</button>
+          <div className="adjustment-submit"><p>{t('adjustment.lock')}</p><button className="btn btn-primary" type="submit">{t('adjustment.submit')}</button></div>
         </fieldset>
       </form>}
       <nav aria-label={t('adjustment.title')}><button className="btn" disabled={busy||page===0} onClick={()=>setPage(page-1)}>←</button> {page+1} / {Math.max(1,Math.ceil(value.total/10))} <button className="btn" disabled={busy||(page+1)*10>=value.total} onClick={()=>setPage(page+1)}>→</button></nav>

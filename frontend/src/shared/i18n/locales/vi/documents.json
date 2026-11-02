@@ -119,6 +119,12 @@
     "cancelConfirm": "Hủy phiếu này? Lịch sử vẫn được giữ."
   },
   "receiving": {
+    "noRecordedAssets": "Phiếu này chưa có tài sản.",
+    "confirmAction": "Xác nhận",
+    "submitNeedsAssets": "Thêm ít nhất một tài sản trước khi gửi duyệt.",
+    "submitNeedsNotes": "Lưu ghi chú đã thay đổi trước khi gửi duyệt.",
+    "submitReady": "Phiếu đã có tài sản và ghi chú đã lưu. Có thể gửi duyệt.",
+
     "resetFilters": "Đặt lại bộ lọc",
     "createdRange": "Khoảng ngày tạo", "allDates": "Tất cả ngày", "previousMonth": "Tháng trước", "nextMonth": "Tháng sau", "applyRange": "Áp dụng", "clearRange": "Xóa",
     "createdFrom": "Ngày tạo từ", "createdTo": "Ngày tạo đến", "invalidDateRange": "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.",

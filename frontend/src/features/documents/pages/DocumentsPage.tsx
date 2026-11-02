@@ -29,10 +29,11 @@ export function DocumentsPage({receiving=false}:{receiving?:boolean}) {
     document.body.style.overflow = 'hidden';
     modal.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (document.querySelector('.receiving-submodal-backdrop, .document-preview-backdrop, .modal-overlay, .receiving-reject, dialog[open]')) return;
-      if (event.key === 'Escape') setTransactionId(null);
+      if (event.defaultPrevented) return;
+      if (document.querySelector('.receiving-submodal-backdrop, .receiving-import-dialog, .document-preview-backdrop, .modal-overlay, .receiving-reject, dialog[open]')) return;
+      if (event.key === 'Escape' && !modal.current?.querySelector('[aria-busy="true"]')) setTransactionId(null);
       if (event.key !== 'Tab') return;
-      const focusable = [...(modal.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]') ?? [])];
+      const focusable = [...(modal.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary') ?? [])].filter(element => element.getClientRects().length > 0);
       if (!focusable.length) return;
       const first = focusable[0], last = focusable[focusable.length - 1];
       if (event.shiftKey && (document.activeElement === first || document.activeElement === modal.current)) { event.preventDefault(); last.focus(); }
@@ -59,7 +60,7 @@ export function DocumentsPage({receiving=false}:{receiving?:boolean}) {
     <div className="page-header receiving-page-header"><h1 className="page-title">{t('receiving.title')}</h1>{(user?.role === 'ADMIN' || user?.role === 'PUR_STAFF') && <button className="btn btn-primary" disabled={busy} onClick={() => void createDraft()}>{t('draft.create')}</button>}</div>
     {error && <p role="alert">{error}</p>}
     <TransactionSelector receiving selectedId={transactionId} refresh={refresh} onSelect={selectTransaction} />
-    {transactionId !== null && <div className="receiving-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setTransactionId(null); }}><div ref={modal} className="receiving-modal" role="dialog" aria-modal="true" aria-label={t('receiving.receiptModal')} tabIndex={-1}><div className="receiving-modal-heading"><button type="button" className="btn btn-secondary" onClick={() => setTransactionId(null)}>{t('actions.close')}</button></div><TransactionDocuments key={transactionId} transactionId={transactionId} compact onCreated={selectTransaction} onUpdated={() => setRefresh(value => value + 1)} /></div></div>}
+    {transactionId !== null && <div className="receiving-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget && !modal.current?.querySelector('[aria-busy="true"]')) setTransactionId(null); }}><div ref={modal} className="receiving-modal" role="dialog" aria-modal="true" aria-label={t('receiving.receiptModal')} tabIndex={-1}><div className="receiving-modal-heading"><span>{t('receiving.receiptModal')}</span><button type="button" className="btn btn-secondary" onClick={() => { if (!modal.current?.querySelector('[aria-busy="true"]')) setTransactionId(null); }}>{t('actions.close')}</button></div><TransactionDocuments key={transactionId} transactionId={transactionId} compact onCreated={selectTransaction} onUpdated={() => setRefresh(value => value + 1)} /></div></div>}
   </div>;
 
   return <DocumentsLibraryPage />;

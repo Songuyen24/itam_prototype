@@ -7,7 +7,7 @@ export interface History { id:number; action:string; actor:string; createdAt:str
 export const relationshipApi = {
   list:(id:number,page=0)=>httpClient<ApiResponse<PageResponse<Relationship>>>(`/v1/assets/${id}/relationships?page=${page}`),
   allocations:(id:number,page=0)=>httpClient<ApiResponse<PageResponse<Allocation>>>(`/v1/assets/${id}/allocations?page=${page}`),
-  history:(id:number,page=0)=>httpClient<ApiResponse<PageResponse<History>>>(`/v1/assets/${id}/history?page=${page}`),
+  history:(id:number,page=0,size?:number)=>httpClient<ApiResponse<PageResponse<History>>>(`/v1/assets/${id}/history?page=${page}${size===undefined?'':`&size=${size}`}`),
   create:(parentId:number,childAssetId:number,type:Relationship['type'])=>httpClient<ApiResponse<Relationship>>(`/v1/assets/${parentId}/relationships`,{method:'POST',body:JSON.stringify({childAssetId,type})}),
   remove:(id:number)=>httpClient<void>(`/v1/asset-relationships/${id}`,{method:'DELETE'}),
 };

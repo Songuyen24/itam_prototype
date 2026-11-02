@@ -5,8 +5,8 @@ export function canManageInventory(role?: string): boolean {
 }
 
 export function getHomePath(role?: string): string {
-  if (canManageInventory(role)) return '/assets';
+  if (canManageInventory(role)) return '/dashboard';
   if (role === 'USER') return '/my-assets';
-  if (role === 'PUR_STAFF') return '/accounts';
+  if (role === 'PUR_STAFF') return '/receivings';
   return '/login';
 }

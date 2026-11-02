@@ -10,6 +10,7 @@
   "colLocation": "Receiving Location",
   "colAssets": "Assets",
   "hint": "Create a recovery for one returner; check asset relationships before submitting for collection.",
+  "stepReturner": "Returner and receiving location", "stepAssets": "Candidate assets and selection", "stepDetails": "Date and reason",
   "searchAssets": "Search for returner",
   "searchLocations": "Search for receiving location",
   "selectDevices": "Select devices to recover",
@@ -19,6 +20,15 @@
   "date": "Recovery Date",
   "reason": "Recovery Reason",
   "remove": "Remove",
+  "removeAsset": "Remove asset {{asset}}",
+  "selectedReturner": "Selected returner:",
+  "selectedLocation": "Selected receiving location:",
+  "chooseReturner": "Select returner",
+  "chooseLocation": "Select receiving location",
+  "assetsTitle": "Assets to recover",
+  "assetTag": "Asset tag",
+  "assetName": "Asset name",
+  "assetCategory": "Category",
   "preview": "Check",
   "loading": "Processing...",
   "error": "An error occurred",
@@ -69,6 +79,7 @@
   ,"searchHistory": "Search recoveries"
   ,"filterStatus": "Status"
   ,"allStatuses": "All"
+  ,"resetFilters": "Reset"
   ,"details": "Details"
   ,"edit": "Edit draft"
   ,"submit": "Submit for collection"

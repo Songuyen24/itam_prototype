@@ -12,12 +12,12 @@ function localDate() { const d = new Date(); return `${d.getFullYear()}-${String
 
 interface Recipient { id: number; fullName: string; email: string | null; accountStatus: string }
 
-const CATEGORY_ICON: Record<string, string> = { DEVICE: '💻', COMPONENT: '🔧', LICENSE: '🪪' };
 const categoryLabel = (t: (key: string, options?: Record<string, unknown>) => string, category: string) =>
   t(`category${category[0]}${category.slice(1).toLowerCase()}`);
 
 function UserPicker({ onSelect, disabled, selected }: { onSelect: (r: Recipient) => void; disabled: boolean; selected: Recipient | null }) {
   const { t } = useTranslation('recovery');
+  const detailsRef = useRef<HTMLDetailsElement>(null);
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(0);
   const [items, setItems] = useState<Recipient[]>([]);
@@ -39,24 +39,24 @@ function UserPicker({ onSelect, disabled, selected }: { onSelect: (r: Recipient)
 
   const pages = Math.ceil(total / 10);
   return (
-    <fieldset disabled={disabled} style={{ border: '1px solid #ccc', padding: 12, margin: 8 }}>
+    <fieldset disabled={disabled} className="recovery-picker recovery-identity-picker">
       <legend>{t('searchAssets')}</legend>
-      {selected && <p><strong>{selected.fullName}</strong>{selected.email ? ` · ${selected.email}` : ''}</p>}
-      <input className="form-input" placeholder={t('searchPlaceholder')} value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
+      <details ref={detailsRef} className="recovery-picker-details"><summary><strong>{selected?.fullName || t('chooseReturner')}</strong>{selected?.email && <small>{selected.email}</small>}</summary><div className="recovery-picker-popover">
+      <input className="form-input" type="search" aria-label={t('searchAssets')} placeholder={t('searchPlaceholder')} value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
       {loading && <span>{t('loading')}</span>}
       {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}
-      {items.map(item => (
-        <button type="button" key={item.id} disabled={disabled} style={{ display: 'block', padding: 4, cursor: 'pointer' }} onClick={() => onSelect(item)}>
+      <div className="recovery-picker-list">{items.map(item => (
+        <button type="button" key={item.id} disabled={disabled} className="recovery-picker-option" onClick={() => { onSelect(item); if (detailsRef.current) { detailsRef.current.open = false; detailsRef.current.querySelector('summary')?.focus(); } }}>
           <strong>{item.fullName}</strong>{item.email && <> · {item.email}</>}
         </button>
-      ))}
+      ))}</div>
       {pages > 1 && (
-        <div style={{ marginTop: 8 }}>
+        <div className="recovery-picker-pagination">
           <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
           <span style={{ margin: '0 8px' }}>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span>
           <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>{t('next')}</button>
         </div>
-      )}
+      )}</div></details>
     </fieldset>
   );
 }
@@ -116,13 +116,15 @@ function UserAssetPicker({
   }, {});
 
   return (
-    <fieldset disabled={disabled} style={{ border: '1px solid #ccc', padding: 12, margin: 8 }}>
+    <fieldset disabled={disabled} className="recovery-picker">
       <legend>{t('devicesTitle')}</legend>
-      {!userId && <p style={{ color: '#999', margin: 4 }}>{t('selectReturnerFirst')}</p>}
+      {!userId && <p className="recovery-muted">{t('selectReturnerFirst')}</p>}
       {userId && (
         <>
           <input
             className="form-input"
+            type="search"
+            aria-label={t('devicesTitle')}
             placeholder={t('searchDevicesPlaceholder')}
             value={keyword}
             onChange={e => {
@@ -132,47 +134,27 @@ function UserAssetPicker({
           />
           {loading && <span>{t('loading')}</span>}
           {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}
-          {!loading && items.length === 0 && <p style={{ color: '#999' }}>{t('noDevicesForUser')}</p>}
-          {Object.entries(grouped).map(([cat, list]) => (
-            <div key={cat} style={{ marginTop: 8 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, color: '#555', marginBottom: 4 }}>
-                {CATEGORY_ICON[cat] ?? '•'} {categoryLabel(t, cat)}
+          {!loading && items.length === 0 && <p className="recovery-muted">{t('noDevicesForUser')}</p>}
+          <div className="recovery-candidate-list">{Object.entries(grouped).map(([cat, list]) => (
+            <div key={cat} className="recovery-candidate-group">
+              <div className="recovery-candidate-heading">
+                {categoryLabel(t, cat)}
                 {' '}<span style={{ color: '#999', fontWeight: 400 }}>({list.length})</span>
               </div>
               {list.map(item => (
-                <label
-                  key={selectionKey(item)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: 4,
-                    cursor: 'pointer',
-                    borderBottom: '1px solid #f0f0f0',
-                  }}
-                >
+                <label key={selectionKey(item)} className="recovery-asset-row">
                   <input type="checkbox" checked={isIn(item)} onChange={() => onToggle(item)} />
-                  <span>
-                    <strong>{item.assetTag}</strong> · {item.name}
-                    {item.allocationId != null && <span> · {t('allocation', { id: item.allocationId })}{item.seats != null ? ` · ${t('seats', { count: item.seats })}` : ''}{item.deviceTag ? ` · ${t('assignedToDevice', { deviceTag: item.deviceTag })}` : ''}</span>}
-                    {item.licenseAssignmentTypeCode && (
-                      <span style={{
-                        marginLeft: 8,
-                        fontSize: 11,
-                        background: item.licenseAssignmentTypeCode === 'OEM' ? '#fff3cd' : '#d1ecf1',
-                        padding: '1px 6px',
-                        borderRadius: 3,
-                      }}>
-                        {item.licenseAssignmentTypeCode}
-                      </span>
-                    )}
+                  <span className="recovery-asset-identity">
+                    <span className="recovery-asset-meta"><strong>{item.assetTag}</strong><span>{categoryLabel(t, item.categoryCode || item.category || 'OTHER')}</span>{item.licenseAssignmentTypeCode && <span>{item.licenseAssignmentTypeCode}</span>}</span>
+                    <span className="recovery-asset-name">{item.name}</span>
+                    {item.allocationId != null && <small>{t('allocation', { id: item.allocationId })}{item.seats != null ? ` · ${t('seats', { count: item.seats })}` : ''}{item.deviceTag ? ` · ${t('assignedToDevice', { deviceTag: item.deviceTag })}` : ''}</small>}
                   </span>
                 </label>
               ))}
             </div>
-          ))}
+          ))}</div>
           {pages > 1 && (
-            <div style={{ marginTop: 8 }}>
+            <div className="recovery-picker-pagination">
               <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
               <span style={{ margin: '0 8px' }}>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span>
               <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>{t('next')}</button>
@@ -241,22 +223,22 @@ export function SmartCheckDialog({
   const request = () => buildRecoveryRequest(check, selectedAssetIds, selectedAllocationIds, reason, componentActions, perUserActions);
 
   return (
-    <dialog ref={dialogRef} aria-labelledby="recovery-smart-check-title"
+    <dialog ref={dialogRef} className="recovery-dialog recovery-smart-check" aria-labelledby="recovery-smart-check-title"
       onCancel={event => { event.preventDefault(); if (!busy) onCancel(); }}
       style={{ margin: 'auto', padding: 24, width: 'min(900px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
       <h2 id="recovery-smart-check-title">{t('smartCheckTitle')}</h2>
 
       {/* Blocked items — scenarios B, C, D when triggered */}
       {check.blockedAssets?.length ? (
-        <div style={{ background: '#f8d7da', padding: 12, marginBottom: 16, borderRadius: 4, border: '1px solid #f5c6cb' }}>
+        <div className="recovery-callout recovery-blocked">
           <h3 style={{ color: '#721c24', margin: '0 0 8px' }}>
-            ⛔ {t('blocked')} ({check.blockedAssets.length})
+            {t('blocked')} ({check.blockedAssets.length})
           </h3>
           <PaginatedContent items={check.blockedAssets ?? []}>{items => items.map(a => {
             const tag = tagBlocked(a.reason);
             return (
               <div key={a.assetId} style={{ padding: '6px 0', borderBottom: '1px solid #f5c6cb' }}>
-                <strong style={{ color: '#721c24' }}>{a.assetTag}</strong> · {a.name}
+                <strong className="recovery-live-blocked">{a.assetTag}</strong> · {a.name}
                 <span style={{ marginLeft: 8, fontSize: 11, background: '#fff', padding: '1px 6px', borderRadius: 3 }}>
                   {categoryLabel(t, a.category)} · {t(tag.key)}
                 </span>
@@ -269,7 +251,7 @@ export function SmartCheckDialog({
 
       {/* Warnings */}
       {check.warnings?.length ? (
-        <div style={{ background: hasBlocked ? '#fff3cd' : '#fff8e1', padding: 12, marginBottom: 16, borderRadius: 4 }}>
+        <div className="recovery-callout recovery-warning">
           {check.warnings.map((w, i) => <p key={i} style={{ margin: '4px 0' }}>{w}</p>)}
         </div>
       ) : null}
@@ -277,7 +259,7 @@ export function SmartCheckDialog({
       {/* Scenario A: Required devices */}
       {requiredDevices.length ? (
         <div style={{ marginBottom: 16 }}>
-          <h3>💻 {t('requiredDevices')} ({requiredDevices.length})</h3>
+          <h3> {t('requiredDevices')} ({requiredDevices.length})</h3>
           <PaginatedContent items={requiredDevices ?? []}>{items => items.map(a => (
             <div key={a.assetId} style={{ padding: '4px 8px', background: '#d4edda', marginBottom: 4, borderRadius: 4 }}>
               <strong>{a.assetTag}</strong> · {a.name}
@@ -290,7 +272,7 @@ export function SmartCheckDialog({
       {/* OEM licenses — always bundled (P08) */}
       {requiredOem.length ? (
         <div style={{ marginBottom: 16 }}>
-          <h3>🪪 {t('oemBundled')} ({requiredOem.length})</h3>
+          <h3> {t('oemBundled')} ({requiredOem.length})</h3>
           <PaginatedContent items={requiredOem ?? []}>{items => items.map(a => (
             <div key={a.assetId} style={{ padding: '4px 8px', background: '#fff3cd', marginBottom: 4, borderRadius: 4, border: '1px solid #ffeeba' }}>
               <strong>{a.assetTag}</strong> · {a.name}
@@ -303,7 +285,7 @@ export function SmartCheckDialog({
 
       {requiredComponents.length ? (
         <div style={{ marginBottom: 16 }}>
-          <h3>🔧 {t('requiredComponents')} ({requiredComponents.length})</h3>
+          <h3> {t('requiredComponents')} ({requiredComponents.length})</h3>
           <PaginatedContent items={requiredComponents ?? []}>{items => items.map(a => <div key={a.assetId} style={{ padding: '4px 8px', background: '#d4edda', marginBottom: 4, borderRadius: 4 }}><strong>{a.assetTag}</strong> · {a.name}</div>)}</PaginatedContent>
         </div>
       ) : null}
@@ -311,7 +293,7 @@ export function SmartCheckDialog({
       {/* Components with KEEP/DETACH decisions */}
       {check.componentDecisions?.length ? (
         <div style={{ marginBottom: 16 }}>
-          <h3>🔧 {t('componentDecisions')} ({check.componentDecisions.length})</h3>
+          <h3> {t('componentDecisions')} ({check.componentDecisions.length})</h3>
           <PaginatedContent items={check.componentDecisions ?? []}>{items => items.map(c => (
             <div key={c.assetId} style={{ padding: 8, background: '#e9ecef', marginBottom: 8, borderRadius: 4 }}>
               <p><strong>{c.assetTag}</strong> · {c.name}</p>
@@ -331,7 +313,7 @@ export function SmartCheckDialog({
       {/* Per-User Licenses — optional */}
       {check.optionalAssets?.length ? (
         <div style={{ marginBottom: 16 }}>
-          <h3>👤 {t(hasOptionalPerUser ? 'perUserLicenses' : 'perUserLicensesRequired')} ({check.optionalAssets.length})</h3>
+          <h3> {t(hasOptionalPerUser ? 'perUserLicenses' : 'perUserLicensesRequired')} ({check.optionalAssets.length})</h3>
           <PaginatedContent items={check.optionalAssets ?? []}>{items => items.map(a => (
             <label key={a.allocationId} style={{ display: 'block', padding: 4 }}>
               <input type="checkbox" disabled={selectedAllocationIds.includes(a.allocationId)} checked={perUserActions[a.allocationId] ?? false}
@@ -472,16 +454,14 @@ export function RecoveryForm({ onCompleted, initialValue, onBusyChange }: { onCo
   }, {});
 
   return (
-    <form onSubmit={review} style={{ padding: 16 }}>
-      <p>{t('hint')}</p>
+    <form onSubmit={review} className="recovery-form">
       {error && <p role="alert" className="document-error">{error}</p>}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <section className="recovery-form-section" aria-labelledby="recovery-step-1"><h3 id="recovery-step-1"><span className="recovery-step-number">1</span>{t('stepReturner')}</h3><div className="recovery-form-grid">
         <UserPicker onSelect={handleReturnerChange} disabled={frozen} selected={returner} />
         <HandoverLocationPicker onSelect={setLocation} disabled={frozen} selected={location} />
-      </div>
-      <h2>{t('selectDevices')}</h2>
-      <p style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>{t('selectDevicesHint')}</p>
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+      </div></section>
+      <section className="recovery-form-section" aria-labelledby="recovery-step-2"><h3 id="recovery-step-2"><span className="recovery-step-number">2</span>{t('stepAssets')}</h3>
+      <div className="recovery-form-assets-grid">
         <UserAssetPicker
           key={returner?.id ?? 'none'}
           userId={returner?.id || null}
@@ -489,47 +469,47 @@ export function RecoveryForm({ onCompleted, initialValue, onBusyChange }: { onCo
           onToggle={toggle}
           disabled={frozen}
         />
-        <div style={{ border: '1px solid #ccc', padding: 12, margin: 8 }}>
+        <div className="recovery-selected-panel">
           <strong>{t('selected', { count: selected.length })}</strong>
           {Object.keys(selectedCounts).length > 0 && (
             <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
               {Object.entries(selectedCounts).map(([c, n]) => (
                 <span key={c} style={{ marginRight: 8 }}>
-                  {CATEGORY_ICON[c]} {categoryLabel(t, c)}: {n}
+                  {categoryLabel(t, c)}: {n}
                 </span>
               ))}
             </div>
           )}
-          {selected.length === 0 && <p style={{ color: '#999', marginTop: 4 }}>{t('noDevices')}</p>}
+          {selected.length === 0 && <p className="recovery-selected-empty">{t('emptySelection')}</p>}
           <PaginatedContent items={selected}>{items => items.map(a => (
-            <div key={a.allocationId == null ? `asset-${a.assetId}` : `allocation-${a.allocationId}`} style={{ padding: '4px 0', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>
-                <strong>{a.assetTag}</strong> · {a.name}
-                <span style={{ marginLeft: 4, fontSize: 11, color: '#888' }}>{categoryLabel(t, a.categoryCode || a.category || 'OTHER')}</span>
+            <div key={a.allocationId == null ? `asset-${a.assetId}` : `allocation-${a.allocationId}`} className="recovery-selected-row">
+              <span className="recovery-asset-identity">
+                <span className="recovery-asset-meta"><strong>{a.assetTag}</strong><span>{categoryLabel(t, a.categoryCode || a.category || 'OTHER')}</span></span>
+                <span className="recovery-asset-name">{a.name}</span>
               </span>
-              <button type="button" className="btn btn-secondary" style={{ padding: '2px 8px' }} disabled={frozen} onClick={() => toggle(a)}>×</button>
+              <button type="button" className="recovery-remove" aria-label={t('removeAsset', { asset: `${a.assetTag} · ${a.name}` })} disabled={frozen} onClick={() => toggle(a)}>×</button>
             </div>
           ))}</PaginatedContent>
+          {selected.length > 0 && <div aria-live="polite" className="recovery-live-check">
+            <strong>{t('smartCheckTitle')}</strong>
+            {checking && <p role="status">{t('loading')}</p>}
+            {checkError && <p role="alert">{t('loadFailed')} {checkError}</p>}
+            {liveCheck && <>
+              <div className="recovery-check-counts"><p><strong>{liveCheck.requiredAssets?.length ?? 0}</strong><span>{t('requiredAssets')}</span></p><p><strong>{liveCheck.componentDecisions?.length ?? 0}</strong><span>{t('componentDecisions')}</span></p><p><strong>{liveCheck.optionalAssets?.length ?? 0}</strong><span>{t('perUserLicenses')}</span></p></div>
+              <PaginatedContent items={liveCheck.requiredAssets ?? []}>{items => items.map(a => <p className="recovery-check-row" key={a.assetId}><strong>{a.assetTag}</strong><span>{a.name}</span></p>)}</PaginatedContent>
+              <PaginatedContent items={liveCheck.blockedAssets ?? []}>{items => items.map(a => <p key={a.assetId} role="alert" className="recovery-live-blocked">{t('blocked')}: <strong>{a.assetTag}</strong> {a.reason}</p>)}</PaginatedContent>
+              <PaginatedContent items={liveCheck.warnings ?? []}>{items => items.map((warning, index) => <p key={index}>{warning}</p>)}</PaginatedContent>
+            </>}
+          </div>}
         </div>
-      </div>
-      {selected.length > 0 && <section aria-live="polite" style={{ margin: '12px 0', padding: 12, border: '1px solid #ddd', borderRadius: 4 }}>
-        <strong>{t('smartCheckTitle')}</strong>
-        {checking && <p role="status">{t('loading')}</p>}
-        {checkError && <p role="alert">{t('loadFailed')} {checkError}</p>}
-        {liveCheck && <>
-          <p>{t('requiredAssets')}: {liveCheck.requiredAssets?.length ?? 0} · {t('componentDecisions')}: {liveCheck.componentDecisions?.length ?? 0} · {t('perUserLicenses')}: {liveCheck.optionalAssets?.length ?? 0}</p>
-          <PaginatedContent items={liveCheck.requiredAssets ?? []}>{items => items.map(a => <p key={a.assetId}>{a.assetTag} · {a.name}</p>)}</PaginatedContent>
-          <PaginatedContent items={liveCheck.blockedAssets ?? []}>{items => items.map(a => <p key={a.assetId} role="alert" style={{ color: '#721c24' }}>{t('blocked')}: {a.assetTag} · {a.reason}</p>)}</PaginatedContent>
-          <PaginatedContent items={liveCheck.warnings ?? []}>{items => items.map((warning, index) => <p key={index}>{warning}</p>)}</PaginatedContent>
-        </>}
-      </section>}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      </div></section>
+      <section className="recovery-form-section" aria-labelledby="recovery-step-3"><h3 id="recovery-step-3"><span className="recovery-step-number">3</span>{t('stepDetails')}</h3><div className="recovery-form-grid">
         <label className="form-label">{t('date')}<input className="form-input" type="date" required value={date} disabled={frozen} onChange={e => setDate(e.target.value)} /></label>
         <label className="form-label">{t('reason')}<textarea className="form-input" required value={reason} disabled={frozen} onChange={e => setReason(e.target.value)} style={{ minHeight: 60 }} /></label>
-      </div>
-      <button className="btn btn-primary" type="submit" disabled={frozen || !returner || !location || selected.length === 0}>
+      </div></section>
+      <div className="recovery-form-footer"><button className="btn btn-primary" type="submit" disabled={frozen || !returner || !location || selected.length === 0}>
         {busy ? t('loading') : t('preview')}
-      </button>
+      </button></div>
       {smartCheck && (
         <SmartCheckDialog check={smartCheck}
           selectedAssetIds={selected.filter(a => a.allocationId == null).map(a => a.assetId)}
@@ -543,6 +523,7 @@ export function RecoveryForm({ onCompleted, initialValue, onBusyChange }: { onCo
 
 function HandoverLocationPicker({ onSelect, disabled, selected }: { onSelect: (l: LocationItem) => void; disabled: boolean; selected: LocationItem | null }) {
   const { t } = useTranslation('recovery');
+  const detailsRef = useRef<HTMLDetailsElement>(null);
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(0);
   const [items, setItems] = useState<LocationItem[]>([]);
@@ -561,24 +542,24 @@ function HandoverLocationPicker({ onSelect, disabled, selected }: { onSelect: (l
 
   const pages = Math.ceil(total / 10);
   return (
-    <fieldset disabled={disabled} style={{ border: '1px solid #ccc', padding: 12, margin: 8 }}>
+    <fieldset disabled={disabled} className="recovery-picker recovery-identity-picker">
       <legend>{t('searchLocations')}</legend>
-      {selected && <p><strong>{selected.name}</strong></p>}
-      <input className="form-input" placeholder={t('searchPlaceholder')} value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
+      <details ref={detailsRef} className="recovery-picker-details"><summary><strong>{selected?.name || t('chooseLocation')}</strong></summary><div className="recovery-picker-popover">
+      <input className="form-input" type="search" aria-label={t('searchLocations')} placeholder={t('searchPlaceholder')} value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
       {loading && <span>{t('loading')}</span>}
       {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}
-      {items.map(item => (
-        <button type="button" key={item.locationId} disabled={disabled} style={{ display: 'block', padding: 4, cursor: 'pointer' }} onClick={() => onSelect(item)}>
+      <div className="recovery-picker-list">{items.map(item => (
+        <button type="button" key={item.locationId} disabled={disabled} className="recovery-picker-option" onClick={() => { onSelect(item); if (detailsRef.current) { detailsRef.current.open = false; detailsRef.current.querySelector('summary')?.focus(); } }}>
           {item.name}
         </button>
-      ))}
+      ))}</div>
       {pages > 1 && (
-        <div style={{ marginTop: 8 }}>
+        <div className="recovery-picker-pagination">
           <button type="button" className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>
           <span style={{ margin: '0 8px' }}>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span>
           <button type="button" className="btn btn-secondary" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>{t('next')}</button>
         </div>
-      )}
+      )}</div></details>
     </fieldset>
   );
 }

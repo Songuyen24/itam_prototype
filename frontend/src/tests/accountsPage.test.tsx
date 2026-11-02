@@ -119,6 +119,26 @@ describe('unified account management', () => {
     act(() => tree.unmount());
   });
 
+  it('grants login to an existing USER account without changing its lock state', async () => {
+    mocks.profiles.mockResolvedValue(page([{ ...profile, hasAccount: true, loginLocked: true }]));
+    mocks.updateAccount.mockResolvedValue({ data: { ...profile, hasAccount: true, accessGranted: true, loginLocked: true } });
+    await render();
+    expect(button('management.grantLogin')).toBeTruthy();
+    expect(button('management.lockLogin')).toBeUndefined();
+    await act(async () => button('management.grantLogin').props.onClick());
+    expect(mocks.updateAccount).toHaveBeenCalledWith(8, { roleCode: 'USER', accessGranted: true, loginLocked: true });
+    act(() => tree.unmount());
+  });
+
+  it('opens credential creation with login grant selected when USER has no account', async () => {
+    await render();
+    await act(async () => button('management.grantLogin').props.onClick());
+    expect(mocks.updateAccount).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('input').some(input => input.props.type === 'checkbox' && input.props.checked === true)).toBe(true);
+    expect(JSON.stringify(tree.toJSON())).toContain('management.createLogin');
+    act(() => tree.unmount());
+  });
+
   it('updates account role and lock, and resets password from the edit modal', async () => {
     const account = { ...profile, hasAccount: true, roleCode: 'PUR_STAFF' };
     mocks.profiles.mockResolvedValue(page([account]));

@@ -119,6 +119,12 @@
     "cancelConfirm": "Cancel this transaction? History will be retained."
   },
   "receiving": {
+    "noRecordedAssets": "No assets are recorded on this receipt.",
+    "confirmAction": "Confirm",
+    "submitNeedsAssets": "Add at least one asset before submitting.",
+    "submitNeedsNotes": "Save your note changes before submitting.",
+    "submitReady": "Assets are included and notes are saved. Ready to submit.",
+
     "resetFilters": "Reset filters",
     "createdRange": "Created date range", "allDates": "All dates", "previousMonth": "Previous month", "nextMonth": "Next month", "applyRange": "Apply", "clearRange": "Clear",
     "createdFrom": "Created from", "createdTo": "Created to", "invalidDateRange": "Start date must be on or before end date.",

@@ -46,4 +46,17 @@ describe('recovery list and create dialog',()=>{
     expect(tree!.root.findAllByProps({id:'recovery-edit-title'})).toHaveLength(0);
     expect(tree!.root.findAllByType('input').find(input=>input.props.type==='search')!.props.value).toBe('RC');
   });
+  it('opens the existing detail from the code and resets every list filter',async()=>{
+    await act(async()=>{tree=create(<RecoveriesPage/>);});
+    await act(async()=>pick('next').props.onClick());
+    await act(async()=>tree!.root.findByType('input').props.onChange({target:{value:'RC'}}));
+    await act(async()=>tree!.root.findByType('select').props.onChange({target:{value:'PENDING'}}));
+    await act(async()=>buttons().find(button=>button.props['aria-label']==='createdRange')!.props.onClick());
+    await act(async()=>buttons().find(button=>button.props['aria-pressed']!==undefined&&button.children.includes('8'))!.props.onClick());
+    await act(async()=>pick('receiving.applyRange').props.onClick());
+    await act(async()=>pick('RC-7').props.onClick());
+    expect(mocks.detail).toHaveBeenCalledWith(7);
+    await act(async()=>pick('resetFilters').props.onClick());
+    expect(mocks.list).toHaveBeenLastCalledWith({type:'RECOVERY',keyword:'',status:undefined,from:undefined,to:undefined,page:0,size:20});
+  });
 });

@@ -10,6 +10,9 @@ import { RecoveryForm } from '../components/RecoveryForm';
 import { Recovery, recoveryApi } from '../api/recoveryApi';
 import './recoveries.css';
 
+const categoryLabel = (t: (key: string) => string, category: string) =>
+  t(`category${category[0]}${category.slice(1).toLowerCase()}`);
+
 export function RecoveriesPage() {
   const { t, i18n } = useTranslation('recovery');
   const { user } = useAuth();
@@ -104,43 +107,47 @@ export function RecoveriesPage() {
     <div className="page-content">
       <div className="recovery-list-filters">
         <label className="form-label">{t('searchHistory')}<input className="form-input" type="search" value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} /></label>
-        <label className="form-label">{t('filterStatus')}<select className="form-input" value={status} onChange={e => { setStatus(e.target.value as TransactionStatus | ''); setPage(0); }}>
+        <label className="form-label">{t('filterStatus')}<select className="form-select" value={status} onChange={e => { setStatus(e.target.value as TransactionStatus | ''); setPage(0); }}>
           <option value="">{t('allStatuses')}</option>{['DRAFT', 'PENDING', 'COMPLETED', 'CANCELLED'].map(s => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
         </select></label>
         <ReceivingDateRangePicker from={from} to={to} label={t('createdRange')} onChange={(nextFrom,nextTo) => { setFrom(nextFrom); setTo(nextTo); setPage(0); }} />
+        <button type="button" className="btn btn-secondary recovery-reset" onClick={() => { setKeyword(''); setStatus(''); setFrom(''); setTo(''); setPage(0); }}>{t('resetFilters')}</button>
       </div>
-      {loading ? <p role="status">{t('loading')}</p> : error ? <p role="alert">{error} <button type="button" onClick={() => setReload(n => n + 1)}>{t('retry')}</button></p>
-        : <div className="table-container"><table className="data-table"><thead><tr>
+      {loading ? <div className="recovery-list-state" role="status">{t('loading')}</div> : error ? <div className="recovery-list-state" role="alert">{error} <button type="button" className="btn btn-secondary btn-sm" onClick={() => setReload(n => n + 1)}>{t('retry')}</button></div>
+        : <div className="table-container recovery-table-wrap"><table className="data-table recovery-table"><thead><tr>
           <th>{t('colCode')}</th><th>{t('creator')}</th><th>{t('createdAt')}</th><th>{t('filterStatus')}</th><th>{t('colActions')}</th>
-        </tr></thead><tbody>{history.map(r => <tr key={r.transactionId}><td>{r.transactionCode}</td><td>{r.requesterName || '—'}</td><td>{new Date(r.createdAt).toLocaleDateString(i18n.language)}</td><td>{t(`status.${r.status}`)}</td>
-          <td><button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectedId(r.transactionId)}>{t('details')}</button></td></tr>)}</tbody></table>{history.length === 0 && <p>{t('noHistory')}</p>}</div>}
-      <div className="recovery-pagination"><button className="btn btn-secondary" disabled={loading || page === 0} onClick={() => setPage(n => n - 1)}>{t('previous')}</button>
+        </tr></thead><tbody>{history.map(r => <tr key={r.transactionId}><td><button type="button" className="recovery-code" onClick={() => setSelectedId(r.transactionId)}>{r.transactionCode}</button></td><td>{r.requesterName || '—'}</td><td>{new Date(r.createdAt).toLocaleDateString(i18n.language)}</td><td><span className={`recovery-status recovery-status-${r.status.toLowerCase()}`}>{t(`status.${r.status}`)}</span></td>
+          <td><button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectedId(r.transactionId)}>{t('details')}</button></td></tr>)}</tbody></table>{history.length === 0 && <div className="recovery-list-state">{t('noHistory')}</div>}</div>}
+      {!loading && !error && pages > 0 && <div className="recovery-pagination"><button className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(n => n - 1)}>{t('previous')}</button>
         <span>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span><button className="btn btn-secondary" disabled={loading || page + 1 >= pages} onClick={() => setPage(n => n + 1)}>{t('next')}</button></div>
+      }
       {selectedId !== null && <dialog ref={detailRef} className="recovery-dialog" aria-label={t('details')} onCancel={e => { if (acting || editing || confirming || formBusy) e.preventDefault(); else { setSelectedId(null); setDetail(null); } }}>
-      <div className="recovery-dialog-heading"><h2>{t('details')}</h2><button type="button" className="btn btn-secondary" disabled={acting || editing || confirming || formBusy} onClick={() => { setSelectedId(null); setDetail(null); }}>{t('back')}</button></div>
+      <div className="recovery-dialog-heading"><h2>{t('details')}</h2><button type="button" className="btn btn-secondary" disabled={acting || editing || confirming || formBusy} onClick={() => { setSelectedId(null); setDetail(null); }}>{t('back')}</button></div><div className="recovery-dialog-body">
       {detailLoading ? <p role="status">{t('loading')}</p> : detailError ? <p role="alert">{detailError} <button type="button" onClick={() => setReload(n => n + 1)}>{t('retry')}</button></p> : null}
-      {detail && <section><h2>{detail.transactionCode} · {t(`status.${detail.status}`)}</h2>
-        <p>{detail.returnerName} · {detail.receivingLocationName} · {detail.recoveryDate}</p><p>{detail.reason}</p>
-        <PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <ul>{lines.map(line => <li key={line.assetId}>{line.assetTag} · {line.name} · {line.category}</li>)}</ul>}</PaginatedContent>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {detail && <section><div className="recovery-detail-title"><h2>{detail.transactionCode}</h2>{detail.status && <span className={`recovery-status recovery-status-${detail.status.toLowerCase()}`}>{t(`status.${detail.status}`)}</span>}</div>
+        <div className="recovery-detail-summary"><p><strong>{t('colReturner')}</strong><span>{detail.returnerName}</span></p><p><strong>{t('colLocation')}</strong><span>{detail.receivingLocationName}</span></p><p><strong>{t('colDate')}</strong><span>{detail.recoveryDate}</span></p></div><div className="recovery-detail-reason"><strong>{t('reason')}</strong><p>{detail.reason}</p></div>
+        <div className="recovery-detail-lines"><h3>{t('assetsTitle')}</h3><PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <div className="recovery-detail-table-wrap"><table className="data-table recovery-detail-table"><thead><tr><th>{t('assetTag')}</th><th>{t('assetName')}</th><th>{t('assetCategory')}</th></tr></thead><tbody>{lines.map(line => <tr key={line.assetId}><td>{line.assetTag}</td><td>{line.name}</td><td>{categoryLabel(t, line.category)}</td></tr>)}</tbody></table></div>}</PaginatedContent></div>
+        </section>}
+      {detail?.status === 'COMPLETED' && detail.transactionId != null && <PublicationPanel transactionId={detail.transactionId} canManage />}
+      </div>
+      {detail && (detail.status === 'DRAFT' && (owner || admin) || detail.status === 'PENDING' && (owner || admin || user?.role === 'IT_STAFF')) &&
+        <div className="recovery-dialog-footer">
           {detail.status === 'DRAFT' && (owner || admin) && <><button className="btn btn-secondary" disabled={acting} onClick={() => setEditing(true)}>{t('edit')}</button><button className="btn btn-primary" disabled={acting} onClick={() => void act('submit')}>{t('submit')}</button><button className="btn btn-secondary" disabled={acting} onClick={() => void act('cancel')}>{t('cancel')}</button></>}
           {detail.status === 'PENDING' && (owner || admin) && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('withdraw')}>{t('withdraw')}</button>}
           {detail.status === 'PENDING' && admin && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('cancel')}>{t('cancel')}</button>}
           {detail.status === 'PENDING' && (admin || user?.role === 'IT_STAFF') && <button className="btn btn-primary" disabled={acting} onClick={() => setConfirming(true)}>{t('confirmPhysical')}</button>}
-        </div>
-        {detail.status === 'COMPLETED' && detail.transactionId != null && <PublicationPanel transactionId={detail.transactionId} canManage />}
-      </section>}
+        </div>}
       </dialog>}
       {(creating || editing && detail) && <dialog ref={formRef} className="recovery-dialog" aria-labelledby="recovery-edit-title" onCancel={e => { if (formBusy) e.preventDefault(); else { setCreating(false); setEditing(false); } }}>
         <div className="recovery-dialog-heading"><h2 id="recovery-edit-title">{t(editing ? 'edit' : 'tabForm')}</h2><button type="button" className="btn btn-secondary" disabled={formBusy} onClick={() => { setCreating(false); setEditing(false); }}>{t('back')}</button></div>
-        <RecoveryForm initialValue={editing ? detail ?? undefined : undefined} onCompleted={saved} onBusyChange={setFormBusy} />
+        <div className="recovery-dialog-body"><RecoveryForm initialValue={editing ? detail ?? undefined : undefined} onCompleted={saved} onBusyChange={setFormBusy} /></div>
       </dialog>}
-      {confirming && detail && <dialog ref={confirmRef} aria-labelledby="recovery-confirm-title" onCancel={e => { if (acting) e.preventDefault(); else setConfirming(false); }} style={{ margin: 'auto', padding: 24, width: 'min(700px, calc(100vw - 32px))' }}>
+      {confirming && detail && <dialog ref={confirmRef} className="recovery-dialog recovery-confirm-dialog" aria-labelledby="recovery-confirm-title" onCancel={e => { if (acting) e.preventDefault(); else setConfirming(false); }}>
         <h2 id="recovery-confirm-title">{t('confirmPhysical')}</h2><p>{t('confirmPhysicalHint')}</p>
         <p>{detail.transactionCode} · {detail.returnerName} · {detail.receivingLocationName}</p>
         <PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <ul>{lines.map(line => <li key={line.assetId}>{line.assetTag} · {line.name}</li>)}</ul>}</PaginatedContent>
-        <button className="btn btn-secondary" disabled={acting} onClick={() => setConfirming(false)}>{t('back')}</button>
-        <button className="btn btn-primary" disabled={acting} onClick={() => void act('confirm')}>{acting ? t('loading') : t('confirmPhysical')}</button>
+        <div className="recovery-dialog-footer"><button className="btn btn-secondary" disabled={acting} onClick={() => setConfirming(false)}>{t('back')}</button>
+        <button className="btn btn-primary" disabled={acting} onClick={() => void act('confirm')}>{acting ? t('loading') : t('confirmPhysical')}</button></div>
       </dialog>}
     </div>
   </div>;

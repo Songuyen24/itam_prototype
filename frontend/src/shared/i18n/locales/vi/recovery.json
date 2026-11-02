@@ -10,6 +10,7 @@
   "colLocation": "Vị trí nhận",
   "colAssets": "Số tài sản",
   "hint": "Lập phiếu thu hồi cho một người trả; kiểm tra quan hệ tài sản trước khi gửi chờ nhận.",
+  "stepReturner": "Người trả và vị trí nhận", "stepAssets": "Tài sản đề xuất và lựa chọn", "stepDetails": "Ngày và lý do",
   "searchAssets": "Tìm kiếm người trả",
   "searchLocations": "Tìm kiếm vị trí nhận",
   "selectDevices": "Chọn thiết bị thu hồi",
@@ -19,6 +20,15 @@
   "date": "Ngày thu hồi",
   "reason": "Lý do thu hồi",
   "remove": "Xóa",
+  "removeAsset": "Bỏ tài sản {{asset}}",
+  "selectedReturner": "Đã chọn người trả:",
+  "selectedLocation": "Đã chọn vị trí nhận:",
+  "chooseReturner": "Chọn người trả",
+  "chooseLocation": "Chọn vị trí nhận",
+  "assetsTitle": "Danh sách tài sản thu hồi",
+  "assetTag": "Mã tài sản",
+  "assetName": "Tên tài sản",
+  "assetCategory": "Loại tài sản",
   "preview": "Kiểm tra",
   "loading": "Đang xử lý...",
   "error": "Đã xảy ra lỗi",
@@ -69,6 +79,7 @@
   ,"searchHistory": "Tìm phiếu thu hồi"
   ,"filterStatus": "Trạng thái"
   ,"allStatuses": "Tất cả"
+  ,"resetFilters": "Đặt lại"
   ,"details": "Chi tiết"
   ,"edit": "Sửa nháp"
   ,"submit": "Gửi chờ nhận"

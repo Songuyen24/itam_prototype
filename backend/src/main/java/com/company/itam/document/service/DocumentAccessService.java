@@ -34,7 +34,7 @@ public class DocumentAccessService {
     public void requireRead(TransactionEntity transaction) {
         Authentication authentication = requireAuthentication();
         if (isManager(authentication)
-                || (hasAuthority(authentication, "PUR_STAFF") && transaction.getType() == TransactionType.IMPORT)) {
+                || (hasAuthority(authentication, "PUR_STAFF") && (transaction.getType() == TransactionType.IMPORT || transaction.getType() == TransactionType.DISPOSAL))) {
             return;
         }
         throw denied();
@@ -44,7 +44,7 @@ public class DocumentAccessService {
         Authentication authentication = requireAuthentication();
         TransactionEntity transaction = document.getTransaction();
         if (isManager(authentication)
-                || (hasAuthority(authentication, "PUR_STAFF") && transaction.getType() == TransactionType.IMPORT)) {
+                || (hasAuthority(authentication, "PUR_STAFF") && (transaction.getType() == TransactionType.IMPORT || transaction.getType() == TransactionType.DISPOSAL))) {
             return;
         }
         throw denied();

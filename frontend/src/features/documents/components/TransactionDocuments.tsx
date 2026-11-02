@@ -23,6 +23,8 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated, comp
   const [error, setError] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [detach, setDetach] = useState<DocumentItem | null>(null);
+  const [detaching, setDetaching] = useState(false);
   const [preview, setPreview] = useState<DocumentItem | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
@@ -43,7 +45,7 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated, comp
     if (!preview) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     previewDialog.current?.querySelector('button')?.focus();
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setPreview(null); };
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); setPreview(null); } };
     const keepFocus = (event: KeyboardEvent) => {
       if (event.key !== 'Tab' || !previewDialog.current) return;
       const buttons = [...previewDialog.current.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
@@ -137,9 +139,10 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated, comp
       <span className="document-file-meta">{document.uploadedByName || t('states.notAvailable')} · {new Date(document.createdAt).toLocaleString(i18n.language)}</span>
       <div className="document-card-actions"><button type="button" className="btn btn-secondary btn-sm" onClick={() => setPreview(document)}>{t('actions.preview')}</button>
         <button type="button" className="btn btn-secondary btn-sm" disabled={downloadingId !== null} aria-label={t('actions.downloadFile', { name: document.originalFileName })} onClick={() => void download(document)}>{t('actions.download')}</button>
-        {canUpload && <button type="button" className="btn btn-secondary btn-sm" onClick={() => { if (!window.confirm(t('draft.detachConfirm'))) return; void documentApi.detach(document.documentId, transaction.transactionId, transaction.expectedVersion!).then(refresh).catch(cause => setDownloadError(cause.message)); }}>{t('draft.detach')}</button>}
+        {canUpload && <button type="button" className="btn btn-secondary btn-sm" onClick={() => { if (compact) { setDetach(document); return; } if (!window.confirm(t('draft.detachConfirm'))) return; void documentApi.detach(document.documentId, transaction.transactionId, transaction.expectedVersion!).then(refresh).catch(cause => setDownloadError(cause.message)); }}>{t('draft.detach')}</button>}
       </div>
     </article>)}</div>}
+    {detach && <ReceiptSubModal size="confirmation" title={t('draft.detach')} busy={detaching} onClose={()=>setDetach(null)}><p>{t('draft.detachConfirm')}</p>{downloadError&&<p role="alert">{downloadError}</p>}<div className="receiving-actions"><button className="btn btn-secondary" disabled={detaching} onClick={()=>setDetach(null)}>{t('receiving.cancel')}</button><button className="btn btn-primary" disabled={detaching} onClick={()=>{setDetaching(true);setDownloadError(null);void documentApi.detach(detach.documentId,transaction.transactionId,transaction.expectedVersion!).then(()=>{setDetach(null);refresh();}).catch(cause=>setDownloadError(cause.message)).finally(()=>setDetaching(false));}}>{t('draft.detach')}</button></div></ReceiptSubModal>}
     {preview && <div className="document-preview-backdrop" onClick={() => setPreview(null)}><div ref={previewDialog} role="dialog" aria-modal="true" aria-label={preview.originalFileName} className="document-preview" onClick={event => event.stopPropagation()}>
       <div className="document-preview-heading"><strong>{preview.originalFileName}</strong><button type="button" className="btn btn-secondary btn-sm" onClick={() => setPreview(null)}>{t('actions.close')}</button></div>
       <p>{t(`documentTypes.${preview.documentType}`)} · {preview.uploadedByName || t('states.notAvailable')} · {new Date(preview.createdAt).toLocaleString(i18n.language)}</p>
@@ -147,11 +150,16 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated, comp
       {previewLoading ? <p role="status">{t('states.loading')}</p> : previewBlob ? <PdfCanvasPreview blob={previewBlob} /> : previewUrl ? <img src={previewUrl} alt={preview.originalFileName} /> : !downloadError && <p>{t('states.previewUnavailable')}</p>}
       <button type="button" className="btn btn-secondary btn-sm" onClick={() => void download(preview)}>{t('actions.download')}</button>
     </div></div>}
-    <DocumentPagination page={page} totalPages={totalPages} totalElements={totalElements} loading={loading} onPageChange={setPage} />
+    {(!compact || totalElements > 0) && <DocumentPagination page={page} totalPages={totalPages} totalElements={totalElements} loading={loading} onPageChange={setPage} />}
   </>;
 
   return (
     <section className="document-detail" aria-labelledby="document-detail-title">
+      {compact ? <header className="receiving-receipt-header">
+        <div className="receiving-receipt-identity"><h2 id="document-detail-title">{transaction.transactionCode}</h2><span className={`document-status document-status-${transaction.status.toLowerCase()}`}>{t(`statuses.${transaction.status}`)}</span>{!transaction.documentsEditable&&<span className="badge badge-inactive">{t('states.readOnly')}</span>}</div>
+        <div className="receiving-receipt-context"><span>{t(`transactionTypes.${transaction.type}`)}</span><span>{t('fields.createdAt')}: {new Date(transaction.createdAt).toLocaleString(i18n.language)}</span></div>
+      {compact && <div className="receiving-section-actions"><button type="button" className="btn btn-secondary" onClick={() => setSection('documents')}>{t('listTitle')} ({totalElements})</button>{transaction.status === 'COMPLETED' && <button type="button" className="btn btn-secondary" onClick={() => setSection('adjustment')}>{t('receiving.requestAdjustment')}</button>}{transaction.status !== 'DRAFT' && <button type="button" className="btn btn-secondary" onClick={() => setSection('publication')}>{t('publication.title')}</button>}</div>}
+      </header> : <>
       <div className="document-detail-heading">
         <h2 id="document-detail-title">{transaction.transactionCode}</h2>
         {!transaction.documentsEditable && <span className="badge badge-inactive">{t('states.readOnly')}</span>}
@@ -161,8 +169,9 @@ export function TransactionDocuments({ transactionId, onUpdated, onCreated, comp
         <div><dt>{t('fields.status')}</dt><dd>{t(`statuses.${transaction.status}`)}</dd></div>
         <div><dt>{t('fields.createdAt')}</dt><dd>{new Date(transaction.createdAt).toLocaleString(i18n.language)}</dd></div>
       </dl>
+      </>}
       {transaction.type === 'IMPORT' && <ImportDraftPanel transaction={transaction} compact={compact} onChanged={refresh} onCreated={onCreated} />}
-      {compact && <div className="receiving-section-actions"><button type="button" className="btn btn-secondary" onClick={() => setSection('documents')}>{t('listTitle')} ({totalElements})</button>{transaction.status === 'COMPLETED' && <button type="button" className="btn btn-secondary" onClick={() => setSection('adjustment')}>{t('receiving.requestAdjustment')}</button>}{transaction.status !== 'DRAFT' && <button type="button" className="btn btn-secondary" onClick={() => setSection('publication')}>{t('publication.title')}</button>}</div>}
+
       {(!compact || section === 'adjustment') && transaction.status === 'COMPLETED' && (compact ? <ReceiptSubModal title={t('adjustment.title')} onClose={() => setSection(null)}><AdjustmentPanel key={transaction.transactionId} transactionId={transaction.transactionId} isAdmin={user?.role === 'ADMIN'} /></ReceiptSubModal> : <AdjustmentPanel key={transaction.transactionId} transactionId={transaction.transactionId} isAdmin={user?.role === 'ADMIN'} />)}
       {(!compact || section === 'publication') && transaction.status !== 'DRAFT' && (compact ? <ReceiptSubModal title={t('publication.title')} onClose={() => setSection(null)}><PublicationPanel transactionId={transaction.transactionId} {...publicationActions} /></ReceiptSubModal> : <PublicationPanel transactionId={transaction.transactionId} {...publicationActions} />)}
       {(!compact || section === 'documents') && (compact ? <ReceiptSubModal title={t('listTitle')} onClose={() => setSection(null)}>{documentSection}</ReceiptSubModal> : documentSection)}

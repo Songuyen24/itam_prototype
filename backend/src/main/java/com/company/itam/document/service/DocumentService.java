@@ -56,14 +56,16 @@ public class DocumentService {
         accessService.requireTransactionReader();
         validatePage(page, size);
         if (keyword != null && keyword.length() > 100 || transactionId != null && transactionId <= 0) throw invalidRequest();
-        if (accessService.isPurchasingReader() && transactionType != null && transactionType != TransactionType.IMPORT)
+        boolean purchasing = accessService.isPurchasingReader();
+        if (purchasing && transactionType != null && transactionType != TransactionType.IMPORT && transactionType != TransactionType.DISPOSAL)
             throw new AccessDeniedException("Access denied");
-        TransactionType permittedType = accessService.isPurchasingReader() ? TransactionType.IMPORT : transactionType;
+        TransactionType permittedType = transactionType;
         String search = keyword == null ? "" : keyword.trim().toLowerCase(java.util.Locale.ROOT)
             .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
         return PageResponse.of(documentRepository.findAll((root, query, builder) -> {
             var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
             var transaction = root.join("transaction");
+            if (purchasing) predicates.add(transaction.get("type").in(TransactionType.IMPORT, TransactionType.DISPOSAL));
             if (permittedType != null) predicates.add(builder.equal(transaction.get("type"), permittedType));
             if (documentType != null) predicates.add(builder.equal(root.get("documentType"), documentType));
             if (transactionId != null) predicates.add(builder.equal(transaction.get("transactionId"), transactionId));
