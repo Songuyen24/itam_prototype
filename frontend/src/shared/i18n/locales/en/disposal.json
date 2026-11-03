@@ -1,4 +1,5 @@
 {
+  "noMatchingAssets": "No matching assets. Try another search.",
   "title": "Asset disposal",
   "description": "Create and process requests for assets eligible for disposal.",
   "createTitle": "Create disposal request",

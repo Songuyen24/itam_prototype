@@ -7,6 +7,7 @@ import { Disposal, DisposalCheck } from '../api/disposalApi';
 function DisposalDialog({ title, busy = false, restoreFocusRef, onClose, children, footer }: {
   title: string; busy?: boolean; restoreFocusRef?: RefObject<HTMLElement>; onClose: () => void; children: ReactNode; footer: ReactNode;
 }) {
+  const { t } = useTranslation('disposal');
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = `disposal-dialog-${title.replace(/\W/g, '-').toLowerCase()}`;
   useEffect(() => {
@@ -21,7 +22,7 @@ function DisposalDialog({ title, busy = false, restoreFocusRef, onClose, childre
   }, [restoreFocusRef]);
   return <dialog ref={ref} className="modal-content modal-lg disposal-dialog" aria-labelledby={titleId}
     onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>
-    <div className="modal-header"><h2 className="modal-title" id={titleId}>{title}</h2></div>
+    <div className="modal-header"><h2 className="modal-title" id={titleId}>{title}</h2><button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={onClose}>{t('close')}</button></div>
     <div className="modal-body">{children}</div>
     <div className="modal-footer">{footer}</div>
   </dialog>;
@@ -80,7 +81,7 @@ export function DisposalDetail({ value, role, userId, onTransition, onEdit, deci
   </>}>
     {error && <div className="alert-banner alert-danger" role="alert">{error}</div>}
     <dl className="disposal-metadata">
-      <div><dt>{t('state')}</dt><dd>{t(`common:status.${value.status}`)}</dd></div>
+      <div><dt>{t('state')}</dt><dd><span className={`disposal-status disposal-status-${value.status.toLowerCase()}`}>{t(`common:status.${value.status}`)}</span></dd></div>
       <div><dt>{t('code')}</dt><dd>{value.transactionCode}</dd></div>
       <div><dt>{t('requester')}</dt><dd>{value.actorName}</dd></div>
       <div><dt>{t('reason')}</dt><dd>{value.reason}</dd></div>

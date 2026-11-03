@@ -141,20 +141,22 @@ export function DisposalsPage() {
       {creating && <dialog ref={formDialog} className="disposal-form-dialog" aria-label={t(editingId ? 'editDraft' : 'createTitle')} onCancel={event => { if (saving || createReview) event.preventDefault(); else closeForm(); }}>
         <div className="disposal-form-heading"><h2>{t(editingId ? 'editDraft' : 'createTitle')}{editingId ? ` #${editingId}` : ''}</h2><button type="button" className="btn btn-secondary" disabled={saving || !!createReview} onClick={closeForm}>{t('close')}</button></div>
         {error && <div className="alert-banner alert-danger" role="alert">{error}</div>}
-        <form onSubmit={submit}>
+        <form onSubmit={submit} className="disposal-create-form">
+          <div className="disposal-form-body"><section className="disposal-picker"><h3>{t('assets')}</h3>
           <label className="form-group"><span className="form-label">{t('searchAssets')}</span><input className="form-input" type="search" value={assetKeyword} onChange={event => { setAssetKeyword(event.target.value); setAssetPage(0); }} /></label>
           <div className="candidate-list" aria-label={t('assets')} aria-busy={assetLoading}>
-            {!assetLoading && assets.length === 0 && <p className="empty-state">{t('empty')}</p>}
-            {assets.map(asset => <label className="candidate-row" key={asset.assetId}>
+            {assetLoading && <p className="empty-state" role="status">{t('loading')}</p>}
+            {!assetLoading && !error && assets.length === 0 && <p className="empty-state">{t(assetKeyword ? 'noMatchingAssets' : 'empty')}</p>}
+            {assets.map(asset => <label className={`candidate-row${selected.includes(asset.assetId) ? ' is-selected' : ''}`} key={asset.assetId}>
               <input type="checkbox" checked={selected.includes(asset.assetId)} onChange={() => setSelected(current => current.includes(asset.assetId) ? current.filter(id => id !== asset.assetId) : [...current, asset.assetId])} />
               <span><strong>{asset.assetTag}</strong><small>{asset.name} · {t(`categories.${asset.category}`, { defaultValue: asset.category })}</small></span>
             </label>)}
           </div>
           <p>{t('documents:pagination.summary', { page: assetPages ? assetPage + 1 : 0, pages: assetPages, count: assetTotal })}</p><Pagination page={assetPage} pages={assetPages} loading={assetLoading} previous={t('previous')} next={t('next')} onPage={setAssetPage} />
-          <p className="selection-count">{t('selectedCount', { count: selected.length })}</p>
+          </section><section className="disposal-form-fields"><h3>{t('detailTitle')}</h3>
           <label className="form-group"><span className="form-label required">{t('reason')}</span><textarea className="form-textarea" required value={reason} onChange={event => setReason(event.target.value)} /></label>
           <label className="form-group"><span className="form-label required">{t('date')}</span><input className="form-input" type="date" required value={date} onChange={event => setDate(event.target.value)} /></label>
-          <button className="btn btn-primary" disabled={saving || selected.length === 0}>{saving ? t('saving') : t('smartCheck')}</button>
+          </section></div><footer className="disposal-form-footer"><p className="selection-count" role="status">{t('selectedCount', { count: selected.length })}</p><button className="btn btn-primary" disabled={saving || selected.length === 0}>{saving ? t('saving') : t('smartCheck')}</button></footer>
         </form>
       </dialog>}
       <div className="disposal-receipt-groups">
@@ -198,9 +200,9 @@ function DisposalReceiptTable({ group, reload, detailLoading, onView }: {
     return () => { active = false; };
   }, [group, page, reload, retry, t]);
   return <section className="content-card t18-section disposal-receipt-table" aria-label={t(`groups.${group}`)}>
-    <h2>{t(`groups.${group}`)}</h2>
+    <header className="disposal-group-heading"><h2>{t(`groups.${group}`)}</h2>{!loading && !error && <span className="disposal-group-count">{total}</span>}</header>
     {loading ? <p role="status">{t('loading')}</p> : error ? <p role="alert">{error} <button type="button" className="btn btn-secondary" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p> : <div className="table-container"><table className="data-table"><thead><tr><th>{t('code')}</th><th>{t('state')}</th><th>{t('createdAt')}</th><th>{t('requester')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(item => <tr key={item.transactionId}><td>{item.transactionCode}</td><td><span className={`disposal-status disposal-status-${item.status.toLowerCase()}`}>{t(`statuses.${item.status}`)}</span></td><td>{new Date(item.createdAt).toLocaleDateString(i18n.language)}</td><td>{item.requesterName || '—'}</td><td><button type="button" className="btn btn-secondary btn-sm" disabled={detailLoading} onClick={event => void onView(item.transactionId, false, event.currentTarget)}>{t('review')}</button></td></tr>)}</tbody></table>{rows.length === 0 && <p className="empty-state">{t('noRows')}</p>}</div>}
-    <p>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</p>
+    <p className="disposal-page-summary">{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</p>
     <Pagination page={page} pages={pages} loading={loading} previous={t('previous')} next={t('next')} onPage={setPage} />
   </section>;
 }
