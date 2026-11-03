@@ -126,7 +126,7 @@ export function HandoverForm({ onCompleted, onBusyChange, initialRecipient, init
       <label className="form-label">{t('date')}<input className="form-input" type="date" required value={date} disabled={frozen} onChange={e => setDate(e.target.value)} /></label>
       <label className="form-label">{t('notes')}<textarea className="form-input" maxLength={4000} value={notes} disabled={frozen} onChange={e => setNotes(e.target.value)} /></label>
     </div>
-    <button className="btn btn-primary" type="submit" disabled={frozen}>{busy ? t('loading') : t('preview')}</button>
+    <div className="handover-form-footer"><button className="btn btn-primary" type="submit" disabled={frozen}>{busy ? t('loading') : t('preview')}</button></div>
     {preview && <dialog ref={dialogRef} className="handover-confirm" aria-labelledby="handover-confirm-title"
       onCancel={event => { if (busy) event.preventDefault(); else setPreview(null); }}>
       <h2 id="handover-confirm-title">{t('draftConfirmTitle')}</h2><p>{t('draftConfirmHint')}</p>
