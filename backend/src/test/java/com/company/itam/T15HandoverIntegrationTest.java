@@ -77,9 +77,9 @@ class T15HandoverIntegrationTest {
         String draft=mvc.perform(post("/v1/handovers").contentType("application/json").content(json.writeValueAsString(req)).header("Accept-Language","en"))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.data.status").value("DRAFT")).andReturn().getResponse().getContentAsString();
         Long tx=json.readTree(draft).path("data").path("transactionId").asLong();
-        mvc.perform(post("/v1/handovers/"+tx+"/submit")).andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("PENDING"));
+        mvc.perform(post("/v1/handovers/"+tx+"/submit").header("X-Expected-Version",0)).andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("PENDING"));
         for(Long asset:List.of(a,b,ram)) assertThat(state(asset)).isEqualTo("IN_STOCK");
-        String body=mvc.perform(post("/v1/handovers/"+tx+"/confirm").header("Accept-Language","en"))
+        String body=mvc.perform(post("/v1/handovers/"+tx+"/confirm").header("X-Expected-Version",1).header("Accept-Language","en"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.message").value("Handover completed.")).andExpect(jsonPath("$.data.lines.length()").value(4)).andReturn().getResponse().getContentAsString();
         for(Long asset:List.of(a,b,ram)) { assertThat(state(asset)).isEqualTo("IN_USE"); assertThat(jdbc.queryForObject("SELECT assigned_to FROM assets WHERE asset_id=?",Long.class,asset)).isEqualTo(recipient()); }
         assertThat(state(pkg)).isEqualTo("IN_STOCK");
@@ -100,8 +100,8 @@ class T15HandoverIntegrationTest {
         Long pkg=license("PER_USER",10);
         var r=handovers.complete(confirmed(request(List.of(),List.of(new HandoverRequest.LicenseLine(pkg,3,null)))));
         assertThat(r.lines().get(0).seats()).isEqualTo(3); assertThat(assets.getAssetById(pkg).getLicense().availableSeats()).isEqualTo(7); assertThat(state(pkg)).isEqualTo("IN_STOCK");
-        assertThat(r.lines().get(0).details().get("availableSeatsBefore")).isEqualTo(10L);
-        assertThat(r.lines().get(0).details().get("availableSeatsAfter")).isEqualTo(7L);
+        assertThat(((Number)r.lines().get(0).details().get("availableSeatsBefore")).longValue()).isEqualTo(10L);
+        assertThat(((Number)r.lines().get(0).details().get("availableSeatsAfter")).longValue()).isEqualTo(7L);
         assertThat(r.lines().get(0).allocations()).hasSize(3).allMatch(a->a.seats()==1);
         assertThat(r.lines().get(0).allocations().stream().map(a->a.allocationId()).distinct()).hasSize(3);
     }
@@ -149,7 +149,7 @@ class T15HandoverIntegrationTest {
     }
     @Test void rejectsCapacityAndMultiSeatDeviceLink() throws Exception {
         Long pkg=license("PER_USER",1),device=create("DEVICE");
-        mvc.perform(post("/v1/handovers/preview").contentType("application/json").content(json.writeValueAsString(request(List.of(),List.of(new HandoverRequest.LicenseLine(pkg,2,null)))))).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("LICENSE_CAPACITY_EXCEEDED"));
+        mvc.perform(post("/v1/handovers/preview").contentType("application/json").content(json.writeValueAsString(request(List.of(),List.of(new HandoverRequest.LicenseLine(pkg,2,null)))))).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("WORKFLOW_LICENSE_CAPACITY"));
         mvc.perform(post("/v1/handovers/preview").contentType("application/json").content(json.writeValueAsString(request(List.of(),List.of(new HandoverRequest.LicenseLine(pkg,1,device)))))).andExpect(status().isConflict());
     }
     @ParameterizedTest @ValueSource(strings={"PUR_STAFF","USER"})

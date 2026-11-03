@@ -45,6 +45,8 @@ import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
+import com.company.itam.workflow.core.dto.WorkflowProgressModels.*;
+import com.company.itam.workflow.core.service.WorkflowProgressService;
 
 @Service
 @Transactional(readOnly = true)
@@ -63,6 +65,7 @@ public class DisposalService {
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper;
     private final int minimumAgeYears;
+    private final WorkflowProgressService progress;
 
     public DisposalService(AssetRepository assets, AssetRelationshipRepository relationships,
             LicenseAllocationRepository allocations, TransactionRepository transactions,
@@ -75,6 +78,7 @@ public class DisposalService {
         this.statuses = statuses; this.users = users; this.audit = audit;
         this.jdbc = jdbc; this.mapper = mapper; this.minimumAgeYears = minimumAgeYears;
         this.workflowAccess = workflowAccess;
+        this.progress = new WorkflowProgressService(jdbc, mapper);
     }
 
     public PageResponse<AssetLine> candidates(String keyword, int page, int size) {
@@ -99,7 +103,15 @@ public class DisposalService {
             String snapshot = jdbc.queryForList("SELECT snapshot::text FROM transaction_publication_snapshots WHERE transaction_id=?",
                     String.class, id).stream().findFirst().orElseThrow(() ->
                     new AppException(HttpStatus.CONFLICT, "PUBLICATION_SNAPSHOT_MISSING", "PUBLICATION_SNAPSHOT_MISSING"));
-            try { return mapper.readValue(snapshot, DisposalResponse.class); }
+            try {
+                var frozen=mapper.readTree(snapshot).deepCopy();
+                if(frozen.has("proposalAssets")) {
+                    ((ObjectNode)frozen).set("assets",frozen.get("proposalAssets"));
+                    ((ObjectNode)frozen).set("oemAllocations",frozen.get("proposalOemAllocations"));
+                    ((ObjectNode)frozen).set("perUserLinks",frozen.get("proposalPerUserLinks"));
+                }
+                return mapper.treeToValue(frozen,DisposalResponse.class);
+            }
             catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
                 throw new IllegalStateException("Invalid disposal publication snapshot", ex);
             }
@@ -136,6 +148,8 @@ public class DisposalService {
             item.setAsset(assets.getReferenceById(selected.assetId())); item.setLineNumber(++number);
             item.setNotes(selected.autoAdded() ? "AUTO_ADDED" : null); lines.save(item);
         }
+        lines.flush();
+        if(status==TransactionStatus.PENDING) progress.save(tx.getTransactionId(),groups(tx));
         recordTransaction(tx, actor, "DISPOSAL_CREATED", Map.of("status", status.name(),
                 "assetIds", checked.assetLines().stream().map(AssetLine::assetId).toList()));
         return response(tx, detail, checked);
@@ -216,6 +230,7 @@ public class DisposalService {
         var prepared = prepareStored(lines.findByTransactionTransactionId(id), true);
         if (!fingerprint(tx,detail,prepared).equals(expectedFingerprint)) conflict("DISPOSAL_CHANGED");
         workflowAccess.requireCreator(tx,"cancel".equals(action) && tx.getStatus() == TransactionStatus.PENDING);
+        if (progress.read(id).stream().anyMatch(g->Set.of("APPROVED","COMPLETED").contains(g.status()))) conflict("DOCUMENT_LOCKED");
         TransactionStatus next;
         if ("withdraw".equals(action) && tx.getStatus() == TransactionStatus.PENDING) next = TransactionStatus.DRAFT;
         else if ("submit".equals(action) && tx.getStatus() == TransactionStatus.DRAFT) next = TransactionStatus.PENDING;
@@ -226,6 +241,9 @@ public class DisposalService {
             requireAvailable(prepared, id);
         }
         tx.setStatus(next); tx.setUpdatedAt(Instant.now());
+        if(next==TransactionStatus.PENDING) { jdbc.update("DELETE FROM workflow_progress WHERE transaction_id=?",id); progress.save(id,groups(tx)); }
+        else if(next==TransactionStatus.DRAFT) jdbc.update("DELETE FROM workflow_progress WHERE transaction_id=?",id);
+        else if(next==TransactionStatus.CANCELLED) progress.save(id,groups(tx).stream().map(g->new Group(g.groupId(),"CANCELLED",g.assetIds(),g.allocationIds(),g.reason(),g.approvedAt(),g.dueDate())).toList());
         tx.setContentVersion(tx.getContentVersion()+1);
         recordTransaction(tx,actor(),action.toUpperCase(Locale.ROOT),Map.of("status",next.name()));
         return response(tx,detail,prepared);
@@ -251,6 +269,83 @@ public class DisposalService {
         requireAvailable(current, id);
         if (!current.perUserLinks().isEmpty()) conflict("DISPOSAL_PER_USER_LINKED");
 
+        return decide(id,new Action(tx.getContentVersion(),groups(tx).stream().filter(g->"PENDING".equals(g.status())).map(Group::groupId).toList(),null),"APPROVED");
+    }
+
+    public Map<String,Object> progress(Long id) {
+        var tx=disposal(id);
+        return Map.of("contentVersion",tx.getContentVersion(),"groups",groups(tx));
+    }
+    private List<Group> groups(TransactionEntity tx) {
+        var saved=progress.read(tx.getTransactionId());
+        if(!saved.isEmpty()) return saved;
+        var ids=lines.findByTransactionTransactionId(tx.getTransactionId()).stream().map(l->l.getAsset().getAssetId()).collect(java.util.stream.Collectors.toCollection(TreeSet::new));
+        var sets=new ArrayList<TreeSet<Long>>();
+        for(var id:ids) sets.add(new TreeSet<>(Set.of(id)));
+        for(var link:scalarLinks(ids)) if(ids.contains(link.child()) && RelationshipType.COMPONENT_OF.name().equals(link.type())) {
+            var a=sets.stream().filter(v->v.contains(link.parent())).findFirst().orElseThrow();
+            var b=sets.stream().filter(v->v.contains(link.child())).findFirst().orElseThrow();
+            if(a!=b){a.addAll(b);sets.remove(b);}
+        }
+        return sets.stream().map(v->new Group("asset-"+v.first(),Set.of(TransactionStatus.COMPLETED,TransactionStatus.REJECTED,TransactionStatus.CANCELLED,TransactionStatus.APPROVED).contains(tx.getStatus())?tx.getStatus().name():"PENDING",List.copyOf(v),scalarLinks(v).stream().filter(l->LicenseCodes.OEM.equals(l.assignment())).map(ScalarLink::allocation).toList(),null,tx.getProcessedAt(),tx.getProcessedAt()==null?null:DisposalDeadlineService.addWorkingDays(tx.getProcessedAt().atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate(),7))).toList();
+    }
+    @Transactional
+    public DisposalResponse decide(Long id,Action request,String status) {
+        var tx=transactions.findForUpdate(id).orElseThrow();
+        if(tx.getType()!=TransactionType.DISPOSAL || !Set.of(TransactionStatus.PENDING,TransactionStatus.APPROVED,TransactionStatus.PARTIAL).contains(tx.getStatus())) conflict("DOCUMENT_LOCKED");
+        if(!"CANCELLED".equals(status) && SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().noneMatch(a->a.getAuthority().equals("ADMIN"))) throw new org.springframework.security.access.AccessDeniedException("ADMIN required");
+        progress.requireVersion(tx,request.expectedVersion());
+        if(!"APPROVED".equals(status) && (request.reason()==null||request.reason().isBlank())) bad("TRANSACTION_REQUEST_INVALID");
+        var all=groups(tx);
+        var selected=all.stream().filter(g->request.groupIds().contains(g.groupId())).toList();
+        if(selected.isEmpty()||selected.size()!=new HashSet<>(request.groupIds()).size()||selected.size()!=request.groupIds().size()||selected.stream().anyMatch(g->!"PENDING".equals(g.status())&&!("CANCELLED".equals(status)&&"APPROVED".equals(g.status())))) conflict("WORKFLOW_SELECTION_INVALID");
+        if("CANCELLED".equals(status) && selected.stream().anyMatch(g->"PENDING".equals(g.status()))) workflowAccess.requireCreator(tx,true);
+        var selectedIds=selected.stream().flatMap(g->g.assetIds().stream()).collect(java.util.stream.Collectors.toSet());
+        var checked=prepareStored(lines.findByTransactionTransactionId(id).stream().filter(l->selectedIds.contains(l.getAsset().getAssetId())).toList(),true);
+        if("APPROVED".equals(status)) {
+            validateStoredExpansion(lines.findByTransactionTransactionId(id).stream().filter(l->selectedIds.contains(l.getAsset().getAssetId())).toList(),checked);
+            requireAvailable(checked,id);
+            if(!checked.perUserLinks().isEmpty()) conflict("DISPOSAL_PER_USER_LINKED");
+            for(var line:checked.assetLines()) if(!line.autoAdded()) eligible(assetState(line.assetId()));
+        }
+        var next=all.stream().map(g->selected.contains(g)?new Group(g.groupId(),status,g.assetIds(),g.allocationIds(),request.reason(),"APPROVED".equals(status)?Instant.now():g.approvedAt(),"APPROVED".equals(status)?workingDeadline():g.dueDate()):g).toList();
+        progress.save(id,next);progress.advance(tx);updateState(tx,next);
+        recordTransaction(tx,actor(),"DISPOSAL_"+status,Map.of("groupIds",request.groupIds(),"reason",Objects.toString(request.reason(),"")));
+        transactions.flush();
+        if(tx.getStatus()==TransactionStatus.COMPLETED) {
+            savePublicationSnapshot(tx,response(tx,details.findById(id).orElseThrow(),prepareStored(lines.findByTransactionTransactionId(id),false)));
+        }
+        return get(id);
+    }
+    private LocalDate workingDeadline(){return DisposalDeadlineService.addWorkingDays(LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")),7);}
+    private void updateState(TransactionEntity tx,List<Group> groups){
+        boolean pending=groups.stream().anyMatch(g->"PENDING".equals(g.status()));
+        boolean approved=groups.stream().anyMatch(g->"APPROVED".equals(g.status()));
+        boolean done=groups.stream().anyMatch(g->"COMPLETED".equals(g.status()));
+        tx.setStatus(done?(pending||approved?TransactionStatus.PARTIAL:TransactionStatus.COMPLETED):approved?TransactionStatus.APPROVED:pending?TransactionStatus.PENDING:groups.stream().allMatch(g->"REJECTED".equals(g.status()))?TransactionStatus.REJECTED:TransactionStatus.CANCELLED);
+        boolean processed=Set.of(TransactionStatus.APPROVED,TransactionStatus.PARTIAL,TransactionStatus.COMPLETED,TransactionStatus.REJECTED).contains(tx.getStatus());
+        tx.setProcessedBy(processed?actor():null);tx.setProcessedAt(processed?Instant.now():null);tx.setCompletedAt(tx.getStatus()==TransactionStatus.COMPLETED?Instant.now():null);
+        tx.setRejectionReason(tx.getStatus()==TransactionStatus.REJECTED?groups.stream().map(Group::reason).filter(Objects::nonNull).findFirst().orElse("Rejected"):null);
+    }
+
+    @Transactional
+    public DisposalResponse execute(Long id, ExecuteRequest request) {
+        var tx = transactions.findForUpdate(id).orElseThrow(() -> new ResourceNotFoundException("DISPOSAL_NOT_FOUND"));
+        if (tx.getType()!=TransactionType.DISPOSAL || !Set.of(TransactionStatus.APPROVED,TransactionStatus.PARTIAL,TransactionStatus.PENDING).contains(tx.getStatus())) conflict("DOCUMENT_LOCKED");
+        progress.requireVersion(tx,request.expectedVersion());
+        if (request.executionDate()==null || request.executionDate().isAfter(LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))) bad("TRANSACTION_REQUEST_INVALID");
+        if (!Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM documents d JOIN transaction_document_links l USING(document_id) WHERE l.transaction_id=? AND d.document_id=? AND d.document_type IN ('DISPOSAL_REPORT','OTHER') AND d.publication_version IS NULL)", Boolean.class,id,request.documentId()))) bad("TRANSACTION_REQUEST_INVALID");
+        var detail = details.findById(id).orElseThrow();
+        var stored = lines.findByTransactionTransactionId(id);
+        var all=groups(tx);
+        var selected=progress.requireSelection(all,request.groupIds(),"APPROVED");
+        var selectedIds=selected.stream().flatMap(g->g.assetIds().stream()).collect(java.util.stream.Collectors.toSet());
+        var current = prepareStored(stored.stream().filter(l->selectedIds.contains(l.getAsset().getAssetId())).toList(),true);
+        validateStoredExpansion(stored.stream().filter(l->selectedIds.contains(l.getAsset().getAssetId())).toList(),current);
+        requireAvailable(current,id);
+        if (!current.perUserLinks().isEmpty()) conflict("DISPOSAL_PER_USER_LINKED");
+        tx.setContentVersion(tx.getContentVersion()+1);
+        recordTransaction(tx,actor(),"DISPOSAL_EXECUTION_EVIDENCE",Map.of("documentId",request.documentId(),"executionDate",request.executionDate().toString(),"groupIds",request.groupIds()));
         UserEntity actor = actor();
         var retired = statuses.findByCode(AssetStatus.RETIRED).orElseThrow();
         for (AssetEntity asset : current.assets()) {
@@ -271,24 +366,21 @@ public class DisposalService {
                 });
         allocations.flush(); assets.flush(); audit.flush();
 
-        Instant now = Instant.now(); tx.setStatus(TransactionStatus.COMPLETED); tx.setProcessedBy(actor);
-        tx.setProcessedAt(now); tx.setCompletedAt(now); tx.setUpdatedAt(now);
+        Instant now = Instant.now();
+        var next=all.stream().map(g->selected.contains(g)?new Group(g.groupId(),"COMPLETED",g.assetIds(),g.allocationIds(),g.reason(),g.approvedAt(),g.dueDate(),request.executionDate(),request.documentId()):g).toList();
+        progress.save(id,next);updateState(tx,next);tx.setUpdatedAt(now);
         recordTransaction(tx, actor, "DISPOSAL_COMPLETED", Map.of("status", "COMPLETED"));
         transactions.flush(); assets.flush(); audit.flush();
         DisposalResponse result = response(tx, detail, prepareStored(stored, false));
-        savePublicationSnapshot(tx, result);
+        if(tx.getStatus()==TransactionStatus.COMPLETED) savePublicationSnapshot(tx, result);
         return result;
     }
 
     @Transactional
     @PreAuthorize("hasAuthority('ADMIN')")
     public DisposalResponse reject(Long id, RejectRequest request) {
-        TransactionEntity tx = pending(id); UserEntity actor = actor(); Instant now = Instant.now();
-        tx.setStatus(TransactionStatus.REJECTED); tx.setProcessedBy(actor); tx.setProcessedAt(now);
-        tx.setUpdatedAt(now); tx.setRejectionReason(request.reason().trim());
-        recordTransaction(tx, actor, "DISPOSAL_REJECTED", Map.of("status", "REJECTED", "reason", request.reason().trim()));
-        var detail = details.findById(id).orElseThrow();
-        return response(tx, detail, prepareStored(lines.findByTransactionTransactionId(id), false));
+        var tx=pending(id);progress.requireVersion(tx,request.expectedVersion());
+        return decide(id,new Action(request.expectedVersion(),groups(tx).stream().filter(g->"PENDING".equals(g.status())).map(Group::groupId).toList(),request.reason()),"REJECTED");
     }
 
     private Prepared prepareSelection(List<Long> selectedIds, boolean lock) {
@@ -308,16 +400,23 @@ public class DisposalService {
 
     private void requireAvailable(Prepared prepared, Long transactionId) {
         for (AssetLine line : prepared.assetLines()) {
+            progress.requireAssetAvailable(line.assetId(),transactionId);
             if (assets.hasPendingRecovery(line.assetId())) conflict("RECOVERY_ASSET_RESERVED");
             if (assets.hasPendingHandover(line.assetId())) conflict("HANDOVER_ASSET_RESERVED");
             if (Boolean.TRUE.equals(jdbc.queryForObject("""
                     SELECT EXISTS(SELECT 1 FROM transaction_assets ta JOIN transactions t USING(transaction_id)
-                    WHERE ta.asset_id=? AND t.type='DISPOSAL' AND t.status='PENDING' AND t.transaction_id<>?)
+                    WHERE ta.asset_id=? AND t.type='DISPOSAL' AND t.status IN ('PENDING','APPROVED','PARTIAL') AND t.transaction_id<>?
+                    AND (NOT EXISTS(SELECT 1 FROM workflow_progress wp WHERE wp.transaction_id=t.transaction_id)
+                         OR EXISTS(SELECT 1 FROM workflow_progress wp, jsonb_array_elements(wp.groups) g
+                            WHERE wp.transaction_id=t.transaction_id AND g->>'status' IN ('PENDING','APPROVED')
+                              AND (g->'assetIds') @> to_jsonb(ARRAY[ta.asset_id]))))
                     """, Boolean.class, line.assetId(), transactionId))) conflict("DISPOSAL_ALREADY_PENDING");
         }
     }
 
     private SortedMap<Long, Boolean> selectionTargets(Collection<Long> selectedIds, List<ScalarLink> links) {
+        if(links.stream().anyMatch(link->RelationshipType.COMPONENT_OF.name().equals(link.type())
+                && selectedIds.contains(link.child()) && !selectedIds.contains(link.parent()))) conflict("WORKFLOW_GROUP_REQUIRED");
         var targets = new TreeMap<Long, Boolean>();
         for (Long id : selectedIds) {
             AssetState asset = assetState(id); eligible(asset);
@@ -576,6 +675,16 @@ public class DisposalService {
 
     private void savePublicationSnapshot(TransactionEntity tx, DisposalResponse response) {
         ObjectNode snapshot = mapper.valueToTree(response);
+        var completed=progress.read(tx.getTransactionId()).stream().filter(g->"COMPLETED".equals(g.status())).flatMap(g->g.assetIds().stream()).collect(java.util.stream.Collectors.toSet());
+        if(!progress.read(tx.getTransactionId()).isEmpty()) {
+            snapshot.set("proposalAssets",snapshot.get("assets"));
+            snapshot.set("proposalOemAllocations",snapshot.get("oemAllocations"));
+            snapshot.set("proposalPerUserLinks",snapshot.get("perUserLinks"));
+            snapshot.set("assets",mapper.valueToTree(response.assets().stream().filter(a->completed.contains(a.assetId())).toList()));
+            snapshot.set("oemAllocations",mapper.valueToTree(response.oemAllocations().stream().filter(a->completed.contains(a.deviceId())).toList()));
+            snapshot.set("perUserLinks",mapper.valueToTree(response.perUserLinks().stream().filter(a->completed.contains(a.deviceId())).toList()));
+            snapshot.set("groups",mapper.valueToTree(progress.read(tx.getTransactionId())));
+        }
         var decisions = snapshot.putArray("perUserDecisions");
         jdbc.query("""
                 SELECT action,old_data::text,new_data::text FROM audit_logs
@@ -602,7 +711,7 @@ public class DisposalService {
 
     private void recordAsset(TransactionEntity tx, AssetEntity asset, UserEntity actor, String before) {
         var log = new AuditLogEntity(); log.setEntityType("ASSET"); log.setEntityId(asset.getAssetId());
-        log.setTransaction(tx); log.setActor(actor); log.setAction("DISPOSAL_APPROVED");
+        log.setTransaction(tx); log.setActor(actor); log.setAction("DISPOSAL_EXECUTED");
         log.setOldData(Map.of("status", before)); log.setNewData(Map.of("status", "RETIRED")); audit.save(log);
     }
 

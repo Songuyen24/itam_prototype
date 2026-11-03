@@ -37,6 +37,10 @@ public class DashboardService {
             COUNT(*) FILTER (WHERE c.code='LICENSE') AS packages
             FROM transaction_assets ta JOIN assets a USING(asset_id)
             JOIN asset_types ty USING(type_id) JOIN asset_categories c USING(category_id)
+            WHERE NOT EXISTS(SELECT 1 FROM workflow_progress wp WHERE wp.transaction_id=ta.transaction_id)
+                OR EXISTS(SELECT 1 FROM workflow_progress wp CROSS JOIN LATERAL jsonb_array_elements(wp.groups) g
+                    WHERE wp.transaction_id=ta.transaction_id AND g->>'status'='COMPLETED'
+                    AND g->'assetIds' @> to_jsonb(ARRAY[ta.asset_id]))
             GROUP BY ta.transaction_id) i USING(transaction_id)
         LEFT JOIN transaction_handover_details hd USING(transaction_id)
         LEFT JOIN transaction_recovery_details rd USING(transaction_id)
@@ -80,7 +84,7 @@ public class DashboardService {
             GROUP BY c.code ORDER BY c.code
             """));
         result.put("pendingReceivings", pending("IMPORT")); result.put("pendingDisposals", pending("DISPOSAL"));
-        result.put("pending",counts("SELECT type,COUNT(*) FROM transactions WHERE status='PENDING' GROUP BY type ORDER BY type"));
+        result.put("pending",counts("SELECT type,COUNT(*) FROM transactions WHERE status IN ('PENDING','PARTIAL','APPROVED') GROUP BY type ORDER BY type"));
         result.put("drafts",counts("SELECT type,COUNT(*) FROM transactions WHERE status='DRAFT' GROUP BY type ORDER BY type"));
         result.put("failedEmails",jdbc.queryForObject("""
             SELECT COUNT(*) FROM email_logs e WHERE e.status='FAILED' AND NOT EXISTS
@@ -101,5 +105,5 @@ public class DashboardService {
     private Map<String, Long> counts(String sql) {
         var result = new LinkedHashMap<String, Long>(); jdbc.query(sql, rs -> { result.put(rs.getString(1), rs.getLong(2)); }); return result;
     }
-    private long pending(String type) { return jdbc.queryForObject("SELECT COUNT(*) FROM transactions WHERE type=? AND status='PENDING'", Long.class, type); }
+    private long pending(String type) { return jdbc.queryForObject("SELECT COUNT(*) FROM transactions WHERE type=? AND status IN ('PENDING','PARTIAL','APPROVED')", Long.class, type); }
 }

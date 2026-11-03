@@ -73,7 +73,7 @@ public class SecurityConfig {
                             "/v1/transactions/*", "/api/v1/transactions/*")
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
                     .requestMatchers(HttpMethod.POST, "/v1/documents", "/api/v1/documents")
-                            .hasAnyAuthority("ADMIN", "PUR_STAFF")
+                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
                     .requestMatchers(HttpMethod.DELETE, "/v1/documents/*", "/api/v1/documents/*")
                             .hasAnyAuthority("ADMIN", "PUR_STAFF")
                     // Detail access also requires the ownership check in AssetService.

@@ -67,6 +67,10 @@ public class DocumentAccessService {
         }
     }
 
+    public void requireDisposalEvidenceRole(TransactionEntity transaction) {
+        if (transaction.getType() != TransactionType.DISPOSAL || !isManager(requireAuthentication())) throw denied();
+    }
+
     private Authentication requireAuthentication() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()

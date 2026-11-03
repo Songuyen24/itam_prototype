@@ -91,6 +91,7 @@
     "RETIRED": "Thanh lý / Ngừng sử dụng",
     "DRAFT": "Nháp",
     "PENDING": "Chờ xử lý",
+    "PARTIAL": "Hoàn tất một phần",
     "APPROVED": "Đã duyệt",
     "REJECTED": "Từ chối",
     "COMPLETED": "Hoàn thành",

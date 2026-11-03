@@ -68,11 +68,56 @@ class M3HandoverLifecycleIntegrationTest {
     }
     void login() { org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("admin@itam.example",null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ADMIN")))); }
     String state(Long id) { return jdbc.queryForObject("SELECT s.code FROM assets a JOIN asset_statuses s USING(status_id) WHERE asset_id=?",String.class,id); }
+    Long version(Long id) { return jdbc.queryForObject("SELECT content_version FROM transactions WHERE transaction_id=?",Long.class,id); }
 
 
     @Autowired com.company.itam.workflow.handover.service.HandoverHolderService holders;
     @Autowired com.company.itam.workflow.recovery.service.RecoveryService recoveries;
     @Autowired com.company.itam.workflow.disposal.service.DisposalService disposals;
+    @Test void selectedHandoverPreservesPendingAndCompletedHistory() throws Exception {
+        Long first=create("DEVICE"),second=create("DEVICE");
+        var draftRequest=confirmed(request(List.of(first,second),List.of()));
+        var tx=handovers.create(draftRequest);
+        long draftVersion=version(tx.transactionId());
+        mvc.perform(put("/v1/handovers/{id}",tx.transactionId()).header("X-Expected-Version",draftVersion).contentType("application/json").content(json.writeValueAsString(draftRequest)))
+                .andExpect(status().isOk());
+        mvc.perform(put("/v1/handovers/{id}",tx.transactionId()).header("X-Expected-Version",draftVersion).contentType("application/json").content(json.writeValueAsString(draftRequest)))
+                .andExpect(status().isConflict());
+        login();
+        handovers.submit(tx.transactionId());long version=version(tx.transactionId());
+        var action=Map.of("expectedVersion",version,"groupIds",List.of("asset:"+first));
+        mvc.perform(post("/v1/handovers/{id}/confirm",tx.transactionId()).contentType("application/json").content(json.writeValueAsString(action)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("PARTIAL"));
+        assertThat(state(first)).isEqualTo("IN_USE");assertThat(state(second)).isEqualTo("IN_STOCK");
+        mvc.perform(post("/v1/handovers/{id}/confirm",tx.transactionId()).contentType("application/json").content(json.writeValueAsString(action)))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/v1/handovers/{id}/cancel-lines",tx.transactionId()).header("X-Override-Reason","No longer needed")
+                .contentType("application/json").content(json.writeValueAsString(Map.of("expectedVersion",version(tx.transactionId()),"groupIds",List.of("asset:"+second),"reason","No longer needed"))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.lines.length()").value(1))
+                .andExpect(jsonPath("$.data.proposalLines.length()").value(2));
+        assertThat(state(second)).isEqualTo("IN_STOCK");
+        login();
+        assertThat(handovers.get(tx.transactionId()).groups().stream().map(g->g.status()).toList()).containsExactly("COMPLETED","CANCELLED");
+    }
+    @Test void perUserSeatsCanCompleteIndependently() throws Exception {
+        Long pkg=license("PER_USER",3);
+        var tx=handovers.create(confirmed(request(List.of(),List.of(new HandoverRequest.LicenseLine(pkg,3,null)))));
+        handovers.submit(tx.transactionId());
+        var groups=handovers.get(tx.transactionId()).groups();
+        assertThat(groups).hasSize(3);
+        mvc.perform(post("/v1/handovers/{id}/confirm",tx.transactionId()).contentType("application/json")
+                .content(json.writeValueAsString(Map.of("expectedVersion",version(tx.transactionId()),"groupIds",List.of(groups.getFirst().groupId())))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("PARTIAL"));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM license_allocations WHERE handover_transaction_id=? AND status='ACTIVE'",Integer.class,tx.transactionId())).isOne();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM license_allocations WHERE handover_transaction_id=? AND status='RESERVED'",Integer.class,tx.transactionId())).isEqualTo(2);
+        mvc.perform(post("/v1/handovers/{id}/cancel-lines",tx.transactionId()).header("X-Override-Reason","Only one seat needed")
+                .contentType("application/json").content(json.writeValueAsString(Map.of("expectedVersion",version(tx.transactionId()),
+                        "groupIds",List.of(groups.get(1).groupId(),groups.get(2).groupId()),"reason","Only one seat needed"))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.lines[0].seats").value(1));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM license_allocations WHERE handover_transaction_id=? AND status='RESERVED'",Integer.class,tx.transactionId())).isZero();
+    }
     @Test void pendingReservesBundleAndSeatsWithoutAssigningAndWithdrawReleases() throws Exception {
         Long device=create("DEVICE"),component=create("COMPONENT"),oem=license("OEM",1),perUser=license("PER_USER",2);
         var componentLink=relationships.create(device,component,RelationshipType.COMPONENT_OF);
@@ -113,12 +158,12 @@ class M3HandoverLifecycleIntegrationTest {
         var body=mvc.perform(post("/v1/handovers").with(user(actualIt).authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("IT_STAFF")))
             .contentType("application/json").content(json.writeValueAsString(req))).andExpect(status().isCreated()).andExpect(jsonPath("$.data.status").value("DRAFT")).andReturn().getResponse().getContentAsString();
         long id=json.readTree(body).path("data").path("transactionId").asLong();
-        mvc.perform(put("/v1/handovers/"+id).contentType("application/json").content(json.writeValueAsString(req))).andExpect(status().isBadRequest());
-        mvc.perform(put("/v1/handovers/"+id).header("X-Override-Reason","Correction").contentType("application/json").content(json.writeValueAsString(req))).andExpect(status().isOk());
-        mvc.perform(post("/v1/handovers/"+id+"/submit").with(user(actualIt).authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("IT_STAFF")))).andExpect(status().isOk());
-        mvc.perform(post("/v1/handovers/"+id+"/cancel").with(user(actualIt).authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("IT_STAFF")))).andExpect(status().isForbidden());
-        mvc.perform(post("/v1/handovers/"+id+"/cancel")).andExpect(status().isBadRequest());
-        mvc.perform(post("/v1/handovers/"+id+"/cancel").header("X-Override-Reason","Cancelled exception")).andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("CANCELLED"));
+        mvc.perform(put("/v1/handovers/"+id).header("X-Expected-Version",version(id)).contentType("application/json").content(json.writeValueAsString(req))).andExpect(status().isBadRequest());
+        mvc.perform(put("/v1/handovers/"+id).header("X-Expected-Version",version(id)).header("X-Override-Reason","Correction").contentType("application/json").content(json.writeValueAsString(req))).andExpect(status().isOk());
+        mvc.perform(post("/v1/handovers/"+id+"/submit").header("X-Expected-Version",version(id)).with(user(actualIt).authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("IT_STAFF")))).andExpect(status().isOk());
+        mvc.perform(post("/v1/handovers/"+id+"/cancel").header("X-Expected-Version",version(id)).with(user(actualIt).authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("IT_STAFF")))).andExpect(status().isForbidden());
+        mvc.perform(post("/v1/handovers/"+id+"/cancel").header("X-Expected-Version",version(id))).andExpect(status().isBadRequest());
+        mvc.perform(post("/v1/handovers/"+id+"/cancel").header("X-Expected-Version",version(id)).header("X-Override-Reason","Cancelled exception")).andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("CANCELLED"));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE entity_id=? AND action='ADMIN_OVERRIDE'",Long.class,id)).isEqualTo(2);
         for(String role:List.of("PUR_STAFF","USER")) {
             mvc.perform(get("/v1/handovers/holders").with(user("nobody").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority(role)))).andExpect(status().isForbidden());

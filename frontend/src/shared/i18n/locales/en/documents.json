@@ -6,6 +6,8 @@
   "tabs": {
     "DRAFT": "Draft",
     "PENDING": "Pending",
+    "PARTIAL": "Partially completed",
+    "APPROVED": "Approved",
     "FINAL": "Finished"
   },
   "statusTags": {

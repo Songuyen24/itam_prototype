@@ -63,7 +63,7 @@ class M4RecoveryLifecycleIntegrationTest {
         assertThat(state(device)).isEqualTo("IN_USE");
         assertThat(holder(device)).isEqualTo(returner());
 
-        mvc.perform(post("/v1/recoveries/{id}/submit", transactionId))
+        mvc.perform(post("/v1/recoveries/{id}/submit", transactionId).header("X-Expected-Version",version(transactionId)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("PENDING"));
         assertThat(state(device)).isEqualTo("IN_USE");
         assertThat(holder(device)).isEqualTo(returner());
@@ -75,21 +75,21 @@ class M4RecoveryLifecycleIntegrationTest {
         handover(device);
         Map<String, Object> body = request(device);
         long id = createRecovery(body).path("transactionId").asLong();
-        mvc.perform(post("/v1/recoveries/{id}/submit", id)).andExpect(status().isOk());
-        mvc.perform(post("/v1/recoveries/{id}/withdraw", id))
+        mvc.perform(post("/v1/recoveries/{id}/submit", id).header("X-Expected-Version",version(id))).andExpect(status().isOk());
+        mvc.perform(post("/v1/recoveries/{id}/withdraw", id).header("X-Expected-Version",version(id)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("DRAFT"));
         assertThat(state(device)).isEqualTo("IN_USE");
         assertThat(holder(device)).isEqualTo(returner());
 
-        mvc.perform(post("/v1/recoveries/{id}/submit", id)).andExpect(status().isOk());
-        mvc.perform(post("/v1/recoveries/{id}/confirm", id))
+        mvc.perform(post("/v1/recoveries/{id}/submit", id).header("X-Expected-Version",version(id))).andExpect(status().isOk());
+        mvc.perform(post("/v1/recoveries/{id}/confirm", id).header("X-Expected-Version",version(id)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("COMPLETED"));
-        mvc.perform(post("/v1/recoveries/{id}/confirm", id))
+        mvc.perform(post("/v1/recoveries/{id}/confirm", id).header("X-Expected-Version",version(id)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("COMPLETED"));
         assertThat(state(device)).isEqualTo("IN_STOCK");
         assertThat(holder(device)).isNull();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_assets WHERE transaction_id=? AND asset_id=?", Integer.class, id, device)).isOne();
-        mvc.perform(put("/v1/recoveries/{id}", id).contentType("application/json")
+        mvc.perform(put("/v1/recoveries/{id}", id).header("X-Expected-Version",version(id)).contentType("application/json")
                 .content(json.writeValueAsString(body))).andExpect(status().isConflict());
     }
 
@@ -98,17 +98,18 @@ class M4RecoveryLifecycleIntegrationTest {
         Long device = createDevice();
         handover(device);
         Map<String, Object> body = request(device);
-        long first = createRecovery(body).path("transactionId").asLong();
+        JsonNode firstDraft=createRecovery(body);
+        long first = firstDraft.path("transactionId").asLong();
         long second = createRecovery(body).path("transactionId").asLong();
-        mvc.perform(post("/v1/recoveries/{id}/submit", first)).andExpect(status().isOk());
-        mvc.perform(post("/v1/recoveries/{id}/submit", second)).andExpect(status().isConflict());
+        mvc.perform(post("/v1/recoveries/{id}/submit", first).header("X-Expected-Version",version(first))).andExpect(status().isOk());
+        mvc.perform(post("/v1/recoveries/{id}/submit", second).header("X-Expected-Version",version(second))).andExpect(status().isConflict());
         mvc.perform(get("/v1/recoveries/{id}", first))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("PENDING"));
-        mvc.perform(get("/v1/recoveries").param("status", "PENDING").param("page", "0").param("size", "1"))
+        mvc.perform(get("/v1/recoveries").param("status", "PENDING").param("keyword",firstDraft.path("transactionCode").asText()).param("page", "0").param("size", "1"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].transactionId").value(first));
-        mvc.perform(post("/v1/recoveries/{id}/withdraw", first)).andExpect(status().isOk());
-        mvc.perform(post("/v1/recoveries/{id}/submit", second)).andExpect(status().isOk());
+        mvc.perform(post("/v1/recoveries/{id}/withdraw", first).header("X-Expected-Version",version(first))).andExpect(status().isOk());
+        mvc.perform(post("/v1/recoveries/{id}/submit", second).header("X-Expected-Version",version(second))).andExpect(status().isOk());
     }
 
     @Test
@@ -122,13 +123,13 @@ class M4RecoveryLifecycleIntegrationTest {
                 .contentType("application/json").content(json.writeValueAsString(body)))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         long id = json.readTree(response).at("/data/transactionId").asLong();
-        mvc.perform(put("/v1/recoveries/{id}", id).with(user(peer).authorities(() -> "IT_STAFF"))
+        mvc.perform(put("/v1/recoveries/{id}", id).header("X-Expected-Version",version(id)).with(user(peer).authorities(() -> "IT_STAFF"))
                 .contentType("application/json").content(json.writeValueAsString(body))).andExpect(status().isForbidden());
-        mvc.perform(put("/v1/recoveries/{id}", id).with(user(creator).authorities(() -> "IT_STAFF"))
+        mvc.perform(put("/v1/recoveries/{id}", id).header("X-Expected-Version",version(id)).with(user(creator).authorities(() -> "IT_STAFF"))
                 .contentType("application/json").content(json.writeValueAsString(body))).andExpect(status().isOk());
-        mvc.perform(post("/v1/recoveries/{id}/submit", id).with(user(creator).authorities(() -> "IT_STAFF"))).andExpect(status().isOk());
-        mvc.perform(post("/v1/recoveries/{id}/cancel", id).with(user(creator).authorities(() -> "IT_STAFF"))).andExpect(status().isForbidden());
-        mvc.perform(post("/v1/recoveries/{id}/confirm", id).with(user(peer).authorities(() -> "IT_STAFF")))
+        mvc.perform(post("/v1/recoveries/{id}/submit", id).header("X-Expected-Version",version(id)).with(user(creator).authorities(() -> "IT_STAFF"))).andExpect(status().isOk());
+        mvc.perform(post("/v1/recoveries/{id}/cancel", id).header("X-Expected-Version",version(id)).with(user(creator).authorities(() -> "IT_STAFF"))).andExpect(status().isForbidden());
+        mvc.perform(post("/v1/recoveries/{id}/confirm", id).header("X-Expected-Version",version(id)).with(user(peer).authorities(() -> "IT_STAFF")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("COMPLETED"));
     }
 
@@ -141,12 +142,51 @@ class M4RecoveryLifecycleIntegrationTest {
                         .contentType("application/json").content(json.writeValueAsString(request(device))))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         long id = json.readTree(response).at("/data/transactionId").asLong();
-        mvc.perform(post("/v1/recoveries/{id}/submit", id).with(user(creator).authorities(() -> "IT_STAFF"))).andExpect(status().isOk());
-        mvc.perform(post("/v1/recoveries/{id}/cancel", id)).andExpect(status().isBadRequest());
-        mvc.perform(post("/v1/recoveries/{id}/cancel", id).header("X-Override-Reason", "Correct scheduled return"))
+        mvc.perform(post("/v1/recoveries/{id}/submit", id).header("X-Expected-Version",version(id)).with(user(creator).authorities(() -> "IT_STAFF"))).andExpect(status().isOk());
+        mvc.perform(post("/v1/recoveries/{id}/cancel", id).header("X-Expected-Version",version(id))).andExpect(status().isBadRequest());
+        mvc.perform(post("/v1/recoveries/{id}/cancel", id).header("X-Expected-Version",version(id)).header("X-Override-Reason", "Correct scheduled return"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("CANCELLED"));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE entity_id=? AND action='ADMIN_OVERRIDE'", Integer.class, id)).isOne();
         assertThat(state(device)).isEqualTo("IN_USE");
+    }
+    @Test
+    void selectedRecoveryKeepsRemainderAndRejectsStaleRetry() throws Exception {
+        Long first=createDevice(), second=createDevice();handover(first);handover(second);
+        String check=mvc.perform(post("/v1/recoveries/smart-check").contentType("application/json")
+                .content(json.writeValueAsString(Map.of("assetIds",List.of(first,second),"allocationIds",List.of(),"returnerUserId",returner(),"reason","split return"))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var body=Map.of("returnerUserId",returner(),"receivingLocationId",location(),"recoveryDate","2026-10-21",
+                "reason","split return","assetIds",List.of(first,second),"allocationIds",List.of(),
+                "componentActions",Map.of(),"perUserActions",Map.of(),"expectedFingerprint",json.readTree(check).at("/data/fingerprint").asText());
+        long id=createRecovery(body).path("transactionId").asLong();
+        long draftVersion=version(id);
+        mvc.perform(put("/v1/recoveries/{id}",id).header("X-Expected-Version",draftVersion).contentType("application/json").content(json.writeValueAsString(body)))
+                .andExpect(status().isOk());
+        mvc.perform(put("/v1/recoveries/{id}",id).header("X-Expected-Version",draftVersion).contentType("application/json").content(json.writeValueAsString(body)))
+                .andExpect(status().isConflict());
+        String submitted=mvc.perform(post("/v1/recoveries/{id}/submit",id).header("X-Expected-Version",version(id))).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        long version=json.readTree(submitted).at("/data/contentVersion").asLong();
+        var firstAction=Map.of("expectedVersion",version,"groupIds",List.of("asset:"+first));
+        mvc.perform(post("/v1/recoveries/{id}/confirm",id).contentType("application/json").content(json.writeValueAsString(firstAction)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("PARTIAL"));
+        assertThat(state(first)).isEqualTo("IN_STOCK");assertThat(state(second)).isEqualTo("IN_USE");
+        mvc.perform(post("/v1/recoveries/{id}/confirm",id).contentType("application/json").content(json.writeValueAsString(firstAction)))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/v1/recoveries/{id}/withdraw",id).header("X-Expected-Version",version(id))).andExpect(status().isConflict());
+        String current=mvc.perform(get("/v1/recoveries/{id}",id)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.lines.length()").value(2)).andReturn().getResponse().getContentAsString();
+        long nextVersion=json.readTree(current).at("/data/contentVersion").asLong();
+        mvc.perform(post("/v1/recoveries/{id}/cancel-remaining",id).header("X-Override-Reason","No longer scheduled").contentType("application/json")
+                .content(json.writeValueAsString(Map.of("expectedVersion",nextVersion,"groupIds",List.of("asset:"+second)))))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/v1/recoveries/{id}/cancel-remaining",id).header("X-Override-Reason","No longer scheduled").contentType("application/json")
+                .content(json.writeValueAsString(Map.of("expectedVersion",nextVersion,"groupIds",List.of("asset:"+second),"reason","No longer scheduled"))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.lines.length()").value(1))
+                .andExpect(jsonPath("$.data.proposalLines.length()").value(2));
+        assertThat(state(second)).isEqualTo("IN_USE");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE entity_id=? AND action='RECOVERY_REMAINDER_CANCELLED'",Integer.class,id)).isOne();
     }
 
     private JsonNode createRecovery(Map<String, Object> request) throws Exception {
@@ -187,6 +227,7 @@ class M4RecoveryLifecycleIntegrationTest {
         return email;
     }
     private Long location() { return jdbc.queryForObject("SELECT location_id FROM locations WHERE code='M4_TEST'", Long.class); }
+    private Long version(Long id) { return jdbc.queryForObject("SELECT content_version FROM transactions WHERE transaction_id=?",Long.class,id); }
     private String state(Long assetId) { return jdbc.queryForObject("SELECT s.code FROM assets a JOIN asset_statuses s USING(status_id) WHERE asset_id=?", String.class, assetId); }
     private Long holder(Long assetId) { return jdbc.queryForObject("SELECT assigned_to FROM assets WHERE asset_id=?", Long.class, assetId); }
 }

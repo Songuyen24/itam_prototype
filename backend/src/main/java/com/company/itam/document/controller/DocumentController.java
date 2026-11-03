@@ -113,7 +113,7 @@ public class DocumentController {
     }
     public record PreviewData(String mimeType, String contentBase64) {}
 
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'PUR_STAFF')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'PUR_STAFF')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<DocumentResponse>> upload(
             @RequestParam MultipartFile file,

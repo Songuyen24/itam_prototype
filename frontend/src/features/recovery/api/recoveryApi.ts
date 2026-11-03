@@ -1,5 +1,6 @@
 import { httpClient } from '@/shared/api/httpClient';
 import { ApiResponse, PageResponse } from '@/features/catalogs/types/catalog.types';
+import type { GroupAction, WorkflowGroup } from '@/shared/types/workflowGroup';
 
 export interface SmartCheckResponse {
   requiredAssets: { assetId: number; assetTag: string; name: string; category: string; reason: string | null }[];
@@ -70,7 +71,10 @@ export interface Recovery {
   reason: string;
   fingerprint: string;
   lines: RecoveryLine[];
-  status: 'DRAFT' | 'PENDING' | 'COMPLETED' | 'CANCELLED' | null;
+  proposalLines?: RecoveryLine[];
+  status: 'DRAFT' | 'PENDING' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED' | null;
+  contentVersion?: number;
+  groups?: WorkflowGroup[];
   creatorUserId: number | null;
   creatorName: string | null;
   request: RecoveryRequest | null;
@@ -81,12 +85,13 @@ export const recoveryApi = {
     httpClient<ApiResponse<SmartCheckResponse>>('/v1/recoveries/smart-check', { method: 'POST', body: JSON.stringify(body) }),
   create: (body: RecoveryRequest) =>
     httpClient<ApiResponse<Recovery>>('/v1/recoveries', { method: 'POST', body: JSON.stringify(body) }),
-  edit: (id: number, body: RecoveryRequest, reason = '') =>
-    httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}`, { method: 'PUT', headers: reason ? { 'X-Override-Reason': encodeURIComponent(reason.trim()) } : undefined, body: JSON.stringify(body) }),
-  submit: (id: number) => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/submit`, { method: 'POST' }),
-  withdraw: (id: number, reason = '') => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/withdraw`, { method: 'POST', headers: reason ? { 'X-Override-Reason': encodeURIComponent(reason.trim()) } : undefined }),
-  cancel: (id: number, reason = '') => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/cancel`, { method: 'POST', headers: reason ? { 'X-Override-Reason': encodeURIComponent(reason.trim()) } : undefined }),
-  confirm: (id: number) => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/confirm`, { method: 'POST' }),
+  edit: (id: number, body: RecoveryRequest, version: number, reason = '') =>
+    httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}`, { method: 'PUT', headers: { 'X-Expected-Version': String(version), ...(reason ? { 'X-Override-Reason': encodeURIComponent(reason.trim()) } : {}) }, body: JSON.stringify(body) }),
+  submit: (id: number, version: number) => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/submit`, { method: 'POST', headers: { 'X-Expected-Version': String(version) } }),
+  withdraw: (id: number, version: number, reason = '') => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/withdraw`, { method: 'POST', headers: { 'X-Expected-Version': String(version), ...(reason ? { 'X-Override-Reason': encodeURIComponent(reason.trim()) } : {}) } }),
+  cancel: (id: number, version: number, reason = '') => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/cancel`, { method: 'POST', headers: { 'X-Expected-Version': String(version), ...(reason ? { 'X-Override-Reason': encodeURIComponent(reason.trim()) } : {}) } }),
+  confirm: (id: number, body: GroupAction) => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/confirm`, { method: 'POST', body: JSON.stringify(body) }),
+  cancelRemaining: (id: number, body: GroupAction) => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}/cancel-remaining`, { method: 'POST', headers: { 'X-Override-Reason': encodeURIComponent(body.reason!.trim()) }, body: JSON.stringify(body) }),
   list: (keyword = '', status = '', page = 0, size = 20) => httpClient<ApiResponse<PageResponse<Recovery>>>(`/v1/recoveries?${new URLSearchParams({ keyword, status, page: String(page), size: String(size) })}`),
   detail: (id: number) => httpClient<ApiResponse<Recovery>>(`/v1/recoveries/${id}`),
 };

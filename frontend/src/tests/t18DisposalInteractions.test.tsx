@@ -18,6 +18,7 @@ const summary = { transactionId: 9, transactionCode: 'DIS-09', status: 'PENDING'
 const detail = (fingerprint = 'viewed', status: 'PENDING' | 'DRAFT' | 'COMPLETED' | 'REJECTED' = 'PENDING') => ({
   transactionId: 9, transactionCode: 'DIS-09', status, actorName: 'Mai', reason: 'Broken', disposalDate: '2026-09-15',
   createdAt: '2026-09-14T10:00:00Z', assets: [asset(1)], warnings: [], perUserLinks: [], oemAllocations: [], fingerprint,
+  contentVersion: fingerprint === 'refreshed' ? 4 : 3, groups: [{ groupId: 'asset:1', status: 'PENDING', assetIds: [1], allocationIds: [] }],
 });
 const renderers: ReactTestRenderer[] = [];
 const group = (tree: ReactTestRenderer, name: string) => tree.root.findAllByProps({ 'aria-label': `groups.${name}` })[0];
@@ -39,6 +40,7 @@ describe('T18 disposal interactions', () => {
       if (endpoint.includes('/candidates')) return Promise.resolve(page([asset(1)]));
       if (endpoint.startsWith('/v1/transactions')) return Promise.resolve(page([{ ...summary, status: 'DRAFT' }]));
       if (endpoint === '/v1/disposals/9') return Promise.resolve({ data: detail('draft', 'DRAFT') });
+      if (endpoint === '/v1/disposals/9/progress') return Promise.resolve({ data: { contentVersion: 3, groups: detail().groups } });
       throw new Error(`Unexpected ${endpoint}`);
     });
     auth.role = 'IT_STAFF';
@@ -60,20 +62,20 @@ describe('T18 disposal interactions', () => {
     client.mockImplementation((url?: string) => {
       const endpoint = String(url);
       if (endpoint.includes('/candidates')) return Promise.resolve(page([]));
-      if (endpoint.includes('statuses=')) return Promise.resolve(page([{ ...summary, transactionId: 12, transactionCode: 'DIS-F', status: 'REJECTED' }], 2));
+      if (endpoint.includes('statuses=COMPLETED')) return Promise.resolve(page([{ ...summary, transactionId: 12, transactionCode: 'DIS-F', status: 'REJECTED' }], 2));
       if (endpoint.includes('status=DRAFT')) return Promise.resolve(page([{ ...summary, transactionId: 11, transactionCode: 'DIS-D', status: 'DRAFT' }], 2));
-      if (endpoint.includes('status=PENDING')) return Promise.resolve(page([summary], 2));
+      if (endpoint.includes('statuses=PENDING')) return Promise.resolve(page([summary], 2));
       throw new Error(`Unexpected ${endpoint}`);
     });
     const tree = await renderPage();
     const queries = client.mock.calls.map(call => String(call[0]));
-    expect(queries.some(url => url.includes('type=DISPOSAL&status=PENDING'))).toBe(true);
+    expect(queries.some(url => url.includes('type=DISPOSAL&statuses=PENDING%2CPARTIAL%2CAPPROVED'))).toBe(true);
     expect(queries.some(url => url.includes('type=DISPOSAL&status=DRAFT'))).toBe(true);
     expect(queries.some(url => url.includes('statuses=COMPLETED%2CREJECTED%2CCANCELLED'))).toBe(true);
     expect(group(tree, 'FINAL').findAllByType('span').some(cell => cell.children.includes('statuses.REJECTED'))).toBe(true);
     await act(async () => group(tree, 'FINAL').findAllByType('button').find(button => button.children.includes('next'))!.props.onClick());
     expect(client.mock.calls.some(call => String(call[0]).includes('statuses=') && String(call[0]).includes('page=1'))).toBe(true);
-    expect(client.mock.calls.some(call => String(call[0]).includes('status=PENDING') && String(call[0]).includes('page=1'))).toBe(false);
+    expect(client.mock.calls.some(call => String(call[0]).includes('statuses=PENDING') && String(call[0]).includes('page=1'))).toBe(false);
     expect(client.mock.calls.some(call => String(call[0]).includes('status=DRAFT') && String(call[0]).includes('page=1'))).toBe(false);
   });
 
@@ -174,13 +176,15 @@ describe('T18 disposal interactions', () => {
         return Promise.resolve(page([first], completed ? 1 : 2));
       }
       if (endpoint === '/v1/disposals/9') return Promise.resolve({ data: detail() });
-      if (endpoint.endsWith('/approve')) { completed = true; return Promise.resolve({ data: detail('done', 'COMPLETED') }); }
+      if (endpoint === '/v1/disposals/9/progress') return Promise.resolve({ data: { contentVersion: 3, groups: detail().groups } });
+      if (endpoint.endsWith('/approve-selected')) { completed = true; return Promise.resolve({ data: detail('done', 'COMPLETED') }); }
       throw new Error(`Unexpected ${endpoint}`);
     });
     const tree = await renderPage();
     await act(async () => group(tree,'PENDING').findAllByType('button').find(button => button.children.includes('next'))!.props.onClick());
     await act(async () => group(tree,'PENDING').findAllByType('button').find(button => button.children.includes('review'))!.props.onClick({ currentTarget: {} }));
     act(() => tree.root.findAllByType('button').find(button => button.children.includes('approve'))!.props.onClick());
+    act(() => tree.root.findAllByType('input').find(input => input.props.type === 'checkbox')!.props.onChange());
     await act(async () => tree.root.findAllByType('button').find(button => button.children.includes('confirmApprove'))!.props.onClick());
     expect(group(tree,'PENDING').findAllByType('td').some(cell => cell.children.includes('DIS-08'))).toBe(true);
   });
@@ -191,6 +195,7 @@ describe('T18 disposal interactions', () => {
       if (endpoint.includes('/candidates')) return Promise.resolve(page([]));
       if (endpoint.startsWith('/v1/transactions')) return Promise.resolve(page([summary]));
       if (endpoint === '/v1/disposals/9') return Promise.resolve({ data: detail('done', 'COMPLETED') });
+      if (endpoint === '/v1/disposals/9/progress') return Promise.resolve({ data: { contentVersion: 3, groups: detail().groups } });
       throw new Error(`Unexpected mutation ${endpoint}`);
     });
     const tree = await renderPage();
@@ -208,7 +213,8 @@ describe('T18 disposal interactions', () => {
       if (endpoint.includes('/candidates')) return Promise.resolve(page([]));
       if (endpoint.startsWith('/v1/transactions')) return Promise.resolve(page([summary]));
       if (endpoint === '/v1/disposals/9') return Promise.resolve({ data: detail(viewed++ === 0 ? 'viewed' : 'refreshed') });
-      if (endpoint.endsWith('/approve')) {
+      if (endpoint === '/v1/disposals/9/progress') return Promise.resolve({ data: { contentVersion: viewed > 1 ? 4 : 3, groups: detail().groups } });
+      if (endpoint.endsWith('/approve-selected')) {
         approvals += 1;
         if (approvals === 1) return Promise.reject(new ApiError('Changed', 409, 'DISPOSAL_CHANGED'));
         return Promise.resolve({ data: detail('done', 'COMPLETED') });
@@ -218,18 +224,20 @@ describe('T18 disposal interactions', () => {
     const tree = await renderPage();
     const review = tree.root.findAllByType('button').find(button => button.children.includes('review'))!;
     await act(async () => review.props.onClick({ currentTarget: {} }));
-    expect(client.mock.calls.filter(call => String(call[0]).endsWith('/approve'))).toHaveLength(0);
+    expect(client.mock.calls.filter(call => String(call[0]).endsWith('/approve-selected'))).toHaveLength(0);
 
     const chooseApprove = () => tree.root.findAllByType('button').find(button => button.children.includes('approve'))!;
     act(() => chooseApprove().props.onClick());
+    act(() => tree.root.findAllByType('input').find(input => input.props.type === 'checkbox')!.props.onChange());
     await act(async () => tree.root.findAllByType('button').find(button => button.children.includes('confirmApprove'))!.props.onClick());
-    expect(client.mock.calls.filter(call => String(call[0]).endsWith('/approve'))).toHaveLength(1);
-    expect(client).toHaveBeenCalledWith('/v1/disposals/9/approve', { method: 'POST', body: JSON.stringify({ expectedFingerprint: 'viewed' }) });
-    expect(tree.root.findAllByProps({ role: 'alert' }).some(node => node.children.includes('changed'))).toBe(true);
+    expect(client.mock.calls.filter(call => String(call[0]).endsWith('/approve-selected'))).toHaveLength(1);
+    expect(client).toHaveBeenCalledWith('/v1/disposals/9/approve-selected', { method: 'POST', body: JSON.stringify({ expectedVersion: 3, groupIds: ['asset:1'] }) });
+    expect(tree.root.findAllByProps({ role: 'alert' }).some(node => String(node.children.join('')).includes('changed'))).toBe(true);
 
     act(() => chooseApprove().props.onClick());
+    act(() => tree.root.findAllByType('input').find(input => input.props.type === 'checkbox')!.props.onChange());
     await act(async () => tree.root.findAllByType('button').find(button => button.children.includes('confirmApprove'))!.props.onClick());
-    expect(client).toHaveBeenCalledWith('/v1/disposals/9/approve', { method: 'POST', body: JSON.stringify({ expectedFingerprint: 'refreshed' }) });
-    expect(tree.root.findAllByType('dialog')).toHaveLength(0);
+    expect(client).toHaveBeenCalledWith('/v1/disposals/9/approve-selected', { method: 'POST', body: JSON.stringify({ expectedVersion: 4, groupIds: ['asset:1'] }) });
+    expect(tree.root.findAllByType('dialog')).toHaveLength(1);
   });
 });

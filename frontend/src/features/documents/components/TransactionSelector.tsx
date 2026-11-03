@@ -38,7 +38,7 @@ export function TransactionSelector({ selectedId, onSelect, receiving=false, ref
     setTransactions([]);
     if (invalidRange) { setTotalPages(0); setTotalElements(0); setLoading(false); return; }
     documentApi.getTransactions({ keyword, type: receiving || user?.role === 'PUR_STAFF' ? 'IMPORT' : type || undefined,
-      ...(receiving ? { status: receivingStatus || undefined, from: from || undefined, to: to || undefined } : { statuses: tab === 'FINAL' ? ['COMPLETED', 'REJECTED', 'CANCELLED'] as TransactionStatus[] : [tab] }), page, size: receiving ? 20 : 8 })
+      ...(receiving ? { status: receivingStatus || undefined, from: from || undefined, to: to || undefined } : { statuses: tab === 'FINAL' ? ['COMPLETED', 'REJECTED', 'CANCELLED'] as TransactionStatus[] : tab === 'PENDING' ? ['PENDING', 'PARTIAL', 'APPROVED'] as TransactionStatus[] : [tab] }), page, size: receiving ? 20 : 8 })
       .then((response) => {
         if (!active) return;
         if (!response.success || !response.data) throw new Error(response.message || t('errors.transactions'));

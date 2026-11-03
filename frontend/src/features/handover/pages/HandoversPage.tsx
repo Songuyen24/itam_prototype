@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
+import { ApiError } from '@/shared/api/httpClient';
+import { WorkflowGroupList } from '@/shared/components/WorkflowGroupList';
 import { documentApi } from '@/features/documents/api/documentApi';
 import { ReceivingDateRangePicker } from '@/features/documents/components/ReceivingDateRangePicker';
 import { DocumentTransaction } from '@/features/documents/types/document.types';
@@ -35,6 +37,8 @@ export function HandoversPage() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [cancelReason, setCancelReason] = useState('');
   const [holderError, setHolderError] = useState('');
   const [receiptError, setReceiptError] = useState('');
   const [holderDetailError, setHolderDetailError] = useState('');
@@ -82,7 +86,7 @@ export function HandoversPage() {
   useEffect(() => {
     if (selectedId == null) return;
     let active = true; setReceiptDetailLoading(true); setReceiptDetailError(''); setDetail(null);
-    handoverApi.detail(selectedId).then(r => { if (active) setDetail(r.data); })
+    Promise.all([handoverApi.detail(selectedId), handoverApi.progress(selectedId)]).then(([r, p]) => { if (active) setDetail({ ...r.data, ...p.data }); })
       .catch(e => { if (active) setReceiptDetailError(e instanceof Error ? e.message : t('error')); })
       .finally(() => { if (active) setReceiptDetailLoading(false); });
     return () => { active = false; };
@@ -120,16 +124,38 @@ export function HandoversPage() {
     setHolderId(null); setHolderDetail(null);
     setHolderReload(r => r + 1); setReceiptReload(r => r + 1);
   }
-  async function act(action: 'submit' | 'withdraw' | 'cancel' | 'confirm') {
+  async function editConflict(error: ApiError) {
+    setEditing(false);
+    setReceiptDetailError(`${t('changed')} ${error.message}`);
+    if (selectedId == null) return;
+    try {
+      const [current, progress] = await Promise.all([handoverApi.detail(selectedId), handoverApi.progress(selectedId)]);
+      setDetail({ ...current.data, ...progress.data });
+    } catch { /* Keep the conflict visible. */ }
+  }
+  async function act(action: 'submit' | 'withdraw' | 'cancel' | 'confirm' | 'cancelRemaining') {
     if (!detail?.transactionId || acting) return;
     if (action === 'cancel' && !window.confirm(t('cancelConfirm'))) return;
+    if (action === 'confirm' && detail.groups?.length && !selectedGroups.length) return;
+    if (action === 'cancelRemaining' && (!cancelReason.trim() || !selectedGroups.length)) return;
     setActing(true); setReceiptDetailError('');
     try {
-      const result = await (action === 'submit' ? handoverApi.submit(detail.transactionId) : action === 'withdraw'
-        ? handoverApi.withdraw(detail.transactionId) : action === 'cancel'
-          ? handoverApi.cancel(detail.transactionId) : handoverApi.confirm(detail.transactionId));
-      setDetail(result.data); setConfirming(false); setHolderReload(r => r + 1); setReceiptReload(r => r + 1);
-    } catch (e) { setReceiptDetailError(e instanceof Error ? e.message : t('error')); }
+      const result = await (action === 'submit' ? handoverApi.submit(detail.transactionId, detail.contentVersion!) : action === 'withdraw'
+        ? handoverApi.withdraw(detail.transactionId, detail.contentVersion!) : action === 'cancel'
+          ? handoverApi.cancel(detail.transactionId, detail.contentVersion!) : action === 'cancelRemaining'
+            ? handoverApi.cancelRemaining(detail.transactionId, { expectedVersion: detail.contentVersion!, groupIds: selectedGroups, reason: cancelReason.trim() })
+            : handoverApi.confirm(detail.transactionId, { expectedVersion: detail.contentVersion!, groupIds: selectedGroups }));
+      const progress = await handoverApi.progress(detail.transactionId);
+      setDetail({ ...result.data, ...progress.data }); setConfirming(false); setSelectedGroups([]); setCancelReason(''); setHolderReload(r => r + 1); setReceiptReload(r => r + 1);
+    } catch (e) {
+      setReceiptDetailError(e instanceof ApiError && e.status === 409 ? `${t('changed')} ${e.message}` : e instanceof Error ? e.message : t('error'));
+      if (e instanceof ApiError && e.status === 409) {
+        try {
+          const [current, progress] = await Promise.all([handoverApi.detail(detail.transactionId), handoverApi.progress(detail.transactionId)]);
+          setDetail({ ...current.data, ...progress.data }); setSelectedGroups([]);
+        } catch { /* Keep the conflict visible. */ }
+      }
+    }
     finally { setActing(false); }
   }
   const owner = user?.id === detail?.requesterId;
@@ -150,7 +176,7 @@ export function HandoversPage() {
       <section className="handover-list-section">
         <h2>{t('list')}</h2>
         <div className="handover-list-filters"><label className="form-label">{t('searchTransactions')}<input className="form-input" type="search" value={receiptKeyword} onChange={e => { setReceiptKeyword(e.target.value); setReceiptPage(0); }} /></label>
-          <label className="form-label">{t('statusLabel')}<select className="form-select" value={receiptStatus} onChange={e => { setReceiptStatus(e.target.value as TransactionStatus | ''); setReceiptPage(0); }}><option value="">{t('allStatuses')}</option>{(['DRAFT','PENDING','COMPLETED','CANCELLED','REJECTED'] as const).map(status => <option key={status} value={status}>{t(`status.${status}`)}</option>)}</select></label>
+          <label className="form-label">{t('statusLabel')}<select className="form-select" value={receiptStatus} onChange={e => { setReceiptStatus(e.target.value as TransactionStatus | ''); setReceiptPage(0); }}><option value="">{t('allStatuses')}</option>{(['DRAFT','PENDING','PARTIAL','COMPLETED','CANCELLED','REJECTED'] as const).map(status => <option key={status} value={status}>{t(`status.${status}`)}</option>)}</select></label>
           <ReceivingDateRangePicker from={receiptFrom} to={receiptTo} label={t('createdRange')} onChange={(from,to) => { setReceiptFrom(from); setReceiptTo(to); setReceiptPage(0); }} /><button className="btn btn-secondary" onClick={() => { setReceiptKeyword(''); setReceiptStatus(''); setReceiptFrom(''); setReceiptTo(''); setReceiptPage(0); }}>{t('resetFilters')}</button></div>
         <div className="table-container">{receiptLoading ? <p className="handover-list-state" role="status">{t('loading')}</p> : receiptError ? <p className="handover-list-state" role="alert">{receiptError} <button className="btn btn-secondary" onClick={() => setReceiptReload(r => r + 1)}>{t('retry')}</button></p>
           : <><table className="data-table"><thead><tr><th>{t('code')}</th><th>{t('statusLabel')}</th><th>{t('createdAt')}</th><th>{t('requester')}</th><th>{t('action')}</th></tr></thead><tbody>{items.map(item => <tr key={item.transactionId}><td><button className="handover-row-link" onClick={() => { setHolderId(null); setSelectedId(item.transactionId); }}>{item.transactionCode}</button></td><td><span className={`handover-status handover-status-${item.status.toLowerCase()}`}>{t(`status.${item.status}`)}</span></td><td>{new Date(item.createdAt).toLocaleDateString(i18n.language)}</td><td title={item.requesterName || item.processedByName || undefined}>{item.requesterName || item.processedByName || '—'}</td><td><button className="btn btn-secondary" onClick={() => { setHolderId(null); setSelectedId(item.transactionId); }}>{t('view')}</button></td></tr>)}</tbody></table>{items.length === 0 && <p className="handover-list-state">{t('empty')}</p>}</>}</div>
@@ -180,9 +206,9 @@ export function HandoversPage() {
             {detail.status === 'DRAFT' && (owner || admin) && <><button className="btn btn-secondary" disabled={acting} onClick={() => setEditing(true)}>{t('edit')}</button>
               <button className="btn btn-primary" disabled={acting} onClick={() => void act('submit')}>{t('submit')}</button>
               <button className="btn btn-secondary" disabled={acting} onClick={() => void act('cancel')}>{t('cancel')}</button></>}
-            {detail.status === 'PENDING' && (owner || admin) && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('withdraw')}>{t('withdraw')}</button>}
-            {detail.status === 'PENDING' && admin && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('cancel')}>{t('cancel')}</button>}
-            {detail.status === 'PENDING' && (user?.role === 'IT_STAFF' || admin) && <button className="btn btn-primary" disabled={acting} onClick={() => setConfirming(true)}>{t('confirmPhysical')}</button>}
+            {detail.status === 'PENDING' && (owner || admin) && detail.groups?.every(group => group.status === 'PENDING') && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('withdraw')}>{t('withdraw')}</button>}
+            {detail.status === 'PENDING' && admin && detail.groups?.every(group => group.status === 'PENDING') && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('cancel')}>{t('cancel')}</button>}
+            {(detail.status === 'PENDING' || detail.status === 'PARTIAL') && detail.groups?.some(group => group.status === 'PENDING') && (user?.role === 'IT_STAFF' || admin) && <button className="btn btn-primary" disabled={acting} onClick={() => { setSelectedGroups([]); setConfirming(true); }}>{t('confirmPhysical')}</button>}
           </div>
           {acting && <p role="status">{t('loading')}</p>}
         </>}
@@ -192,13 +218,15 @@ export function HandoversPage() {
       <div className="handover-modal-header"><h2 id="handover-create-title">{editing ? t('edit') : holderDetail?.holder.accountStatus === 'ACTIVE' ? t('createFor', { name: holderDetail.holder.fullName }) : t('create')}</h2>
         <button type="button" className="btn btn-secondary" disabled={formBusy} onClick={() => { setCreating(false); setEditing(false); }}>{t('close')}</button></div>
       <HandoverForm initialRecipient={editing && detail ? { id: detail.recipientUserId, fullName: detail.recipientName, email: detail.recipientEmail, employeeCode: detail.recipientEmployeeCode, accountStatus: 'ACTIVE' } : holderDetail?.holder.accountStatus === 'ACTIVE' ? holderDetail.holder : undefined}
-        initialValue={editing ? detail ?? undefined : undefined} onCompleted={saved} onBusyChange={setFormBusy} />
+        initialValue={editing ? detail ?? undefined : undefined} onCompleted={saved} onConflict={error => void editConflict(error)} onBusyChange={setFormBusy} />
     </dialog>}
     {confirming && detail && <dialog ref={confirmRef} className="handover-confirm" aria-labelledby="physical-confirm-title" onCancel={event => { if (acting) event.preventDefault(); else setConfirming(false); }}>
       <h2 id="physical-confirm-title">{t('confirmPhysical')}</h2><p>{t('physicalConfirmHint')}</p>
-      <HandoverDetails value={detail} />
+      <WorkflowGroupList groups={detail.groups ?? []} lines={detail.proposalLines ?? detail.lines} selected={selectedGroups} onSelect={setSelectedGroups} statusLabel={status => t(`groupStatus.${status}`)} reasonLabel={t('groupReason')} />
+      {admin && <label className="form-label">{t('cancelRemainingReason')}<textarea className="form-textarea" value={cancelReason} onChange={event => setCancelReason(event.target.value)} /></label>}
       <div className="handover-pagination"><button className="btn btn-secondary" disabled={acting} onClick={() => setConfirming(false)}>{t('back')}</button>
-        <button className="btn btn-primary" disabled={acting} onClick={() => void act('confirm')}>{acting ? t('loading') : t('confirmPhysical')}</button></div>
+        {admin && <button className="btn btn-secondary" disabled={acting || !selectedGroups.length || !cancelReason.trim()} onClick={() => void act('cancelRemaining')}>{t('cancelRemaining')}</button>}
+        <button className="btn btn-primary" disabled={acting || !selectedGroups.length} onClick={() => void act('confirm')}>{acting ? t('loading') : t('confirmPhysical')}</button></div>
     </dialog>}
   </div>;
 }

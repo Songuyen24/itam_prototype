@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { ApiError } from '@/shared/api/httpClient';
 import { documentApi } from '@/features/documents/api/documentApi';
+import type { DocumentItem } from '@/features/documents/types/document.types';
 import type { DocumentTransaction, TransactionStatus } from '@/features/documents/types/document.types';
 import { disposalApi, Disposal, DisposalAsset, DisposalCheck } from '../api/disposalApi';
 import { DisposalDetail, DisposalReview } from '../components/DisposalReview';
@@ -31,8 +32,14 @@ export function DisposalsPage() {
   const [detail, setDetail] = useState<Disposal | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [decisions, setDecisions] = useState<Record<number, boolean>>({});
-  const [action, setAction] = useState<'approve' | 'reject' | null>(null);
+  const [action, setAction] = useState<'approve' | 'reject' | 'execute' | 'extend' | 'cancelApproved' | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [executionDate, setExecutionDate] = useState(new Date().toISOString().slice(0, 10));
+  const [dueDate, setDueDate] = useState('');
+  const [documentId, setDocumentId] = useState(0);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const detailRequest = useRef(0);
   const createTrigger = useRef<HTMLElement | null>(null);
   const detailTrigger = useRef<HTMLElement | null>(null);
@@ -83,52 +90,84 @@ export function DisposalsPage() {
       const body={ assetIds: selected, reason, disposalDate: date, expectedFingerprint: createReview.fingerprint, expectedTransactionFingerprint: editingFingerprint };
       if(editingId) await disposalApi.edit(editingId,body); else if (draft) await disposalApi.createDraft(body); else await disposalApi.create(body);
       setNotice(t(editingId || draft ? 'savedDraft' : 'created')); setCreateReview(null); setCreating(false); setEditingId(null); setEditingFingerprint(''); setSelected([]); setReason(''); setDate(new Date().toISOString().slice(0, 10)); setAssetKeyword(''); setAssetPage(0); setReload(value => value + 1);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : t('error')); }
+    } catch (cause) {
+      setError(cause instanceof ApiError && cause.status === 409 ? `${t('changed')} ${cause.message}` : cause instanceof Error ? cause.message : t('error'));
+      if (editingId && cause instanceof ApiError && cause.status === 409) {
+        setCreateReview(null); setCreating(false); setEditingId(null);
+        await showDetail(editingId, true);
+      }
+    }
     finally { setSaving(false); }
   };
 
   const showDetail = async (id: number, preserveError = false, opener?: HTMLElement) => {
     if (opener) detailTrigger.current = opener;
     const request = ++detailRequest.current;
-    setDetailLoading(true); if (!preserveError) setError(''); setAction(null); setRejectReason('');
+    setDetailLoading(true); if (!preserveError) setError(''); setAction(null); setRejectReason(''); setSelectedGroups([]); setDocuments([]); setDocumentId(0); setEvidenceFile(null);
     try {
-      const next = (await disposalApi.detail(id)).data;
+      const [response, progress] = await Promise.all([disposalApi.detail(id), disposalApi.progress(id)]);
+      const next = { ...response.data, ...progress.data };
       if (request === detailRequest.current) {
         setDetail(next);
         setDecisions(Object.fromEntries(next.perUserLinks.map(link => [link.allocationId, true])));
+        if (next.groups?.some(group => group.status === 'APPROVED')) {
+          void documentApi.getDocuments(id, 0, 100).then(result => {
+            if (request === detailRequest.current) setDocuments(result.data.content.filter(file => file.documentType === 'DISPOSAL_REPORT'));
+          }).catch(cause => { if (request === detailRequest.current) setError(cause instanceof Error ? cause.message : t('error')); });
+        }
       }
     } catch (cause) { if (request === detailRequest.current) setError(cause instanceof Error ? cause.message : t('error')); }
     finally { if (request === detailRequest.current) setDetailLoading(false); }
   };
 
   const mutateDetail = async (mutation: (value: Disposal) => Promise<Disposal>) => {
-    if (!detail || !['PENDING','DRAFT'].includes(detail.status)) return;
+    if (!detail || !['PENDING','PARTIAL','APPROVED','DRAFT'].includes(detail.status)) return;
     setSaving(true); setError('');
     try {
       const next = await mutation(detail);
-      if (next.status === 'PENDING' || next.status === 'DRAFT') {
-        setDetail(next);
-        setDecisions(Object.fromEntries(next.perUserLinks.map(link => [link.allocationId, true])));
-        setAction(null); setRejectReason('');
-        setReload(count=>count+1);
-      } else {
-        setDetail(null);
-        setReload(count => count + 1);
+      const progress = (await disposalApi.progress(next.transactionId)).data;
+      setDetail({ ...next, ...progress });
+      if (progress.groups.some(group => group.status === 'APPROVED')) {
+        void documentApi.getDocuments(next.transactionId, 0, 100).then(result => setDocuments(result.data.content.filter(file => file.documentType === 'DISPOSAL_REPORT')))
+          .catch(cause => setError(cause instanceof Error ? cause.message : t('error')));
       }
+      setDecisions(Object.fromEntries(next.perUserLinks.map(link => [link.allocationId, true])));
+      setAction(null); setRejectReason(''); setSelectedGroups([]);
+      setReload(count => count + 1);
     } catch (cause) {
-      setError(cause instanceof ApiError && cause.code === 'DISPOSAL_CHANGED' ? t('changed') : cause instanceof Error ? cause.message : t('error'));
-      if (cause instanceof ApiError && cause.code === 'DISPOSAL_CHANGED') await showDetail(detail.transactionId, true);
+      setError(cause instanceof ApiError && cause.status === 409 ? `${t('changed')} ${cause.message}` : cause instanceof Error ? cause.message : t('error'));
+      if (cause instanceof ApiError && cause.status === 409) await showDetail(detail.transactionId, true);
     } finally { setSaving(false); }
   };
 
   const resolvePerUser = () => mutateDetail(async value => (await disposalApi.resolvePerUser(value.transactionId, value.fingerprint,
     value.perUserLinks.map(link => ({ allocationId: link.allocationId, release: decisions[link.allocationId] !== false })))).data);
   const approve = () => mutateDetail(async value => {
-    return (await disposalApi.approve(value.transactionId, value.fingerprint)).data;
+    return (await disposalApi.approve(value.transactionId, value.fingerprint, { expectedVersion: value.contentVersion!, groupIds: selectedGroups })).data;
   });
   const reject = () => mutateDetail(async value => {
-    return (await disposalApi.reject(value.transactionId, rejectReason.trim())).data;
+    return (await disposalApi.reject(value.transactionId, rejectReason.trim(), { expectedVersion: value.contentVersion!, groupIds: selectedGroups, reason: rejectReason.trim() })).data;
   });
+  const execute = () => mutateDetail(async value => (await disposalApi.execute(value.transactionId, { expectedVersion: value.contentVersion!, groupIds: selectedGroups, documentId, executionDate })).data);
+  const extend = () => mutateDetail(async value => {
+    await disposalApi.extend(value.transactionId, { expectedVersion: value.contentVersion!, groupIds: selectedGroups, dueDate, reason: rejectReason.trim() });
+    return (await disposalApi.detail(value.transactionId)).data;
+  });
+  const cancelApproved = () => mutateDetail(async value => (await disposalApi.cancelApproved(value.transactionId, { expectedVersion: value.contentVersion!, groupIds: selectedGroups, reason: rejectReason.trim() })).data);
+  const uploadEvidence = async () => {
+    if (!detail || !evidenceFile || detail.contentVersion == null) return;
+    setSaving(true); setError('');
+    try {
+      const result = await documentApi.upload({ file: evidenceFile, transactionId: detail.transactionId, documentType: 'DISPOSAL_REPORT', expectedVersion: detail.contentVersion });
+      setDocumentId(result.data.documentId); setEvidenceFile(null);
+      const [response, progress] = await Promise.all([disposalApi.detail(detail.transactionId), disposalApi.progress(detail.transactionId)]);
+      setDetail({ ...response.data, ...progress.data });
+      setDocuments(files => files.some(file => file.documentId === result.data.documentId) ? files : [result.data, ...files]);
+    } catch (cause) {
+      setError(cause instanceof ApiError && cause.status === 409 ? `${t('changed')} ${cause.message}` : cause instanceof Error ? cause.message : t('error'));
+      if (cause instanceof ApiError && cause.status === 409) await showDetail(detail.transactionId, true);
+    } finally { setSaving(false); }
+  };
   const closeDetail = () => { detailRequest.current += 1; setDetail(null); setAction(null); };
 
   const loading = creating && assetLoading;
@@ -167,10 +206,13 @@ export function DisposalsPage() {
     </div>
     {createReview && <DisposalReview value={createReview} editing={!!editingId} saving={saving} error={error} restoreFocusRef={createTrigger} onCancel={() => setCreateReview(null)} onConfirm={() => void create()} onSaveDraft={() => void create(true)} />}
     {detail && <DisposalDetail value={detail} role={user?.role} userId={user?.id} decisions={decisions} saving={saving} error={error} restoreFocusRef={detailTrigger} action={action} rejectReason={rejectReason}
+      selectedGroups={selectedGroups} onSelectGroups={setSelectedGroups} executionDate={executionDate} onExecutionDate={setExecutionDate} documentId={documentId} onDocumentId={setDocumentId} documents={documents} dueDate={dueDate} onDueDate={setDueDate} onExecute={() => void execute()} onExtend={() => void extend()}
+      onCancelApproved={() => void cancelApproved()}
+      evidenceFile={evidenceFile} onEvidenceFile={setEvidenceFile} onUploadEvidence={() => void uploadEvidence()}
       onTransition={action=>void mutateDetail(async value=>(await disposalApi.transition(value,action)).data)}
       onEdit={()=>{formTrigger.current=detailTrigger.current;setEditingId(detail.transactionId);setEditingFingerprint(detail.fingerprint);setSelected(detail.assets.filter(a=>!a.autoAdded).map(a=>a.assetId));setReason(detail.reason);setDate(detail.disposalDate);closeDetail();setCreating(true);}}
       onDecision={(id, release) => setDecisions(current => ({ ...current, [id]: release }))} onResolve={() => void resolvePerUser()}
-      onChooseAction={setAction} onRejectReason={setRejectReason} onApprove={() => void approve()} onReject={() => void reject()} onClose={closeDetail} />}
+      onChooseAction={next => { setAction(next); setSelectedGroups([]); setRejectReason(''); }} onRejectReason={setRejectReason} onApprove={() => void approve()} onReject={() => void reject()} onClose={closeDetail} />}
   </div>;
 }
 
@@ -188,7 +230,7 @@ function DisposalReceiptTable({ group, reload, detailLoading, onView }: {
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true; setLoading(true); setError(''); setRows([]);
-    documentApi.getTransactions({ type: 'DISPOSAL', ...(group === 'FINAL' ? { statuses: ['COMPLETED', 'REJECTED', 'CANCELLED'] as TransactionStatus[] } : { status: group }), page, size: 20 })
+    documentApi.getTransactions({ type: 'DISPOSAL', ...(group === 'FINAL' ? { statuses: ['COMPLETED', 'REJECTED', 'CANCELLED'] as TransactionStatus[] } : group === 'PENDING' ? { statuses: ['PENDING', 'PARTIAL', 'APPROVED'] as TransactionStatus[] } : { status: group }), page, size: 20 })
       .then(result => {
         if (!active) return;
         setPages(result.data.totalPages); setTotal(result.data.totalElements);

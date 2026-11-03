@@ -88,6 +88,11 @@
   ,"cancel": "Hủy phiếu"
   ,"cancelConfirm": "Xác nhận hủy phiếu thu hồi?"
   ,"confirmPhysical": "Xác nhận đã nhận tài sản"
-  ,"confirmPhysicalHint": "Kiểm tra tài sản đã nhận thực tế trước khi hoàn tất thu hồi."
-  ,"status": { "DRAFT": "Nháp", "PENDING": "Chờ xử lý", "COMPLETED": "Hoàn tất", "CANCELLED": "Đã hủy" }
+  ,"confirmPhysicalHint": "Chọn các tài sản đã nhận thực tế."
+  ,"cancelRemaining": "Hủy mục đã chọn"
+  ,"cancelRemainingReason": "Lý do hủy các mục đã chọn"
+  ,"groupReason": "Lý do"
+  ,"changed": "Phiếu thu hồi đã thay đổi. Đã tải chi tiết mới nhất; hãy kiểm tra trước khi thử lại."
+  ,"groupStatus": { "PENDING": "Chờ xử lý", "APPROVED": "Đã duyệt", "COMPLETED": "Hoàn tất", "REJECTED": "Đã từ chối", "CANCELLED": "Đã hủy" }
+  ,"status": { "DRAFT": "Nháp", "PENDING": "Chờ xử lý", "PARTIAL": "Hoàn tất một phần", "COMPLETED": "Hoàn tất", "CANCELLED": "Đã hủy" }
 }

@@ -68,7 +68,7 @@ public class TransactionPublicationService {
     public PublicationStatusResponse status(Long id) {
         var tx = transaction(id); access.requireRead(tx);
         var type = reportType(tx.getType());
-        var latest = documents.findFirstByTransactionTransactionIdAndDocumentTypeOrderByPublicationVersionDesc(id, type).orElse(null);
+        var latest = documents.findFirstByTransactionTransactionIdAndDocumentTypeAndPublicationVersionIsNotNullOrderByPublicationVersionDesc(id, type).orElse(null);
         var failure = jdbc.query("SELECT error_message,created_at FROM publication_attempts WHERE transaction_id=? ORDER BY created_at DESC LIMIT 1",
                 (rs, n) -> java.util.Map.entry(rs.getString(1), rs.getTimestamp(2).toInstant()), id).stream().findFirst().orElse(null);
         boolean failedAfterLatest = failure != null && (latest == null || latest.getIssuedAt() == null || failure.getValue().isAfter(latest.getIssuedAt()));
@@ -86,7 +86,7 @@ public class TransactionPublicationService {
 
     public DocumentDownload latestPdf(Long id) {
         var tx = transaction(id);
-        var document = documents.findFirstByTransactionTransactionIdAndDocumentTypeOrderByPublicationVersionDesc(id, reportType(tx.getType()))
+        var document = documents.findFirstByTransactionTransactionIdAndDocumentTypeAndPublicationVersionIsNotNullOrderByPublicationVersionDesc(id, reportType(tx.getType()))
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "PUBLICATION_NOT_AVAILABLE", "Publication is not available"));
         access.requireDownload(document);
         return new DocumentDownload(DocumentResponse.fromEntity(document), storage.read(document));
@@ -110,7 +110,7 @@ public class TransactionPublicationService {
         requireCompleted(tx);
         String importRecipient = tx.getType() == TransactionType.IMPORT
                 ? importRecipient(tx, "IMPORT_COMPLETED") : null;
-        var document = documents.findFirstByTransactionTransactionIdAndDocumentTypeOrderByPublicationVersionDesc(id, reportType(tx.getType()))
+        var document = documents.findFirstByTransactionTransactionIdAndDocumentTypeAndPublicationVersionIsNotNullOrderByPublicationVersionDesc(id, reportType(tx.getType()))
                 .orElseGet(() -> generate(tx, null));
         if (importRecipient == null) sendCompletion(tx, document);
         else sendCompletion(tx, document, importRecipient);
@@ -180,7 +180,7 @@ public class TransactionPublicationService {
     private DocumentEntity generate(TransactionEntity tx, Object suppliedSnapshot) {
         DocumentType type = reportType(tx.getType());
         JsonNode snapshot = publicationSnapshot(tx, suppliedSnapshot);
-        int version = Math.toIntExact(documents.countByTransactionTransactionIdAndDocumentType(tx.getTransactionId(), type) + 1);
+        int version = Math.toIntExact(documents.countByTransactionTransactionIdAndDocumentTypeAndPublicationVersionIsNotNull(tx.getTransactionId(), type) + 1);
         Instant issuedAt = Instant.now();
         String actor = snapshotActor(tx, snapshot);
         byte[] bytes = pdf.generate(tx.getTransactionCode(), tx.getType().name(), issuedAt, actor, snapshot);

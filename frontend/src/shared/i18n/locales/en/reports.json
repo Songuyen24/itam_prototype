@@ -68,5 +68,13 @@
   "transaction_count": "Transaction count",
   "column_requester_name": "Creator",
   "column_processor_name": "Processor",
-  "column_employee_seats": "Active seats matching holder filter"
+  "column_employee_seats": "Active seats matching holder filter",
+  "column_completed_groups": "Completed groups",
+  "column_pending_groups": "Pending groups",
+  "column_approved_groups": "Approved groups awaiting execution",
+  "column_cancelled_groups": "Cancelled groups",
+  "column_rejected_groups": "Rejected groups",
+  "value_PARTIAL": "Partially performed",
+  "value_APPROVED": "Approved, awaiting execution",
+  "column_execution_dates": "Disposal execution dates"
 }

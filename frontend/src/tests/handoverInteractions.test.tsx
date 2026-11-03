@@ -1,11 +1,12 @@
 import { act, create, ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HandoversPage } from '@/features/handover/pages/HandoversPage';
+import { ApiError } from '@/shared/api/httpClient';
 
 const client = vi.hoisted(() => vi.fn());
 const translate = vi.hoisted(() => (key: string) => key);
 const actor = vi.hoisted(() => ({ id: 1, role: 'IT_STAFF' }));
-vi.mock('@/shared/api/httpClient', () => ({ httpClient: client }));
+vi.mock('@/shared/api/httpClient', async importOriginal => ({ ...(await importOriginal<typeof import('@/shared/api/httpClient')>()), httpClient: client }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: translate, i18n: { language: 'en' } }) }));
 vi.mock('@/features/auth/contexts/AuthContext', () => ({ useAuth: () => ({ user: actor }) }));
 vi.mock('@/features/documents/components/PublicationPanel', () => ({ PublicationPanel: () => <p>publication</p> }));
@@ -15,7 +16,8 @@ const holder = { id: 7, fullName: 'Mai', email: 'mai@example.com', employeeCode:
 const line = { assetId: 8, assetTag: 'LAP-08', name: 'Laptop', category: 'DEVICE', parentAssetId: null, seats: 0, allocations: [], details: {} };
 const handover = { transactionId: 11, transactionCode: 'HO-11', completedAt: null, status: 'PENDING', requesterId: 1, requesterName: 'ICT',
   request: null, recipientUserId: 7, recipientName: 'Mai', recipientEmail: 'mai@example.com', destinationLocationId: 2,
-  destinationLocationName: 'Office', handoverDate: '2026-10-21', notes: null, fingerprint: 'fp', lines: [line] };
+  destinationLocationName: 'Office', handoverDate: '2026-10-21', notes: null, fingerprint: 'fp', lines: [line], contentVersion: 3,
+  groups: [{ groupId: 'asset:8', status: 'PENDING', assetIds: [8], allocationIds: [] }] };
 const page = (content: unknown[]) => ({ data: { content, pageNumber: 0, pageSize: 10, totalElements: content.length, totalPages: 1, last: true } });
 const renderers: ReactTestRenderer[] = [];
 async function renderPage() {
@@ -37,6 +39,7 @@ describe('handover page interactions', () => {
       if (url.startsWith('/v1/handovers/holders?')) return Promise.resolve(page([holder]));
       if (url.startsWith('/v1/transactions?')) return Promise.resolve(page([{ transactionId: 11, transactionCode: 'HO-11', status: 'PENDING', requesterName: 'ICT' }]));
       if (url === '/v1/handovers/11') return Promise.resolve({ data: handover });
+      if (url === '/v1/handovers/11/progress') return Promise.resolve({ data: { contentVersion: 3, groups: handover.groups } });
       return Promise.resolve(page([]));
     });
   });
@@ -132,8 +135,56 @@ describe('handover page interactions', () => {
     await act(async () => button(tree, 'confirmPhysical').props.onClick());
     expect(tree.root.findAllByProps({ id: 'physical-confirm-title' })).toHaveLength(1);
     expect(tree.root.findAllByType('strong').some(item => item.children.includes('LAP-08'))).toBe(true);
+    expect(tree.root.findAllByType('button').find(item => item.children.includes('confirmPhysical') && item.props.disabled)).toBeTruthy();
+    act(() => tree.root.findAllByType('input').find(item => item.props.type === 'checkbox')!.props.onChange());
     expect(client.mock.calls.some(call => String(call[0]).endsWith('/confirm'))).toBe(false);
     expect(tree.root.findAllByType('p').some(item => item.children.includes('publication'))).toBe(false);
+  });
+
+  it('requires a reason and sends only the selected group when cancelling the remainder', async () => {
+    actor.role = 'ADMIN';
+    client.mockImplementation((url: string) => {
+      if (url.startsWith('/v1/handovers/holders/')) return Promise.resolve({ data: { holder, assets: page([]).data } });
+      if (url.startsWith('/v1/handovers/holders?')) return Promise.resolve(page([holder]));
+      if (url.startsWith('/v1/transactions?')) return Promise.resolve(page([{ transactionId: 11, transactionCode: 'HO-11', status: 'PENDING', requesterName: 'ICT' }]));
+      if (url === '/v1/handovers/11') return Promise.resolve({ data: handover });
+      if (url === '/v1/handovers/11/progress') return Promise.resolve({ data: { contentVersion: 3, groups: handover.groups } });
+      if (url === '/v1/handovers/11/cancel-lines') return Promise.resolve({ data: handover });
+      throw new Error(`Unexpected ${url}`);
+    });
+    const tree = await renderPage();
+    await act(async () => button(tree, 'HO-11').props.onClick());
+    act(() => button(tree, 'confirmPhysical').props.onClick());
+    const cancel = () => button(tree, 'cancelRemaining');
+    expect(cancel().props.disabled).toBe(true);
+    act(() => tree.root.findAllByType('input').find(item => item.props.type === 'checkbox')!.props.onChange());
+    expect(cancel().props.disabled).toBe(true);
+    act(() => tree.root.findByType('textarea').props.onChange({ target: { value: 'Not delivered' } }));
+    expect(cancel().props.disabled).toBe(false);
+    await act(async () => cancel().props.onClick());
+    expect(client).toHaveBeenCalledWith('/v1/handovers/11/cancel-lines', { method: 'POST', headers: { 'X-Override-Reason': 'Not%20delivered' }, body: JSON.stringify({ expectedVersion: 3, groupIds: ['asset:8'], reason: 'Not delivered' }) });
+  });
+
+  it('reloads the current version after a selected confirmation conflicts', async () => {
+    let version = 3;
+    client.mockImplementation((url: string) => {
+      if (url.startsWith('/v1/handovers/holders/')) return Promise.resolve({ data: { holder, assets: page([]).data } });
+      if (url.startsWith('/v1/handovers/holders?')) return Promise.resolve(page([holder]));
+      if (url.startsWith('/v1/transactions?')) return Promise.resolve(page([{ transactionId: 11, transactionCode: 'HO-11', status: 'PENDING', requesterName: 'ICT' }]));
+      if (url === '/v1/handovers/11') return Promise.resolve({ data: handover });
+      if (url === '/v1/handovers/11/progress') return Promise.resolve({ data: { contentVersion: version, groups: handover.groups } });
+      if (url === '/v1/handovers/11/confirm') { version = 4; return Promise.reject(new ApiError('Updated by Mai', 409, 'WORKFLOW_CHANGED')); }
+      throw new Error(`Unexpected ${url}`);
+    });
+    const tree = await renderPage();
+    await act(async () => button(tree, 'HO-11').props.onClick());
+    act(() => button(tree, 'confirmPhysical').props.onClick());
+    act(() => tree.root.findAllByType('input').find(item => item.props.type === 'checkbox')!.props.onChange());
+    await act(async () => tree.root.findAllByType('dialog').find(item => item.props['aria-labelledby'] === 'physical-confirm-title')!.findAllByType('button').find(item => item.children.includes('confirmPhysical'))!.props.onClick());
+    expect(client).toHaveBeenCalledWith('/v1/handovers/11/confirm', { method: 'POST', body: JSON.stringify({ expectedVersion: 3, groupIds: ['asset:8'] }) });
+    expect(client.mock.calls.filter(call => call[0] === '/v1/handovers/11/confirm')).toHaveLength(1);
+    expect(JSON.stringify(tree.toJSON())).toContain('Updated by Mai');
+    expect(client.mock.calls.filter(call => call[0] === '/v1/handovers/11/progress')).toHaveLength(2);
   });
 
   it('offers pending cancellation only to Admin, while the creator may withdraw', async () => {

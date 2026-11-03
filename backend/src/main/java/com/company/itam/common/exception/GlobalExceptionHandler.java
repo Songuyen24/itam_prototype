@@ -99,6 +99,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({MissingServletRequestParameterException.class, MissingServletRequestPartException.class,
+            org.springframework.web.bind.MissingRequestHeaderException.class,
             MethodArgumentTypeMismatchException.class})
     public ResponseEntity<ErrorResponse> handleRequestBindingException(Exception ex) {
         String code = "VALIDATION_ERROR";

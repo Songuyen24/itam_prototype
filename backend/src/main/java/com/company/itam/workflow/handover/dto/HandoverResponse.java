@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import com.company.itam.workflow.core.dto.WorkflowProgressModels.Group;
 
 public record HandoverResponse(Long transactionId, String transactionCode, Instant completedAt,
         Long recipientUserId, String recipientName, String recipientEmail,
@@ -11,14 +12,15 @@ public record HandoverResponse(Long transactionId, String transactionCode, Insta
         String notes, String fingerprint, List<Line> lines,
         String status, Long requesterId, String requesterName, HandoverRequest request,
         @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-        String recipientEmployeeCode) {
+        String recipientEmployeeCode,
+        long contentVersion, List<Group> groups, List<Line> proposalLines) {
     public HandoverResponse(Long transactionId, String transactionCode, Instant completedAt,
             Long recipientUserId, String recipientName, String recipientEmail,
             Long destinationLocationId, String destinationLocationName, LocalDate handoverDate,
             String notes, String fingerprint, List<Line> lines) {
         this(transactionId,transactionCode,completedAt,recipientUserId,recipientName,recipientEmail,
              destinationLocationId,destinationLocationName,handoverDate,notes,fingerprint,lines,
-             completedAt == null ? null : "COMPLETED",null,null,null,null);
+             completedAt == null ? null : "COMPLETED",null,null,null,null,0,List.of(),List.of());
     }
 
     public record Allocation(Long allocationId, Long deviceId, int seats, String assignmentType, String deviceTag, String deviceName) {}

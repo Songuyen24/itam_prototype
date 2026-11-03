@@ -6,6 +6,7 @@ import { LocationItem } from '@/features/catalogs/types/catalog.types';
 import { buildRecoveryRequest, SmartCheckResponse, RecoveryRequest, Recovery, recoveryApi } from '../api/recoveryApi';
 import { AssetCandidate, recoveryCandidateApi } from '../api/recoveryCandidateApi';
 import { handoverApi } from '@/features/handover/api/handoverApi';
+import { ApiError } from '@/shared/api/httpClient';
 
 const loadLocations = (keyword: string, page: number) => locationApi.getAll(keyword, true, page, 10);
 function localDate() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
@@ -343,7 +344,7 @@ export function SmartCheckDialog({
   );
 }
 
-export function RecoveryForm({ onCompleted, initialValue, onBusyChange }: { onCompleted: (value: Recovery) => void; initialValue?: Recovery; onBusyChange?: (busy: boolean) => void }) {
+export function RecoveryForm({ onCompleted, onConflict, initialValue, onBusyChange }: { onCompleted: (value: Recovery) => void; onConflict?: (error: ApiError) => void; initialValue?: Recovery; onBusyChange?: (busy: boolean) => void }) {
   const { t } = useTranslation('recovery');
   const [selected, setSelected] = useState<AssetCandidate[]>(() => {
     if (!initialValue?.request) return [];
@@ -436,12 +437,13 @@ export function RecoveryForm({ onCompleted, initialValue, onBusyChange }: { onCo
         receivingLocationId: location.locationId,
         recoveryDate: date,
       };
-      const r = initialValue?.transactionId ? await recoveryApi.edit(initialValue.transactionId, fullRequest) : await recoveryApi.create(fullRequest);
+      const r = initialValue?.transactionId ? await recoveryApi.edit(initialValue.transactionId, fullRequest, initialValue.contentVersion!) : await recoveryApi.create(fullRequest);
       setSmartCheck(null);
       setSelected([]);
       onCompleted(r.data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('error'));
+      if (e instanceof ApiError && e.status === 409 && onConflict) onConflict(e);
+      else setError(e instanceof Error ? e.message : t('error'));
     } finally {
       setBusy(false);
     }

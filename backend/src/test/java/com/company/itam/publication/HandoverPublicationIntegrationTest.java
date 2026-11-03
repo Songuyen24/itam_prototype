@@ -89,11 +89,13 @@ class HandoverPublicationIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=?", Long.class, transactionId)).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM email_logs WHERE transaction_id=?", Long.class, transactionId)).isZero();
         mvc.perform(post("/v1/handovers/" + transactionId + "/submit")
+                .header("X-Expected-Version",0)
                 .with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN"))))
                 .andExpect(status().isOk());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=?", Long.class, transactionId)).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM email_logs WHERE transaction_id=?", Long.class, transactionId)).isZero();
         mvc.perform(post("/v1/handovers/" + transactionId + "/confirm")
+                .header("X-Expected-Version",1)
                 .with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN"))))
                 .andExpect(status().isOk());
         authenticate();

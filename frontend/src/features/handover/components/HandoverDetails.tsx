@@ -2,6 +2,7 @@ import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { useTranslation } from 'react-i18next';
 import { Handover } from '../api/handoverApi';
 import { PublicationPanel } from '@/features/documents/components/PublicationPanel';
+import { WorkflowGroupList } from '@/shared/components/WorkflowGroupList';
 
 export function HandoverDetails({ value }: { value: Handover }) {
   const { t } = useTranslation('handover');
@@ -14,6 +15,7 @@ export function HandoverDetails({ value }: { value: Handover }) {
       <div><dt>{t('date')}</dt><dd>{value.handoverDate}</dd></div>
       {value.notes && <div className="handover-detail-note"><dt>{t('notes')}</dt><dd>{value.notes}</dd></div>}
     </dl>
+    {!!value.groups?.length && <WorkflowGroupList groups={value.groups} lines={value.proposalLines ?? value.lines} selected={[]} onSelect={() => {}} selectable={null} statusLabel={status => t(`groupStatus.${status}`)} reasonLabel={t('groupReason')} />}
     <PaginatedContent key={value.transactionId} items={value.lines}>{lines => <div className="table-container"><table className="data-table">
       <thead><tr><th>{t('asset')}</th><th>{t('bundle')}</th><th>{t('seats')}</th><th>{t('configuration')}</th></tr></thead>
       <tbody>{lines.map(line => <tr key={line.assetId}>

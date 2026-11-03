@@ -2,6 +2,8 @@ import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
+import { ApiError } from '@/shared/api/httpClient';
+import { WorkflowGroupList } from '@/shared/components/WorkflowGroupList';
 import { PublicationPanel } from '@/features/documents/components/PublicationPanel';
 import { ReceivingDateRangePicker } from '@/features/documents/components/ReceivingDateRangePicker';
 import { documentApi } from '@/features/documents/api/documentApi';
@@ -33,6 +35,8 @@ export function RecoveriesPage() {
   const [acting, setActing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [cancelReason, setCancelReason] = useState('');
   const [error, setError] = useState('');
   const [detailError, setDetailError] = useState('');
   const [reload, setReload] = useState(0);
@@ -86,17 +90,32 @@ export function RecoveriesPage() {
   function saved(result: Recovery) {
     setFormBusy(false); setCreating(false); setEditing(false); setSelectedId(result.transactionId); setDetail(result); setReload(n => n + 1);
   }
+  async function editConflict(error: ApiError) {
+    setEditing(false);
+    setDetailError(`${t('changed')} ${error.message}`);
+    if (selectedId == null) return;
+    try { setDetail((await recoveryApi.detail(selectedId)).data); } catch { /* Keep the conflict visible. */ }
+  }
 
-  async function act(action: 'submit' | 'withdraw' | 'cancel' | 'confirm') {
+  async function act(action: 'submit' | 'withdraw' | 'cancel' | 'confirm' | 'cancelRemaining') {
     if (!detail?.transactionId || acting) return;
     if (action === 'cancel' && !window.confirm(t('cancelConfirm'))) return;
+    if (action === 'confirm' && detail.groups?.length && !selectedGroups.length) return;
+    if (action === 'cancelRemaining' && (!cancelReason.trim() || !selectedGroups.length)) return;
     setActing(true); setDetailError('');
     try {
-      const r = await (action === 'submit' ? recoveryApi.submit(detail.transactionId)
-        : action === 'withdraw' ? recoveryApi.withdraw(detail.transactionId)
-          : action === 'cancel' ? recoveryApi.cancel(detail.transactionId) : recoveryApi.confirm(detail.transactionId));
-      setDetail(r.data); setConfirming(false); setReload(n => n + 1);
-    } catch (e) { setDetailError(e instanceof Error ? e.message : t('error')); }
+      const r = await (action === 'submit' ? recoveryApi.submit(detail.transactionId, detail.contentVersion!)
+        : action === 'withdraw' ? recoveryApi.withdraw(detail.transactionId, detail.contentVersion!)
+          : action === 'cancel' ? recoveryApi.cancel(detail.transactionId, detail.contentVersion!)
+            : action === 'cancelRemaining' ? recoveryApi.cancelRemaining(detail.transactionId, { expectedVersion: detail.contentVersion!, groupIds: selectedGroups, reason: cancelReason.trim() })
+              : recoveryApi.confirm(detail.transactionId, { expectedVersion: detail.contentVersion!, groupIds: selectedGroups }));
+      setDetail(r.data); setConfirming(false); setSelectedGroups([]); setCancelReason(''); setReload(n => n + 1);
+    } catch (e) {
+      setDetailError(e instanceof ApiError && e.status === 409 ? `${t('changed')} ${e.message}` : e instanceof Error ? e.message : t('error'));
+      if (e instanceof ApiError && e.status === 409) {
+        try { setDetail((await recoveryApi.detail(detail.transactionId)).data); setSelectedGroups([]); } catch { /* Keep the conflict visible. */ }
+      }
+    }
     finally { setActing(false); }
   }
 
@@ -108,7 +127,7 @@ export function RecoveriesPage() {
       <div className="recovery-list-filters">
         <label className="form-label">{t('searchHistory')}<input className="form-input" type="search" value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} /></label>
         <label className="form-label">{t('filterStatus')}<select className="form-select" value={status} onChange={e => { setStatus(e.target.value as TransactionStatus | ''); setPage(0); }}>
-          <option value="">{t('allStatuses')}</option>{['DRAFT', 'PENDING', 'COMPLETED', 'CANCELLED'].map(s => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
+          <option value="">{t('allStatuses')}</option>{['DRAFT', 'PENDING', 'PARTIAL', 'COMPLETED', 'CANCELLED'].map(s => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
         </select></label>
         <ReceivingDateRangePicker from={from} to={to} label={t('createdRange')} onChange={(nextFrom,nextTo) => { setFrom(nextFrom); setTo(nextTo); setPage(0); }} />
         <button type="button" className="btn btn-secondary recovery-reset" onClick={() => { setKeyword(''); setStatus(''); setFrom(''); setTo(''); setPage(0); }}>{t('resetFilters')}</button>
@@ -126,29 +145,32 @@ export function RecoveriesPage() {
       {detailLoading ? <p role="status">{t('loading')}</p> : detailError ? <p role="alert">{detailError} <button type="button" onClick={() => setReload(n => n + 1)}>{t('retry')}</button></p> : null}
       {detail && <section><div className="recovery-detail-title"><h2>{detail.transactionCode}</h2>{detail.status && <span className={`recovery-status recovery-status-${detail.status.toLowerCase()}`}>{t(`status.${detail.status}`)}</span>}</div>
         <div className="recovery-detail-summary"><p><strong>{t('colReturner')}</strong><span>{detail.returnerName}</span></p><p><strong>{t('colLocation')}</strong><span>{detail.receivingLocationName}</span></p><p><strong>{t('colDate')}</strong><span>{detail.recoveryDate}</span></p></div><div className="recovery-detail-reason"><strong>{t('reason')}</strong><p>{detail.reason}</p></div>
-        <div className="recovery-detail-lines"><h3>{t('assetsTitle')}</h3><PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <div className="recovery-detail-table-wrap"><table className="data-table recovery-detail-table"><thead><tr><th>{t('assetTag')}</th><th>{t('assetName')}</th><th>{t('assetCategory')}</th></tr></thead><tbody>{lines.map(line => <tr key={line.assetId}><td>{line.assetTag}</td><td>{line.name}</td><td>{categoryLabel(t, line.category)}</td></tr>)}</tbody></table></div>}</PaginatedContent></div>
+        <div className="recovery-detail-lines"><h3>{t('assetsTitle')}</h3><PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <div className="recovery-detail-table-wrap"><table className="data-table recovery-detail-table"><thead><tr><th>{t('assetTag')}</th><th>{t('assetName')}</th><th>{t('assetCategory')}</th></tr></thead><tbody>{lines.map(line => <tr key={line.assetId}><td>{line.assetTag}</td><td>{line.name}</td><td>{categoryLabel(t, line.category)}</td></tr>)}</tbody></table></div>}</PaginatedContent>
+          {!!detail.groups?.length && <WorkflowGroupList groups={detail.groups} lines={detail.proposalLines ?? detail.lines} selected={[]} onSelect={() => {}} selectable={null} statusLabel={status => t(`groupStatus.${status}`)} reasonLabel={t('groupReason')} />}</div>
         </section>}
       {detail?.status === 'COMPLETED' && detail.transactionId != null && <PublicationPanel transactionId={detail.transactionId} canManage />}
       </div>
-      {detail && (detail.status === 'DRAFT' && (owner || admin) || detail.status === 'PENDING' && (owner || admin || user?.role === 'IT_STAFF')) &&
+      {detail && (detail.status === 'DRAFT' && (owner || admin) || (detail.status === 'PENDING' || detail.status === 'PARTIAL') && (owner || admin || user?.role === 'IT_STAFF')) &&
         <div className="recovery-dialog-footer">
           {detail.status === 'DRAFT' && (owner || admin) && <><button className="btn btn-secondary" disabled={acting} onClick={() => setEditing(true)}>{t('edit')}</button><button className="btn btn-primary" disabled={acting} onClick={() => void act('submit')}>{t('submit')}</button><button className="btn btn-secondary" disabled={acting} onClick={() => void act('cancel')}>{t('cancel')}</button></>}
-          {detail.status === 'PENDING' && (owner || admin) && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('withdraw')}>{t('withdraw')}</button>}
-          {detail.status === 'PENDING' && admin && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('cancel')}>{t('cancel')}</button>}
-          {detail.status === 'PENDING' && (admin || user?.role === 'IT_STAFF') && <button className="btn btn-primary" disabled={acting} onClick={() => setConfirming(true)}>{t('confirmPhysical')}</button>}
+          {detail.status === 'PENDING' && (owner || admin) && detail.groups?.every(group => group.status === 'PENDING') && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('withdraw')}>{t('withdraw')}</button>}
+          {detail.status === 'PENDING' && admin && detail.groups?.every(group => group.status === 'PENDING') && <button className="btn btn-secondary" disabled={acting} onClick={() => void act('cancel')}>{t('cancel')}</button>}
+          {(detail.status === 'PENDING' || detail.status === 'PARTIAL') && detail.groups?.some(group => group.status === 'PENDING') && (admin || user?.role === 'IT_STAFF') && <button className="btn btn-primary" disabled={acting} onClick={() => { setSelectedGroups([]); setConfirming(true); }}>{t('confirmPhysical')}</button>}
         </div>}
       </dialog>}
       {(creating || editing && detail) && <dialog ref={formRef} className="recovery-dialog" aria-labelledby="recovery-edit-title" onCancel={e => { if (formBusy) e.preventDefault(); else { setCreating(false); setEditing(false); } }}>
         <div className="recovery-dialog-heading"><h2 id="recovery-edit-title">{t(editing ? 'edit' : 'tabForm')}</h2><button type="button" className="btn btn-secondary" disabled={formBusy} onClick={() => { setCreating(false); setEditing(false); }}>{t('back')}</button></div>
-        <div className="recovery-dialog-body"><RecoveryForm initialValue={editing ? detail ?? undefined : undefined} onCompleted={saved} onBusyChange={setFormBusy} /></div>
+        <div className="recovery-dialog-body"><RecoveryForm initialValue={editing ? detail ?? undefined : undefined} onCompleted={saved} onConflict={error => void editConflict(error)} onBusyChange={setFormBusy} /></div>
       </dialog>}
       {confirming && detail && <dialog ref={confirmRef} className="recovery-dialog recovery-confirm-dialog" aria-labelledby="recovery-confirm-title" onCancel={e => { if (acting) e.preventDefault(); else setConfirming(false); }}>
         <div className="recovery-dialog-heading"><h2 id="recovery-confirm-title">{t('confirmPhysical')}</h2></div>
         <div className="recovery-dialog-body recovery-confirm-body"><p>{t('confirmPhysicalHint')}</p>
         <p className="recovery-confirm-context">{detail.transactionCode} · {detail.returnerName} · {detail.receivingLocationName}</p>
-        <PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <ul className="recovery-confirm-assets">{lines.map(line => <li key={line.assetId}><strong>{line.assetTag}</strong><span>{line.name}</span></li>)}</ul>}</PaginatedContent></div>
+        <WorkflowGroupList groups={detail.groups ?? []} lines={detail.proposalLines ?? detail.lines} selected={selectedGroups} onSelect={setSelectedGroups} statusLabel={status => t(`groupStatus.${status}`)} reasonLabel={t('groupReason')} />
+        {admin && <label className="form-label">{t('cancelRemainingReason')}<textarea className="form-textarea" value={cancelReason} onChange={event => setCancelReason(event.target.value)} /></label>}</div>
         <div className="recovery-dialog-footer"><button className="btn btn-secondary" disabled={acting} onClick={() => setConfirming(false)}>{t('back')}</button>
-        <button className="btn btn-primary" disabled={acting} onClick={() => void act('confirm')}>{acting ? t('loading') : t('confirmPhysical')}</button></div>
+        {admin && <button className="btn btn-secondary" disabled={acting || !selectedGroups.length || !cancelReason.trim()} onClick={() => void act('cancelRemaining')}>{t('cancelRemaining')}</button>}
+        <button className="btn btn-primary" disabled={acting || !selectedGroups.length} onClick={() => void act('confirm')}>{acting ? t('loading') : t('confirmPhysical')}</button></div>
       </dialog>}
     </div>
   </div>;

@@ -91,6 +91,7 @@
     "RETIRED": "Retired",
     "DRAFT": "Draft",
     "PENDING": "Pending",
+    "PARTIAL": "Partially completed",
     "APPROVED": "Approved",
     "REJECTED": "Rejected",
     "COMPLETED": "Completed",

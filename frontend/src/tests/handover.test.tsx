@@ -34,23 +34,30 @@ describe('T15 handover', () => {
     ]);
   });
   it('keeps draft and physical confirmation as separate requests', async () => {
-    await handoverApi.edit(11, req, 'Lý do thay');
-    await handoverApi.submit(11);
-    await handoverApi.withdraw(11, 'Lý do thay');
-    await handoverApi.cancel(11, 'Lý do thay');
-    await handoverApi.confirm(11);
+    await handoverApi.edit(11, req, 3, 'Lý do thay');
+    await handoverApi.submit(11, 3);
+    await handoverApi.withdraw(11, 3, 'Lý do thay');
+    await handoverApi.cancel(11, 3, 'Lý do thay');
+    await handoverApi.confirm(11, { expectedVersion: 3, groupIds: ['asset:8'] });
     expect(client.mock.calls).toEqual([
-      ['/v1/handovers/11', { method: 'PUT', headers: { 'X-Override-Reason': 'L%C3%BD%20do%20thay' }, body: JSON.stringify(req) }],
-      ['/v1/handovers/11/submit', { method: 'POST' }],
-      ['/v1/handovers/11/withdraw', { method: 'POST', headers: { 'X-Override-Reason': 'L%C3%BD%20do%20thay' } }],
-      ['/v1/handovers/11/cancel', { method: 'POST', headers: { 'X-Override-Reason': 'L%C3%BD%20do%20thay' } }],
-      ['/v1/handovers/11/confirm', { method: 'POST' }],
+      ['/v1/handovers/11', { method: 'PUT', headers: { 'X-Expected-Version': '3', 'X-Override-Reason': 'L%C3%BD%20do%20thay' }, body: JSON.stringify(req) }],
+      ['/v1/handovers/11/submit', { method: 'POST', headers: { 'X-Expected-Version': '3' } }],
+      ['/v1/handovers/11/withdraw', { method: 'POST', headers: { 'X-Expected-Version': '3', 'X-Override-Reason': 'L%C3%BD%20do%20thay' } }],
+      ['/v1/handovers/11/cancel', { method: 'POST', headers: { 'X-Expected-Version': '3', 'X-Override-Reason': 'L%C3%BD%20do%20thay' } }],
+      ['/v1/handovers/11/confirm', { method: 'POST', body: JSON.stringify({ expectedVersion: 3, groupIds: ['asset:8'] }) }],
     ]);
   });
   it('does not automatically retry a failed confirmation', async () => {
     client.mockRejectedValue(new Error('Conflict'));
-    await expect(handoverApi.confirm(10)).rejects.toThrow('Conflict');
+    await expect(handoverApi.confirm(10, { expectedVersion: 3, groupIds: ['asset:8'] })).rejects.toThrow('Conflict');
     expect(client).toHaveBeenCalledTimes(1);
+  });
+  it('labels cancelled groups from the proposal without adding them to completed lines', () => {
+    const line = (assetId: number, assetTag: string) => ({ assetId, assetTag, name: assetTag, category: 'DEVICE', parentAssetId: null, seats: 0, allocations: [], details: {} });
+    const value = { transactionId: 5, transactionCode: 'HO-5', completedAt: '2026-11-03', status: 'COMPLETED', requesterId: 1, requesterName: 'ICT', request: req, recipientUserId: 7, recipientName: 'Mai', recipientEmail: null, destinationLocationId: 2, destinationLocationName: 'Office', handoverDate: '2026-11-03', notes: null, fingerprint: 'fp', lines: [line(8, 'LAP-08')], proposalLines: [line(8, 'LAP-08'), line(9, 'LAP-09')], groups: [{ groupId: 'asset:8', status: 'COMPLETED', assetIds: [8], allocationIds: [] }, { groupId: 'asset:9', status: 'CANCELLED', assetIds: [9], allocationIds: [], reason: 'Missing' }] } as Handover;
+    const html = renderToStaticMarkup(<HandoverDetails value={value} />);
+    expect(html).toContain('LAP-09');
+    expect(html.match(/<table[\s\S]*?<\/table>/)?.[0]).not.toContain('LAP-09');
   });
   it('renders saved package allocation IDs and frozen hardware values', () => {
     const value: Handover = { transactionId: 1, transactionCode: 'HO-1', completedAt: '2026-09-10T10:00:00Z', status: 'COMPLETED', requesterId: 1, requesterName: 'ICT', request: req, recipientUserId: 7, recipientName: 'Original recipient', recipientEmployeeCode: 'CTY-EMP-007', recipientEmail: 'demo@example.com', destinationLocationId: 2, destinationLocationName: 'Original office', handoverDate: '2026-09-10', notes: '', fingerprint: 'frozen', lines: [

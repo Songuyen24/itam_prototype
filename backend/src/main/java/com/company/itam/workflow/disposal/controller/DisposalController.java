@@ -76,8 +76,23 @@ public class DisposalController {
     public ApiResponse<DisposalResponse> approve(@PathVariable Long id,
             @Valid @RequestBody ApproveRequest request) {
         var result = service.approve(id, request);
-        publications.afterCommit(id, () -> publications.onCompleted(id, result));
         return ApiResponse.success(messages.getMessage("DISPOSAL_APPROVED"), result);
+    }
+
+    @GetMapping("/{id}/progress")
+    public ApiResponse<java.util.Map<String,Object>> progress(@PathVariable Long id){return ApiResponse.success(messages.getMessage("DISPOSAL_READ"),service.progress(id));}
+    @PostMapping("/{id}/{action:approve-selected|reject-selected|cancel-lines}")
+    public ApiResponse<DisposalResponse> decide(@PathVariable Long id,@PathVariable String action,@Valid @RequestBody com.company.itam.workflow.core.dto.WorkflowProgressModels.Action request){
+        var result=service.decide(id,request,action.equals("approve-selected")?"APPROVED":action.equals("reject-selected")?"REJECTED":"CANCELLED");
+        if("COMPLETED".equals(result.status())) publications.afterCommit(id,()->publications.onCompleted(id,result));
+        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"),result);
+    }
+
+    @PostMapping("/{id}/execute")
+    public ApiResponse<DisposalResponse> execute(@PathVariable Long id, @Valid @RequestBody ExecuteRequest request) {
+        var result = service.execute(id, request);
+        if ("COMPLETED".equals(result.status())) publications.afterCommit(id, () -> publications.onCompleted(id, result));
+        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"), result);
     }
 
     @PostMapping("/{id}/reject")

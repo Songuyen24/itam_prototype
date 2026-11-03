@@ -381,7 +381,7 @@ class DocumentControllerIntegrationTest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(as("ADMIN", get("/v1/transactions").param("type", "UNKNOWN")))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(as("ADMIN", get("/v1/transactions").param("status", "APPROVED")))
+        mockMvc.perform(as("ADMIN", get("/v1/transactions").param("status", "UNKNOWN")))
                 .andExpect(status().isBadRequest());
     }
 
@@ -499,6 +499,23 @@ class DocumentControllerIntegrationTest {
     private MockHttpServletRequestBuilder upload(long transactionId) {
         return multipart("/v1/documents").file(sampleFile())
                 .param("transactionId", Long.toString(transactionId)).param("documentType", "INVOICE");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ADMIN", "IT"})
+    void approvedDisposalAcceptsEvidenceAndRejectsStaleUpload(String actor) throws Exception {
+        jdbc.update("UPDATE transactions SET status='APPROVED',completed_at=NULL,content_version=0 WHERE transaction_id=?", disposalId);
+        mockMvc.perform(as(actor, multipart("/v1/documents").file(sampleFile())
+                .param("transactionId", Long.toString(disposalId)).param("documentType", "DISPOSAL_REPORT")
+                .param("expectedVersion", "0")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.documentType").value("DISPOSAL_REPORT"));
+        assertThat(jdbc.queryForObject("SELECT content_version FROM transactions WHERE transaction_id=?",Long.class,disposalId)).isEqualTo(1L);
+        mockMvc.perform(as(actor, multipart("/v1/documents").file(sampleFile())
+                .param("transactionId", Long.toString(disposalId)).param("documentType", "DISPOSAL_REPORT")
+                .param("expectedVersion", "0"))).andExpect(status().isConflict());
+        mockMvc.perform(as("PUR1", multipart("/v1/documents").file(sampleFile())
+                .param("transactionId", Long.toString(disposalId)).param("documentType", "DISPOSAL_REPORT")
+                .param("expectedVersion", "1"))).andExpect(status().isForbidden());
     }
 
     private MockMultipartFile sampleFile() {

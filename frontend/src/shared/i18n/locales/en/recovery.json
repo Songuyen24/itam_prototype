@@ -88,6 +88,11 @@
   ,"cancel": "Cancel recovery"
   ,"cancelConfirm": "Cancel this recovery?"
   ,"confirmPhysical": "Confirm assets received"
-  ,"confirmPhysicalHint": "Check the assets physically received before completing recovery."
-  ,"status": { "DRAFT": "Draft", "PENDING": "Pending", "COMPLETED": "Completed", "CANCELLED": "Cancelled" }
+  ,"confirmPhysicalHint": "Select the assets physically received."
+  ,"cancelRemaining": "Cancel selected"
+  ,"cancelRemainingReason": "Reason for cancelling selected items"
+  ,"groupReason": "Reason"
+  ,"changed": "This recovery changed. Latest details have been loaded. Review them before retrying."
+  ,"groupStatus": { "PENDING": "Pending", "APPROVED": "Approved", "COMPLETED": "Completed", "REJECTED": "Rejected", "CANCELLED": "Cancelled" }
+  ,"status": { "DRAFT": "Draft", "PENDING": "Pending", "PARTIAL": "Partially completed", "COMPLETED": "Completed", "CANCELLED": "Cancelled" }
 }

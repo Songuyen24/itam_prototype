@@ -28,7 +28,27 @@ public class ReportService {
         var args=new ArrayList<Object>();
         String sql;
         if(group==ReportAccessService.Group.TRANSACTIONS) {
-            sql="SELECT t.transaction_id,t.transaction_code,t.type,t.status,t.created_at,t.completed_at,t.requester_id,creator.full_name AS requester_name,t.processed_by,processor.full_name AS processor_name FROM transactions t LEFT JOIN users creator ON creator.user_id=t.requester_id LEFT JOIN users processor ON processor.user_id=t.processed_by WHERE 1=1";
+            sql="""
+                SELECT t.transaction_id,t.transaction_code,t.type,t.status,t.created_at,t.completed_at,
+                    t.requester_id,creator.full_name AS requester_name,t.processed_by,processor.full_name AS processor_name,
+                    COALESCE(p.completed_groups,0) AS completed_groups,COALESCE(p.pending_groups,0) AS pending_groups,
+                    COALESCE(p.approved_groups,0) AS approved_groups,COALESCE(p.cancelled_groups,0) AS cancelled_groups,
+                    COALESCE(p.rejected_groups,0) AS rejected_groups,
+                    (SELECT string_agg(DISTINCT g->>'executionDate',', ' ORDER BY g->>'executionDate')
+                     FROM workflow_progress wp CROSS JOIN LATERAL jsonb_array_elements(wp.groups) g
+                     WHERE wp.transaction_id=t.transaction_id AND g->>'status'='COMPLETED') AS execution_dates
+                FROM transactions t LEFT JOIN users creator ON creator.user_id=t.requester_id
+                LEFT JOIN users processor ON processor.user_id=t.processed_by
+                LEFT JOIN LATERAL (
+                    SELECT COUNT(*) FILTER (WHERE g->>'status'='COMPLETED') AS completed_groups,
+                        COUNT(*) FILTER (WHERE g->>'status'='PENDING') AS pending_groups,
+                        COUNT(*) FILTER (WHERE g->>'status'='APPROVED') AS approved_groups,
+                        COUNT(*) FILTER (WHERE g->>'status'='CANCELLED') AS cancelled_groups,
+                        COUNT(*) FILTER (WHERE g->>'status'='REJECTED') AS rejected_groups
+                    FROM workflow_progress wp CROSS JOIN LATERAL jsonb_array_elements(wp.groups) g
+                    WHERE wp.transaction_id=t.transaction_id
+                ) p ON true WHERE 1=1
+                """;
             sql=eq(sql,args,"t.type",f.type()); sql=eq(sql,args,"t.status",f.status());
             if(f.actorId()!=null) {sql+=" AND (t.processed_by=? OR t.requester_id=?)";args.add(f.actorId());args.add(f.actorId());}
             String date="completed".equals(f.dateField())?"t.completed_at":"t.created_at";
@@ -94,7 +114,7 @@ public class ReportService {
         long total=jdbc.queryForObject("SELECT COUNT(*) FROM ("+q.sql()+") report_rows",Long.class,q.args().toArray());
         var args=new ArrayList<>(q.args()); args.add(filter.size()); args.add((long)filter.page()*filter.size());
         var summary = group==ReportAccessService.Group.TRANSACTIONS
-            ? jdbc.queryForList("SELECT type,status,COUNT(*) AS count FROM ("+q.sql()+") r GROUP BY type,status",q.args().toArray())
+            ? jdbc.queryForList("SELECT type,status,COUNT(*) AS count,SUM(completed_groups) AS completed_groups,SUM(pending_groups) AS pending_groups,SUM(approved_groups) AS approved_groups,SUM(cancelled_groups) AS cancelled_groups,SUM(rejected_groups) AS rejected_groups FROM ("+q.sql()+") r GROUP BY type,status",q.args().toArray())
             : jdbc.queryForList("SELECT category,COUNT(*) AS count,COALESCE(SUM(employee_seats),0) AS employee_seats,COALESCE(SUM(total_seats),0) AS total_seats,COALESCE(SUM(allocated_seats),0) AS allocated_seats,COALESCE(SUM(reserved_seats),0) AS reserved_seats,COALESCE(SUM(available_seats),0) AS available_seats FROM ("+q.sql()+") r GROUP BY category",q.args().toArray());
         return Map.of("summary",summary,"items",jdbc.queryForList(q.sql()+" LIMIT ? OFFSET ?",args.toArray()),"total",total,"page",filter.page(),"size",filter.size());
     }

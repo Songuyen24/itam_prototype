@@ -81,6 +81,7 @@ describe('T18 disposal and dashboard', () => {
     const html = renderToStaticMarkup(<DisposalDetail value={{
       transactionId: 9, transactionCode: 'DIS-09', status: 'PENDING', actorName: 'Nguyen Admin', reason: 'Broken',
       disposalDate: '2026-09-15', createdAt: '2026-09-14T10:00:00Z', fingerprint: 'viewed', warnings: [],
+      contentVersion: 3, groups: [{ groupId: 'asset:1', status: 'PENDING', assetIds: [1], allocationIds: [] }],
       assets: [{ assetId: 1, assetTag: 'LAP-01', name: 'Laptop', category: 'DEVICE', autoAdded: false, serialNumber: 'SN-01' }],
       perUserLinks: [{ allocationId: 77, licenseAssetId: 2, assetTag: 'USR-01', deviceId: 1, deviceTag: 'LAP-01', userName: 'Mai', seats: 2 }],
       oemAllocations: [{ allocationId: 88, licenseAssetId: 3, assetTag: 'OEM-01', deviceId: 1, deviceTag: 'LAP-01', seats: 1 }],

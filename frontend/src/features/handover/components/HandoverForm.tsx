@@ -6,12 +6,13 @@ import { LocationItem } from '@/features/catalogs/types/catalog.types';
 import { Candidate, HolderDetail, Handover, HandoverRequest, Recipient, handoverApi } from '../api/handoverApi';
 import { HandoverPicker } from './HandoverPicker';
 import { HandoverDetails } from './HandoverDetails';
+import { ApiError } from '@/shared/api/httpClient';
 
 const loadLocations = (keyword: string, page: number) => locationApi.getAll(keyword, true, page, 10);
 const loadRecipients = (keyword: string, page: number) => handoverApi.holders(keyword, page, false);
 function localDate() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 
-export function HandoverForm({ onCompleted, onBusyChange, initialRecipient, initialValue }: { onCompleted: (value: Handover) => void; onBusyChange?: (busy: boolean) => void; initialRecipient?: Recipient; initialValue?: Handover }) {
+export function HandoverForm({ onCompleted, onConflict, onBusyChange, initialRecipient, initialValue }: { onCompleted: (value: Handover) => void; onConflict?: (error: ApiError) => void; onBusyChange?: (busy: boolean) => void; initialRecipient?: Recipient; initialValue?: Handover }) {
   const { t } = useTranslation('handover');
   const [selected, setSelected] = useState<Candidate[]>(() => initialValue?.lines.filter(line => initialValue.request?.assetIds.includes(line.assetId) || initialValue.request?.licenses.some(l => l.assetId === line.assetId))
     .map(line => ({ assetId: line.assetId, assetTag: line.assetTag, name: line.name, category: line.category, assignmentType: null, availableSeats: null })) ?? []);
@@ -77,9 +78,9 @@ export function HandoverForm({ onCompleted, onBusyChange, initialRecipient, init
     setBusy(true); setError('');
     try {
       const body = { ...preview.request, expectedFingerprint: preview.data.fingerprint };
-      const r = initialValue?.transactionId ? await handoverApi.edit(initialValue.transactionId, body) : await handoverApi.create(body);
+      const r = initialValue?.transactionId ? await handoverApi.edit(initialValue.transactionId, body, initialValue.contentVersion!) : await handoverApi.create(body);
       setPreview(null); setSelected([]); setLicenses({}); setGeneration(v => v + 1); onCompleted(r.data);
-    } catch (e) { setError(e instanceof Error ? e.message : t('error')); setPreview(null); setGeneration(v => v + 1); }
+    } catch (e) { if (e instanceof ApiError && e.status === 409 && onConflict) onConflict(e); else setError(e instanceof Error ? e.message : t('error')); setPreview(null); setGeneration(v => v + 1); }
     finally { setBusy(false); }
   }
   return <form onSubmit={review} className="handover-form">

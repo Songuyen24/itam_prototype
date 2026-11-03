@@ -68,5 +68,13 @@
   "transaction_count": "Số phiếu",
   "column_requester_name": "Người tạo",
   "column_processor_name": "Người xử lý",
-  "column_employee_seats": "Suất đang cấp theo bộ lọc người giữ"
+  "column_employee_seats": "Suất đang cấp theo bộ lọc người giữ",
+  "column_completed_groups": "Nhóm đã thực hiện",
+  "column_pending_groups": "Nhóm đang chờ",
+  "column_approved_groups": "Nhóm được duyệt, chờ thực hiện",
+  "column_cancelled_groups": "Nhóm đã hủy",
+  "column_rejected_groups": "Nhóm không được duyệt",
+  "value_PARTIAL": "Đã thực hiện một phần",
+  "value_APPROVED": "Được duyệt, chờ thực hiện",
+  "column_execution_dates": "Ngày thực hiện thanh lý"
 }

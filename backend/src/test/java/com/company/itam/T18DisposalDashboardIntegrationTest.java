@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -37,11 +38,12 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "itam.documents.storage-root=target/t18-storage")
+@SpringBootTest(properties = {"itam.documents.storage-root=target/t18-storage","itam.email.mode=simulated"})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
@@ -112,12 +114,15 @@ class T18DisposalDashboardIntegrationTest {
                     .contentType("application/json").content("{\"expectedFingerprint\":\"" + detail.path("fingerprint").asText() + "\"}"))
                     .andExpect(status().isForbidden());
             mvc.perform(post("/v1/disposals/{id}/reject", transactionId).with(role(unauthorized))
-                    .contentType("application/json").content("{\"reason\":\"No\"}")).andExpect(status().isForbidden());
+                    .contentType("application/json").content("{\"reason\":\"No\",\"expectedVersion\":0}")).andExpect(status().isForbidden());
         }
         reset(emailGateway);
         mvc.perform(post("/v1/disposals/{id}/approve", transactionId).with(role("ADMIN"))
                         .contentType("application/json").content("{\"expectedFingerprint\":\"" + detail.path("fingerprint").asText() + "\"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("COMPLETED"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("APPROVED"));
+        assertThat(assetStatus(laptop)).isEqualTo("DAMAGED");
+        assertThat(assetStatus(ram)).isEqualTo("DAMAGED");
+        executeAll(transactionId);
 
         mvc.perform(post("/v1/disposals/{id}/approve", transactionId).with(role("ADMIN"))
                 .contentType("application/json").content(fingerprintBody(detail)))
@@ -134,7 +139,7 @@ class T18DisposalDashboardIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT user_id FROM license_allocations WHERE allocation_id=?", Long.class, allocation)).isNull();
         assertThat(jdbc.queryForObject("SELECT status FROM license_allocations WHERE allocation_id=?", String.class, otherAllocation)).isEqualTo("RESERVED");
         assertThat(jdbc.queryForObject("SELECT COALESCE(SUM(seat_count),0) FROM license_allocations WHERE license_asset_id=? AND status<>'RELEASED'", Integer.class, oem)).isEqualTo(2);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE transaction_id=? AND action='DISPOSAL_APPROVED'", Integer.class, transactionId)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE transaction_id=? AND action='DISPOSAL_EXECUTED'", Integer.class, transactionId)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=? AND document_type='DISPOSAL_REPORT'", Integer.class, transactionId)).isOne();
         assertThat(jdbc.queryForObject("SELECT template_version FROM documents WHERE transaction_id=? AND document_type='DISPOSAL_REPORT'", String.class, transactionId)).isEqualTo("T18-1");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM transaction_publication_snapshots WHERE transaction_id=?", Integer.class, transactionId)).isOne();
@@ -196,7 +201,9 @@ class T18DisposalDashboardIntegrationTest {
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DISPOSAL_CHANGED"));
         mvc.perform(post("/v1/disposals/{id}/approve", transactionId).with(role("ADMIN"))
                         .contentType("application/json").content("{\"expectedFingerprint\":\"" + resolved.path("fingerprint").asText() + "\"}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("APPROVED"));
+        assertThat(assetStatus(laptop)).isEqualTo("DAMAGED");
+        executeAll(transactionId);
         assertThat(assetStatus(laptop)).isEqualTo("RETIRED");
         assertThat(assetStatus(releasedLicense)).isEqualTo("IN_STOCK");
         assertThat(assetStatus(retainedLicense)).isEqualTo("IN_STOCK");
@@ -228,7 +235,7 @@ class T18DisposalDashboardIntegrationTest {
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).path("data");
 
         mvc.perform(post("/v1/disposals/{id}/reject", pending.path("transactionId").asLong()).with(role("ADMIN"))
-                        .contentType("application/json").content("{\"reason\":\"Repair first\"}"))
+                        .contentType("application/json").content(json.writeValueAsString(java.util.Map.of("reason", "Repair first", "expectedVersion", progress(pending.path("transactionId").asLong()).path("contentVersion").asLong()))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("REJECTED"));
         assertThat(detail(pending.path("transactionId").asLong(), "IT_STAFF").path("rejectionReason").asText()).isNotBlank();
         assertThat(assetStatus(oldStock)).isEqualTo("IN_STOCK");
@@ -284,7 +291,7 @@ class T18DisposalDashboardIntegrationTest {
 
     @Test
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
-    void approvalRollsBackWhenAuditPersistenceFails() throws Exception {
+    void executionRollsBackWhenAuditPersistenceFails() throws Exception {
         Long asset = asset(deviceType, "DAMAGED", LocalDate.now(), "Rollback laptop");
         JsonNode check = body(mvc.perform(post("/v1/disposals/smart-check").with(role("IT_STAFF"))
                 .contentType("application/json").content("{\"assetIds\":[" + asset + "]}"))
@@ -292,18 +299,22 @@ class T18DisposalDashboardIntegrationTest {
         JsonNode pending = body(mvc.perform(post("/v1/disposals").with(role("IT_STAFF"))
                 .contentType("application/json").content("{\"assetIds\":[" + asset + "],\"reason\":\"Broken\",\"disposalDate\":\"2026-09-15\",\"expectedFingerprint\":\"" + check.path("fingerprint").asText() + "\"}"))
                 .andReturn().getResponse().getContentAsString()).path("data");
-        JsonNode detail = detail(pending.path("transactionId").asLong(), "ADMIN");
+        long transactionId = pending.path("transactionId").asLong();
+        JsonNode detail = detail(transactionId, "ADMIN");
+        mvc.perform(post("/v1/disposals/{id}/approve", transactionId).with(role("ADMIN"))
+                .contentType("application/json").content(fingerprintBody(detail))).andExpect(status().isOk());
+        String execution = executionBody(transactionId);
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
                 new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("admin@itam.example", null,
                         java.util.List.of(new SimpleGrantedAuthority("ADMIN"))));
         doThrow(new IllegalStateException("Simulated audit failure")).when(auditRepository)
-                .save(argThat(log -> "DISPOSAL_APPROVED".equals(log.getAction())));
-        try { assertThatThrownBy(() -> disposalService.approve(pending.path("transactionId").asLong(),
-                new com.company.itam.workflow.disposal.dto.DisposalModels.ApproveRequest(detail.path("fingerprint").asText())))
+                .save(argThat(log -> "DISPOSAL_EXECUTED".equals(log.getAction())));
+        try { assertThatThrownBy(() -> disposalService.execute(transactionId,
+                json.readValue(execution, com.company.itam.workflow.disposal.dto.DisposalModels.ExecuteRequest.class)))
                 .hasMessageContaining("Simulated audit failure"); }
         finally { reset(auditRepository); org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
         assertThat(assetStatus(asset)).isEqualTo("DAMAGED");
-        assertThat(jdbc.queryForObject("SELECT status FROM transactions WHERE transaction_id=?", String.class, pending.path("transactionId").asLong())).isEqualTo("PENDING");
+        assertThat(jdbc.queryForObject("SELECT status FROM transactions WHERE transaction_id=?", String.class, transactionId)).isEqualTo("APPROVED");
     }
 
     @Test
@@ -355,6 +366,8 @@ class T18DisposalDashboardIntegrationTest {
         mvc.perform(post("/v1/disposals/{id}/approve", transactionId).with(role("ADMIN"))
                         .contentType("application/json").content("{\"expectedFingerprint\":\"" + detail.path("fingerprint").asText() + "\"}"))
                 .andExpect(status().isOk());
+        assertThat(assetStatus(laptop)).isEqualTo("DAMAGED");
+        executeAll(transactionId);
         assertThat(assetStatus(laptop)).isEqualTo("RETIRED");
         assertThat(assetStatus(oem)).isEqualTo("IN_STOCK");
     }
@@ -466,6 +479,7 @@ class T18DisposalDashboardIntegrationTest {
         mvc.perform(post("/v1/disposals/{id}/approve", transactionId).with(role("ADMIN"))
                         .contentType("application/json").content("{\"expectedFingerprint\":\"" + detail.path("fingerprint").asText() + "\"}"))
                 .andExpect(status().isOk());
+        executeAll(transactionId);
         reset(pdf);
 
         String frozen = jdbc.queryForObject("SELECT snapshot::text FROM transaction_publication_snapshots WHERE transaction_id=?", String.class, transactionId);
@@ -474,7 +488,7 @@ class T18DisposalDashboardIntegrationTest {
         assertThat(snapshot.path("reason").asText()).isEqualTo("Frozen business reason");
         assertThat(snapshot.path("disposalDate").asText()).isEqualTo("2026-09-15");
         assertThat(snapshot.path("assets").get(0).path("serialNumber").asText()).isEqualTo(serial);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=?", Integer.class, transactionId)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=? AND publication_version IS NOT NULL", Integer.class, transactionId)).isZero();
 
         try {
             jdbc.update("UPDATE users SET full_name='Changed Admin' WHERE user_id=?", admin);
@@ -482,7 +496,7 @@ class T18DisposalDashboardIntegrationTest {
             mvc.perform(post("/v1/transactions/{id}/pdf/regenerate", transactionId).with(role("ADMIN")))
                     .andExpect(status().isOk());
             assertThat(jdbc.queryForObject("SELECT snapshot::text FROM transaction_publication_snapshots WHERE transaction_id=?", String.class, transactionId)).isEqualTo(frozen);
-            assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=?", Integer.class, transactionId)).isOne();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=? AND publication_version IS NOT NULL", Integer.class, transactionId)).isOne();
         } finally {
             jdbc.update("UPDATE users SET full_name=? WHERE user_id=?", originalActor, admin);
         }
@@ -505,7 +519,7 @@ class T18DisposalDashboardIntegrationTest {
         JsonNode readable = detail(secondId, "IT_STAFF");
         mvc.perform(post("/v1/disposals/{id}/submit", secondId).with(role("IT_STAFF"))
                 .contentType("application/json").content(fingerprintBody(readable)))
-                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DISPOSAL_ALREADY_PENDING"));
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("WORKFLOW_ASSET_RESERVED"));
         mvc.perform(post("/v1/disposals/{id}/cancel", firstId).with(role("IT_STAFF"))
                 .contentType("application/json").content(fingerprintBody(detail(firstId,"IT_STAFF"))))
                 .andExpect(status().isForbidden());
@@ -603,6 +617,33 @@ class T18DisposalDashboardIntegrationTest {
 
     private String fingerprintBody(JsonNode value) throws Exception {
         return json.writeValueAsString(java.util.Map.of("expectedFingerprint",value.path("fingerprint").asText()));
+    }
+
+    private JsonNode progress(long transactionId) throws Exception {
+        return body(mvc.perform(get("/v1/disposals/{id}/progress", transactionId).with(role("ADMIN")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("data");
+    }
+
+    private String executionBody(long transactionId) throws Exception {
+        JsonNode beforeUpload = progress(transactionId);
+        JsonNode proof = body(mvc.perform(multipart("/v1/documents")
+                        .file(new MockMultipartFile("file", "proof.pdf", "application/pdf", "%PDF-1.4\n%%EOF".getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                        .with(role("ADMIN")).param("transactionId", Long.toString(transactionId))
+                        .param("documentType", "OTHER").param("expectedVersion", beforeUpload.path("contentVersion").asText()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("data");
+        JsonNode current = progress(transactionId);
+        var groupIds = new java.util.ArrayList<String>();
+        for (JsonNode group : current.path("groups")) if ("APPROVED".equals(group.path("status").asText())) groupIds.add(group.path("groupId").asText());
+        assertThat(groupIds).isNotEmpty();
+        return json.writeValueAsString(java.util.Map.of("expectedVersion", current.path("contentVersion").asLong(),
+                "groupIds", groupIds, "documentId", proof.path("documentId").asLong(), "executionDate", LocalDate.now().toString()));
+    }
+
+    private JsonNode executeAll(long transactionId) throws Exception {
+        return body(mvc.perform(post("/v1/disposals/{id}/execute", transactionId).with(role("ADMIN"))
+                        .contentType("application/json").content(executionBody(transactionId)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andReturn().getResponse().getContentAsString()).path("data");
     }
 
     private org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.UserRequestPostProcessor role(String role) {
