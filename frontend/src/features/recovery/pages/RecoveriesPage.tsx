@@ -143,9 +143,10 @@ export function RecoveriesPage() {
         <div className="recovery-dialog-body"><RecoveryForm initialValue={editing ? detail ?? undefined : undefined} onCompleted={saved} onBusyChange={setFormBusy} /></div>
       </dialog>}
       {confirming && detail && <dialog ref={confirmRef} className="recovery-dialog recovery-confirm-dialog" aria-labelledby="recovery-confirm-title" onCancel={e => { if (acting) e.preventDefault(); else setConfirming(false); }}>
-        <h2 id="recovery-confirm-title">{t('confirmPhysical')}</h2><p>{t('confirmPhysicalHint')}</p>
-        <p>{detail.transactionCode} · {detail.returnerName} · {detail.receivingLocationName}</p>
-        <PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <ul>{lines.map(line => <li key={line.assetId}>{line.assetTag} · {line.name}</li>)}</ul>}</PaginatedContent>
+        <div className="recovery-dialog-heading"><h2 id="recovery-confirm-title">{t('confirmPhysical')}</h2></div>
+        <div className="recovery-dialog-body recovery-confirm-body"><p>{t('confirmPhysicalHint')}</p>
+        <p className="recovery-confirm-context">{detail.transactionCode} · {detail.returnerName} · {detail.receivingLocationName}</p>
+        <PaginatedContent key={detail.transactionId} items={detail.lines ?? []}>{lines => <ul className="recovery-confirm-assets">{lines.map(line => <li key={line.assetId}><strong>{line.assetTag}</strong><span>{line.name}</span></li>)}</ul>}</PaginatedContent></div>
         <div className="recovery-dialog-footer"><button className="btn btn-secondary" disabled={acting} onClick={() => setConfirming(false)}>{t('back')}</button>
         <button className="btn btn-primary" disabled={acting} onClick={() => void act('confirm')}>{acting ? t('loading') : t('confirmPhysical')}</button></div>
       </dialog>}

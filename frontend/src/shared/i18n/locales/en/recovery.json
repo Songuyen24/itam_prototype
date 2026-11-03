@@ -17,6 +17,7 @@
   "selectDevicesHint": "Select IN_USE devices belonging to the returner. The system will automatically list attached components and OEM licenses.",
   "noDevices": "No devices selected",
   "selected": "{{count}} device(s) selected",
+  "selectedOption": "Selected",
   "date": "Recovery Date",
   "reason": "Recovery Reason",
   "remove": "Remove",

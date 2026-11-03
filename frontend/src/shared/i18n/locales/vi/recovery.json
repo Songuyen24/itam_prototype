@@ -17,6 +17,7 @@
   "selectDevicesHint": "Chọn thiết bị IN_USE thuộc người trả. Hệ thống sẽ tự động liệt kê các linh kiện và license OEM đi kèm.",
   "noDevices": "Chưa chọn thiết bị nào",
   "selected": "{{count}} thiết bị đã chọn",
+  "selectedOption": "Đã chọn",
   "date": "Ngày thu hồi",
   "reason": "Lý do thu hồi",
   "remove": "Xóa",
