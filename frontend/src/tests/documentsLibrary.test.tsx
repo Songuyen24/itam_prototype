@@ -38,7 +38,7 @@ describe('documents file library',()=>{
     mocks.preview.mockReset().mockRejectedValue(new Error('File unavailable'));
     vi.stubGlobal('document', { activeElement: null });
     await act(async()=>{tree=create(<MemoryRouter><DocumentsPage/></MemoryRouter>, { createNodeMock: element => element.type === 'dialog' ? { showModal() {}, close() {}, querySelector: () => null } : null });});
-    await act(async()=>tree!.root.findAllByType('button').find(item=>item.children.includes('actions.preview'))!.props.onClick());
+    await act(async()=>tree!.root.findAllByType('button').find(item=>item.props['aria-label']==='actions.preview')!.props.onClick());
     expect(mocks.preview).toHaveBeenCalledWith(8);
     expect(mocks.download).not.toHaveBeenCalled();
     const output=JSON.stringify(tree!.toJSON());

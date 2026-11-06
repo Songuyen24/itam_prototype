@@ -90,7 +90,7 @@ describe('receiving list and receipt modal', () => {
     await act(async () => { tree = create(<MemoryRouter><DocumentsPage receiving /></MemoryRouter>); });
     expect(tree!.root.findAllByProps({ role: 'tab' })).toHaveLength(0);
     expect(tree!.root.findAllByProps({ role: 'dialog' })).toHaveLength(0);
-    await act(async () => buttons().find(button => button.children.includes('actions.openReceipt'))!.props.onClick());
+    await act(async () => buttons().find(button => button.props['aria-label']==='actions.openReceipt')!.props.onClick());
     expect(tree!.root.findAllByProps({ role: 'dialog' })).toHaveLength(1);
     expect(tree!.root.findByType('output').children).toEqual(['1']);
     act(() => buttons().find(button => button.children.includes('actions.close'))!.props.onClick());

@@ -52,7 +52,7 @@ describe('T18 disposal interactions', () => {
     auth.role = 'ADMIN';
     await act(async () => tree.update(<DisposalsPage />));
     expect(tree.root.findAllByType('button').some(button => button.children.includes('createTitle'))).toBe(false);
-    await act(async () => group(tree, 'DRAFT').findAllByType('button').find(button => button.children.includes('review'))!.props.onClick({ currentTarget: {} }));
+    await act(async () => group(tree, 'DRAFT').findAllByType('button').find(button => button.props['aria-label']==='review')!.props.onClick({ currentTarget: {} }));
     await act(async () => tree.root.findAllByType('button').find(button => button.children.includes('editDraft'))!.props.onClick());
     expect(tree.root.findAllByProps({ className: 'disposal-form-dialog' })).toHaveLength(1);
     expect(tree.root.findAllByType('form')).toHaveLength(1);
@@ -182,7 +182,7 @@ describe('T18 disposal interactions', () => {
     });
     const tree = await renderPage();
     await act(async () => group(tree,'PENDING').findAllByType('button').find(button => button.children.includes('next'))!.props.onClick());
-    await act(async () => group(tree,'PENDING').findAllByType('button').find(button => button.children.includes('review'))!.props.onClick({ currentTarget: {} }));
+    await act(async () => group(tree,'PENDING').findAllByType('button').find(button => button.props['aria-label']==='review')!.props.onClick({ currentTarget: {} }));
     act(() => tree.root.findAllByType('button').find(button => button.children.includes('approve'))!.props.onClick());
     act(() => tree.root.findAllByType('input').find(input => input.props.type === 'checkbox')!.props.onChange());
     await act(async () => tree.root.findAllByType('button').find(button => button.children.includes('confirmApprove'))!.props.onClick());
@@ -199,7 +199,7 @@ describe('T18 disposal interactions', () => {
       throw new Error(`Unexpected mutation ${endpoint}`);
     });
     const tree = await renderPage();
-    await act(async () => group(tree,'PENDING').findAllByType('button').find(button => button.children.includes('review'))!.props.onClick({ currentTarget: {} }));
+    await act(async () => group(tree,'PENDING').findAllByType('button').find(button => button.props['aria-label']==='review')!.props.onClick({ currentTarget: {} }));
     expect(tree.root.findAllByType('dialog')).toHaveLength(1);
     expect(tree.root.findAllByType('button').some(button => button.children.includes('approve'))).toBe(false);
     expect(client.mock.calls.some(call => /\/(approve|reject|per-user)$/.test(String(call[0])))).toBe(false);
@@ -222,7 +222,7 @@ describe('T18 disposal interactions', () => {
       throw new Error(`Unexpected ${endpoint}`);
     });
     const tree = await renderPage();
-    const review = tree.root.findAllByType('button').find(button => button.children.includes('review'))!;
+    const review = tree.root.findAllByType('button').find(button => button.props['aria-label']==='review')!;
     await act(async () => review.props.onClick({ currentTarget: {} }));
     expect(client.mock.calls.filter(call => String(call[0]).endsWith('/approve-selected'))).toHaveLength(0);
 

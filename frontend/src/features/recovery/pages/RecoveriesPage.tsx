@@ -1,3 +1,5 @@
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import { TableActionButton } from '@/shared/components/TableActionButton';
 import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -136,7 +138,7 @@ export function RecoveriesPage() {
         : <div className="table-container recovery-table-wrap"><table className="data-table recovery-table"><thead><tr>
           <th>{t('colCode')}</th><th>{t('creator')}</th><th>{t('createdAt')}</th><th>{t('filterStatus')}</th><th>{t('colActions')}</th>
         </tr></thead><tbody>{history.map(r => <tr key={r.transactionId}><td><button type="button" className="recovery-code" onClick={() => setSelectedId(r.transactionId)}>{r.transactionCode}</button></td><td>{r.requesterName || '—'}</td><td>{new Date(r.createdAt).toLocaleDateString(i18n.language)}</td><td><span className={`recovery-status recovery-status-${r.status.toLowerCase()}`}>{t(`status.${r.status}`)}</span></td>
-          <td><button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectedId(r.transactionId)}>{t('details')}</button></td></tr>)}</tbody></table>{history.length === 0 && <div className="recovery-list-state">{t('noHistory')}</div>}</div>}
+          <td><TableActionButton icon={<VisibilityOutlinedIcon />} label={t('details')} onClick={() => setSelectedId(r.transactionId)}/></td></tr>)}</tbody></table>{history.length === 0 && <div className="recovery-list-state">{t('noHistory')}</div>}</div>}
       {!loading && !error && pages > 0 && <div className="recovery-pagination"><button className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(n => n - 1)}>{t('previous')}</button>
         <span>{t('documents:pagination.summary', { page: pages ? page + 1 : 0, pages, count: total })}</span><button className="btn btn-secondary" disabled={loading || page + 1 >= pages} onClick={() => setPage(n => n + 1)}>{t('next')}</button></div>
       }

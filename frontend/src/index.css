@@ -382,6 +382,9 @@ body {
 .btn-danger:hover {
   background-color: var(--danger-hover);
 }
+.table-action-button { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 4px; vertical-align: middle; }
+.table-action-button + .table-action-button { margin-left: 6px; }
+.table-action-button svg { font-size: 19px; }
 
 .btn-sm {
   padding: 4px 10px;

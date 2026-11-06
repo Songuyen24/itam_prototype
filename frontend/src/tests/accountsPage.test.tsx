@@ -27,7 +27,7 @@ const profile: EmployeeProfile = { id: 8, fullName: 'Lan', employeeCode: 'E-8', 
 const page = (content = [profile]) => ({ data: { content, totalElements: content.length, totalPages: 1 } });
 let tree: ReactTestRenderer;
 async function render() { await act(async () => { tree = create(<AccountsPage />); }); }
-function button(label: string) { return tree.root.findAllByType('button').find(node => node.children.includes(label))!; }
+function button(label: string) { return tree.root.findAllByType('button').find(node => node.props['aria-label'] === label || node.children.includes(label))!; }
 function forms() { return tree.root.findAllByType('form'); }
 
 describe('unified account management', () => {

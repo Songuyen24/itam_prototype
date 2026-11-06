@@ -14,7 +14,7 @@ const receipt={transactionId:7,transactionCode:'RC-7',status:'PENDING',createdAt
 const detail={...receipt,creatorUserId:1,returnerName:'Lan',receivingLocationName:'Office',recoveryDate:'2026-10-28',reason:'Return',lines:[]};
 let tree:ReactTestRenderer|null=null;
 const buttons=()=>tree!.root.findAllByType('button');
-const pick=(label:string)=>buttons().find(button=>button.children.includes(label))!;
+const pick=(label:string)=>buttons().find(button=>button.props['aria-label']===label||button.children.includes(label))!;
 const response={success:true,data:{content:[receipt],totalPages:2,totalElements:21}};
 describe('recovery list and create dialog',()=>{
   beforeEach(()=>{mocks.list.mockReset().mockResolvedValue(response);mocks.detail.mockReset().mockResolvedValue({data:detail});});

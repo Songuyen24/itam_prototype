@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import { TableActionButton } from '@/shared/components/TableActionButton';
 import {
   Department,
   LocationItem,
@@ -413,14 +415,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                     <td className="asset-actions-cell">
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                         {canManageAssets && asset.statusCode !== 'PENDING_IMPORT' && !asset.pendingHandover && !asset.pendingDisposal && (
-                          <button
-                            type="button"
-                            className="btn btn-secondary asset-edit-button"
-                            onClick={() => handleOpenEdit(asset)}
-                            title={t('assets:modal.editTitle')}
-                          >
-                            {t('common:buttons.edit')}
-                          </button>
+                          <TableActionButton className="asset-edit-button" icon={<EditOutlinedIcon />} label={t('assets:modal.editTitle')} onClick={() => handleOpenEdit(asset)} />
                         )}
                       </div>
                     </td>

@@ -1,3 +1,5 @@
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import { TableActionButton } from '@/shared/components/TableActionButton';
 import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
@@ -230,13 +232,7 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                           <td>{contact.phone || '-'}</td>
                           <td>{contact.email || '-'}</td>
                           <td>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-danger"
-                              onClick={() => handleRemoveContact(idx)}
-                            >
-                              {t('forms.delete')}
-                            </button>
+                            <TableActionButton className="btn-danger" icon={<DeleteOutlineOutlinedIcon />} label={t('forms.delete')} onClick={() => handleRemoveContact(idx)} />
                           </td>
                         </tr>
                       ))}
