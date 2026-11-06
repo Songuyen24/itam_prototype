@@ -1,3 +1,5 @@
+import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
+import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
@@ -53,6 +55,6 @@ export function PdfCanvasPreview({ blob }: { blob: Blob }) {
     {error && <p role="alert">{error}</p>}
     {loading && <p role="status">{t('states.loading')}</p>}
     <canvas ref={canvas} role="img" aria-label={t('pdfPage', { page })} />
-    {pdf && <div className="document-pagination"><button type="button" className="btn btn-secondary" aria-label={t('pagination.previous')} disabled={loading || page === 1} onClick={() => setPage(value => value - 1)}>←</button><span>{page} / {pdf.numPages}</span><button type="button" className="btn btn-secondary" aria-label={t('pagination.next')} disabled={loading || page >= pdf.numPages} onClick={() => setPage(value => value + 1)}>→</button></div>}
+    {pdf && <div className="document-pagination"><button type="button" className="btn btn-secondary" aria-label={t('pagination.previous')} disabled={loading || page === 1} onClick={() => setPage(value => value - 1)}><ArrowBackOutlinedIcon fontSize="small" aria-hidden="true" /></button><span>{page} / {pdf.numPages}</span><button type="button" className="btn btn-secondary" aria-label={t('pagination.next')} disabled={loading || page >= pdf.numPages} onClick={() => setPage(value => value + 1)}><ArrowForwardOutlinedIcon fontSize="small" aria-hidden="true" /></button></div>}
   </div>;
 }

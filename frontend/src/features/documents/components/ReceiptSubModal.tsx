@@ -1,3 +1,4 @@
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -33,7 +34,7 @@ export function ReceiptSubModal({ title, onClose, children, busy=false, size="de
   }, []);
   return <div className="receiving-submodal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget && !busy && !modal.current?.querySelector('[aria-busy="true"]')) onClose(); }}>
     <div ref={modal} className={size === "confirmation" ? "receiving-submodal receiving-submodal--confirmation" : "receiving-submodal"} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}>
-      <div className="receiving-submodal-heading"><h3>{title}</h3><button type="button" className="btn btn-secondary" aria-label={t('actions.close')} disabled={busy} onClick={() => { if (!modal.current?.querySelector('[aria-busy="true"]')) onClose(); }}>×</button></div>
+      <div className="receiving-submodal-heading"><h3>{title}</h3><button type="button" className="btn btn-secondary" aria-label={t('actions.close')} disabled={busy} onClick={() => { if (!modal.current?.querySelector('[aria-busy="true"]')) onClose(); }}><CloseOutlinedIcon fontSize="small" aria-hidden="true" /></button></div>
       <div className="receiving-submodal-body">{children}</div>
     </div>
   </div>;

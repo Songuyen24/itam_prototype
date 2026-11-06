@@ -1,3 +1,5 @@
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -296,7 +298,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
             {isEdit ? `${t('modal.editTitle')}: ${initialData.assetTag}` : t('modal.createTitle')}
           </div>
           <button type="button" className="btn-close" aria-label={t('common:buttons.close')} onClick={onClose} disabled={isSaving}>
-            ✕
+            <CloseOutlinedIcon fontSize="small" aria-hidden="true" />
           </button>
         </div>
 
@@ -305,7 +307,7 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
           <p className="text-muted">{t('form.opening')}</p>
           {formError && (
             <div style={{ backgroundColor: 'var(--danger-light)', color: 'var(--danger)', padding: '12px 16px', borderRadius: '6px', fontSize: '14px', fontWeight: 500 }}>
-              ⚠️ {formError}
+              <WarningAmberOutlinedIcon fontSize="small" aria-hidden="true" /> {formError}
             </div>
           )}
 

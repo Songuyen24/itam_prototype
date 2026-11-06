@@ -1,3 +1,4 @@
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiResponse, PageResponse } from '@/features/catalogs/types/catalog.types';
@@ -31,7 +32,7 @@ export function HandoverPicker<T>({ title, load, identify, label, selected, choo
     {loading ? <p role="status">{t('loading')}</p> : error ? <p role="alert">{error} <button type="button" onClick={() => setReload(r => r + 1)}>{t('retry')}</button></p>
       : items.length === 0 ? <p>{t('empty')}</p> : <div className="handover-options">{items.map(item => <button type="button" key={identify(item)}
         disabled={disabled || unavailable?.(item)} aria-pressed={selected.includes(identify(item))} onClick={() => choose(item)}>
-        {selected.includes(identify(item)) ? '✓ ' : ''}{label(item)}
+        {selected.includes(identify(item)) && <CheckOutlinedIcon fontSize="small" aria-hidden="true" />}{label(item)}
       </button>)}</div>}
     <div className="handover-pagination">
       <button type="button" className="btn btn-secondary" disabled={disabled || loading || page === 0} onClick={() => setPage(p => p - 1)}>{t('previous')}</button>

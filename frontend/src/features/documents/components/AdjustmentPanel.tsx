@@ -1,3 +1,5 @@
+import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
+import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -40,7 +42,7 @@ export function AdjustmentPanel({transactionId,isAdmin}:{transactionId:number;is
           <div className="adjustment-submit"><p>{t('adjustment.lock')}</p><button className="btn btn-primary" type="submit">{t('adjustment.submit')}</button></div>
         </fieldset>
       </form>}
-      <nav aria-label={t('adjustment.title')}><button className="btn" disabled={busy||page===0} onClick={()=>setPage(page-1)}>←</button> {page+1} / {Math.max(1,Math.ceil(value.total/10))} <button className="btn" disabled={busy||(page+1)*10>=value.total} onClick={()=>setPage(page+1)}>→</button></nav>
+      <nav aria-label={t('adjustment.title')}><button className="btn" aria-label={t('pagination.previous')} disabled={busy||page===0} onClick={()=>setPage(page-1)}><ArrowBackOutlinedIcon fontSize="small" aria-hidden="true" /></button> {page+1} / {Math.max(1,Math.ceil(value.total/10))} <button className="btn" aria-label={t('pagination.next')} disabled={busy||(page+1)*10>=value.total} onClick={()=>setPage(page+1)}><ArrowForwardOutlinedIcon fontSize="small" aria-hidden="true" /></button></nav>
       {value.requests.map(r=><article key={r.id} className="adjustment-request">
         <h4>{t('adjustment.version',{version:r.version})} — {t(`adjustment.states.${r.status}`)}</h4>
         <p>{t(`adjustment.kinds.${r.kind}`)} · {r.requesterName} · {new Date(r.createdAt).toLocaleString(i18n?.language)}</p>

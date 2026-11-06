@@ -25,7 +25,7 @@ describe('Completed adjustments',()=>{
     await act(async()=>{tree=create(<AdjustmentPanel transactionId={10} isAdmin={false}/>);});
     expect(tree.root.findAllByType('form')).toHaveLength(0);
     expect(tree.root.findAllByType('textarea')).toHaveLength(0);
-    await act(async()=>tree.root.findAllByType('button').find(b=>b.children.includes('→'))!.props.onClick());
+    await act(async()=>tree.root.findAllByType('button').find(b=>b.props['aria-label']==='pagination.next')!.props.onClick());
     expect(api.list).toHaveBeenLastCalledWith(10,1);
   });
   it('recovers initial load failure with Retry',async()=>{

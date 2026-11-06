@@ -1,3 +1,4 @@
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { httpClient } from '@/shared/api/httpClient';
@@ -61,7 +62,7 @@ export function AuditLogsPage() {
   const activeFilters = fields.filter(key => filter[key]);
   const detail = selected && <div className="audit-detail-content">
     <header><div><h2>{selected.actor || t('unknown')}</h2><p>{t(`actions.${selected.action}`, selected.action)} · {selected.action}</p></div>
-      <button type="button" className="audit-close" onClick={closeDetail} aria-label={t('close')} title={t('close')}>×</button></header>
+      <button type="button" className="audit-close" onClick={closeDetail} aria-label={t('close')} title={t('close')}><CloseOutlinedIcon fontSize="small" aria-hidden="true" /></button></header>
     <dl className="audit-meta">
       <div><dt>{t('time')}</dt><dd>{new Date(selected.createdAt).toLocaleString(i18n.language)}</dd></div>
       <div><dt>{t('result')}</dt><dd>{t(selected.result === 'FAILURE' ? 'failure' : 'success')}</dd></div>

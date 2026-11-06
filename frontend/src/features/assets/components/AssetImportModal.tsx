@@ -1,3 +1,10 @@
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import React, { useState, useRef, useEffect } from 'react';
 import './asset-workflow.css';
 import { useTranslation } from 'react-i18next';
@@ -228,7 +235,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             fontSize: '11px',
             fontWeight: 600,
           }}>
-            ✓ {t('imports:statusBadges.VALID', 'Hợp lệ')}
+            <CheckOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.VALID', 'Hợp lệ')}
           </span>
         );
       case 'DUPLICATE':
@@ -244,7 +251,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             fontSize: '11px',
             fontWeight: 600,
           }}>
-            ⚠️ {t('imports:statusBadges.DUPLICATE', 'Trùng lặp')}
+            <WarningAmberOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.DUPLICATE', 'Trùng lặp')}
           </span>
         );
       case 'INVALID':
@@ -261,7 +268,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             fontSize: '11px',
             fontWeight: 600,
           }}>
-            ✕ {t('imports:statusBadges.INVALID', 'Lỗi')}
+            <CloseOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.INVALID', 'Lỗi')}
           </span>
         );
     }
@@ -348,7 +355,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
               borderRadius: '4px',
             }}
           >
-            ✕
+            <CloseOutlinedIcon fontSize="small" aria-hidden="true" />
           </button>
         </div>
 
@@ -370,7 +377,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
               gap: '8px',
             }}
           >
-            {!receiving && <span>⚠️</span>}
+            {!receiving && <WarningAmberOutlinedIcon fontSize="small" aria-hidden="true" />}
             <span>{errorMessage}</span>
           </div>
         )}
@@ -414,7 +421,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     fontWeight: 600,
                   }}
                 >
-                  {!receiving && <span>📄</span>}
+                  {!receiving && <DescriptionOutlinedIcon fontSize="small" aria-hidden="true" />}
                   <span>{t('imports:upload.downloadTemplate', 'Tải file mẫu (.xlsx)')}</span>
                 </button>
               </div>
@@ -462,7 +469,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   style={{ display: 'none' }}
                 />
 
-                {!receiving && <div style={{ fontSize: '42px', marginBottom: '12px' }}>📊</div>}
+                {!receiving && <div style={{ marginBottom: '12px' }}><AssessmentOutlinedIcon sx={{ fontSize: 42 }} aria-hidden="true" /></div>}
 
                 {selectedFile ? (
                   <div>
@@ -712,7 +719,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                                   )) : row.errorMessage}
                                 </div>
                               ) : (
-                                <span style={{ color: '#16a34a' }}>✓ {t('imports:statusBadges.VALID', 'Sẵn sàng lưu kho')}</span>
+                                <span style={{ color: '#16a34a' }}><CheckOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.VALID', 'Sẵn sàng lưu kho')}</span>
                               )}
                             </td>
                           </tr>
@@ -805,7 +812,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     </>
                   ) : (
                     <>
-                      {!receiving && <span>🔍</span>}
+                      {!receiving && <SearchOutlinedIcon fontSize="small" aria-hidden="true" />}
                       <span>{t('imports:upload.btnPreview', 'Kiểm tra dữ liệu (Preview)')}</span>
                     </>
                   )}
@@ -819,7 +826,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   onClick={() => setStep('upload')}
                   disabled={isImporting || isUploading}
                 >
-                  {t('imports:preview.btnBack', '← Chọn lại file khác')}
+                  <ArrowBackOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:preview.btnBack', 'Chọn lại file khác')}
                 </button>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -852,7 +859,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                       </>
                     ) : (
                       <>
-                        <span>✓</span>
+                        <CheckOutlinedIcon fontSize="small" aria-hidden="true" />
                         <span>
                           {t('imports:preview.btnConfirm', { count: previewData?.validRows || 0, defaultValue: `Xác nhận Import (${previewData?.validRows || 0} dòng)` })}
                         </span>

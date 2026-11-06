@@ -1,3 +1,4 @@
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import React, { useEffect, useRef, useState } from 'react';
 import './asset-workflow.css';
 import { AssetRelationships } from './AssetRelationships';
@@ -87,7 +88,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
             </div>
           </div>
           <button type="button" className="btn-close" aria-label={t('detail.close')} onClick={onClose}>
-            ✕
+            <CloseOutlinedIcon fontSize="small" aria-hidden="true" />
           </button>
         </div>
 

@@ -1,3 +1,4 @@
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -75,7 +76,7 @@ export function GlobalSearch() {
   const assetPath = user?.role === 'USER' ? '/my-assets' : '/assets';
   return <div className="global-search" ref={root}>
     <label className="global-search-label" htmlFor="global-search-input">{t('search.title')}</label>
-    <svg className="global-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+    <SearchOutlinedIcon className="global-search-icon" aria-hidden="true" />
     <input id="global-search-input" className="form-input" type="search" maxLength={100}
       aria-controls={expanded && search.length >= 2 ? 'global-search-results' : undefined} aria-expanded={expanded && search.length >= 2}
       placeholder={t('search.placeholder')} value={query} onFocus={() => setExpanded(true)}

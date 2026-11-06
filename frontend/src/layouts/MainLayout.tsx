@@ -9,30 +9,39 @@ import { DOCUMENT_ROLES } from '@/features/documents/types/document.types';
 import { OverrideReasonDialog } from '@/features/auth/components/OverrideReasonDialog';
 import { AccountModal } from '@/features/auth/pages/AccountPage';
 import { GlobalSearch } from './GlobalSearch';
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import OutboundOutlinedIcon from '@mui/icons-material/OutboundOutlined';
+import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOutlined';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
+import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
+import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
+import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 
 type IconName = 'overview' | 'assets' | 'receiving' | 'handover' | 'recovery' | 'disposal' | 'reports' | 'management' | 'accounts' | 'documents' | 'catalogs' | 'organization' | 'audit' | 'menu' | 'close' | 'chevron' | 'logout';
 
 function Icon({ name }: { name: IconName }) {
-  const paths: Record<IconName, React.ReactNode> = {
-    overview: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
-    assets: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 5V3h8v2M3 11h18" /></>,
-    receiving: <><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4" /></>,
-    handover: <><path d="M4 12h15m-5-5 5 5-5 5M4 5h5v14H4" /></>,
-    recovery: <><path d="M20 12H5m5-5-5 5 5 5m5-12h5v14h-5" /></>,
-    disposal: <><path d="M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14M10 11v6m4-6v6" /></>,
-    reports: <><path d="M4 20V4h16v16zM8 16v-4m4 4V8m4 8v-6" /></>,
-    management: <><path d="M4 5h16M4 12h16M4 19h16" /><circle cx="8" cy="5" r="2" fill="currentColor" /><circle cx="16" cy="12" r="2" fill="currentColor" /></>,
-    accounts: <><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a8 8 0 0 1 16 0v2" /></>,
-    documents: <><path d="M5 3h10l4 4v14H5zM15 3v5h4M8 12h8M8 16h8" /></>,
-    catalogs: <><rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="8" rx="1" /><rect x="3" y="13" width="8" height="8" rx="1" /><rect x="13" y="13" width="8" height="8" rx="1" /></>,
-    organization: <><path d="M12 3v7M5 21v-6h14v6M5 15v-5h14v5" /><circle cx="12" cy="3" r="2" /><circle cx="5" cy="21" r="2" /><circle cx="19" cy="21" r="2" /></>,
-    audit: <><path d="M5 3h14v18H5zM8 8h8M8 12h8M8 16h5" /></>,
-    menu: <path d="M4 6h16M4 12h16M4 18h16" />,
-    close: <path d="M5 5l14 14M19 5 5 19" />,
-    chevron: <path d="m9 5 7 7-7 7" />,
-    logout: <><path d="M10 4H4v16h6M14 7l5 5-5 5M8 12h11" /></>,
+  const icons: Record<IconName, React.ReactNode> = {
+    overview: <DashboardOutlinedIcon />, assets: <Inventory2OutlinedIcon />,
+    receiving: <FileDownloadOutlinedIcon />, handover: <OutboundOutlinedIcon />,
+    recovery: <AssignmentReturnOutlinedIcon />, disposal: <DeleteOutlineOutlinedIcon />,
+    reports: <AssessmentOutlinedIcon />, management: <TuneOutlinedIcon />,
+    accounts: <PersonOutlineOutlinedIcon />, documents: <DescriptionOutlinedIcon />,
+    catalogs: <CategoryOutlinedIcon />, organization: <AccountTreeOutlinedIcon />,
+    audit: <FactCheckOutlinedIcon />, menu: <MenuOutlinedIcon />,
+    close: <CloseOutlinedIcon />, chevron: <ChevronRightOutlinedIcon />,
+    logout: <LogoutOutlinedIcon />,
   };
-  return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+  return <span aria-hidden="true">{icons[name]}</span>;
 }
 
 function MainLayout() {

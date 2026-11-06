@@ -1,3 +1,4 @@
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { FormEvent, RefObject, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +8,7 @@ import { buildRecoveryRequest, SmartCheckResponse, RecoveryRequest, Recovery, re
 import { AssetCandidate, recoveryCandidateApi } from '../api/recoveryCandidateApi';
 import { handoverApi } from '@/features/handover/api/handoverApi';
 import { ApiError } from '@/shared/api/httpClient';
+import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
 
 const loadLocations = (keyword: string, page: number) => locationApi.getAll(keyword, true, page, 10);
 function localDate() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
@@ -42,7 +44,7 @@ function UserPicker({ onSelect, disabled, selected }: { onSelect: (r: Recipient)
   return (
     <fieldset disabled={disabled} className="recovery-picker recovery-identity-picker">
       <legend>{t('searchAssets')}</legend>
-      <details ref={detailsRef} className="recovery-picker-details"><summary><strong>{selected?.fullName || t('chooseReturner')}</strong>{selected?.email && <small>{selected.email}</small>}</summary><div className="recovery-picker-popover">
+      <details ref={detailsRef} className="recovery-picker-details"><summary><strong>{selected?.fullName || t('chooseReturner')}</strong>{selected?.email && <small>{selected.email}</small>}<ExpandMoreOutlinedIcon fontSize="small" aria-hidden="true" /></summary><div className="recovery-picker-popover">
       <input className="form-input" type="search" aria-label={t('searchAssets')} placeholder={t('searchPlaceholder')} value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
       {loading && <span>{t('loading')}</span>}
       {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}
@@ -490,7 +492,7 @@ export function RecoveryForm({ onCompleted, onConflict, initialValue, onBusyChan
                 <span className="recovery-asset-meta"><strong>{a.assetTag}</strong><span>{categoryLabel(t, a.categoryCode || a.category || 'OTHER')}</span></span>
                 <span className="recovery-asset-name">{a.name}</span>
               </span>
-              <button type="button" className="recovery-remove" aria-label={t('removeAsset', { asset: `${a.assetTag} · ${a.name}` })} disabled={frozen} onClick={() => toggle(a)}>×</button>
+              <button type="button" className="recovery-remove" aria-label={t('removeAsset', { asset: `${a.assetTag} · ${a.name}` })} disabled={frozen} onClick={() => toggle(a)}><CloseOutlinedIcon fontSize="small" aria-hidden="true" /></button>
             </div>
           ))}</PaginatedContent>
           {selected.length > 0 && <div aria-live="polite" className="recovery-live-check">
@@ -547,7 +549,7 @@ function HandoverLocationPicker({ onSelect, disabled, selected }: { onSelect: (l
   return (
     <fieldset disabled={disabled} className="recovery-picker recovery-identity-picker">
       <legend>{t('searchLocations')}</legend>
-      <details ref={detailsRef} className="recovery-picker-details"><summary><strong>{selected?.name || t('chooseLocation')}</strong></summary><div className="recovery-picker-popover">
+      <details ref={detailsRef} className="recovery-picker-details"><summary><strong>{selected?.name || t('chooseLocation')}</strong><ExpandMoreOutlinedIcon fontSize="small" aria-hidden="true" /></summary><div className="recovery-picker-popover">
       <input className="form-input" type="search" aria-label={t('searchLocations')} placeholder={t('searchPlaceholder')} value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
       {loading && <span>{t('loading')}</span>}
       {error && <p role="alert">{t('loadFailed')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('retry')}</button></p>}

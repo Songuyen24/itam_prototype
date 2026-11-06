@@ -115,7 +115,7 @@
     "po": "SỐ PO",
     "date": "NGÀY MUA",
     "cost": "GIÁ MUA",
-    "config": "⚙️ Chi tiết cấu hình phần cứng (Default vs Actual vs Effective)",
+    "config": "Chi tiết cấu hình phần cứng (Default vs Actual vs Effective)",
     "hint": "Khi cấu hình thực tế để trống, hệ thống tự động kế thừa cấu hình mặc định của Model thiết bị.",
     "component": "Thành phần",
     "default": "Cấu hình mặc định (Model)",

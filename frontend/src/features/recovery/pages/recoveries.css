@@ -62,7 +62,7 @@
 .recovery-picker-details { position:relative; }
 .recovery-picker-details summary { display:flex; flex-direction:column; justify-content:center; min-height:42px; padding:6px 28px 6px 12px; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-card); cursor:pointer; list-style:none; position:relative; }
 .recovery-picker-details summary::-webkit-details-marker { display:none; }
-.recovery-picker-details summary::after { content:'⌄'; position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:18px; }
+.recovery-picker-details summary svg { position:absolute; right:12px; top:50%; transform:translateY(-50%); }
 .recovery-picker-details summary small { color:var(--text-muted,#666); font-weight:400; }
 .recovery-picker-details[open] summary { border-color:var(--primary); }
 .recovery-picker-popover { position:absolute; z-index:5; left:0; right:0; top:calc(100% + 4px); padding:10px; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-card); box-shadow:0 8px 20px #0002; }

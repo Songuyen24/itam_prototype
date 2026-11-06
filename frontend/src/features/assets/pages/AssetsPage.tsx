@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import ChevronLeftOutlinedIcon from '@mui/icons-material/ChevronLeftOutlined';
+import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
 import { TableActionButton } from '@/shared/components/TableActionButton';
 import {
   Department,
@@ -255,7 +258,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
             onClick={() => setToastMessage(null)}
             style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', marginLeft: '12px', fontSize: '14px' }}
           >
-            ×
+            <CloseOutlinedIcon fontSize="small" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -440,7 +443,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                 disabled={currentPage === 0 || isLoading}
                 onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
               >
-                ◀ {t('common:pagination.previous')}
+                <ChevronLeftOutlinedIcon fontSize="small" aria-hidden="true" /> {t('common:pagination.previous')}
               </button>
 
               {Array.from({ length: totalPages }, (_, i) => i).map((pageIdx) => {
@@ -477,7 +480,7 @@ export const AssetsPage: React.FC<{ myAssets?: boolean }> = ({ myAssets = false 
                 disabled={currentPage >= totalPages - 1 || isLoading}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
               >
-                {t('common:pagination.next')} ▶
+                {t('common:pagination.next')} <ChevronRightOutlinedIcon fontSize="small" aria-hidden="true" />
               </button>
             </div>
           </div>
