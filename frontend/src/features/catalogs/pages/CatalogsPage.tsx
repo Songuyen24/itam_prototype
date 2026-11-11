@@ -260,9 +260,6 @@ export const CatalogsPage: React.FC<{ mode?: 'asset' | 'organization' }> = ({ mo
           case 'types':
             await assetTypeApi.update(id, { code: data.code!, categoryId: data.categoryId!, name: data.name, isActive: data.isActive });
             break;
-          case 'statuses':
-            await assetStatusApi.update(id, { code: data.code!, name: data.name, isActive: data.isActive });
-            break;
           case 'conditions':
             await assetConditionApi.update(id, { code: data.code!, name: data.name, isActive: data.isActive });
             break;
@@ -291,9 +288,6 @@ export const CatalogsPage: React.FC<{ mode?: 'asset' | 'organization' }> = ({ mo
             break;
           case 'types':
             await assetTypeApi.create({ code: data.code!, categoryId: data.categoryId!, name: data.name, isActive: data.isActive });
-            break;
-          case 'statuses':
-            await assetStatusApi.create({ code: data.code!, name: data.name, isActive: data.isActive });
             break;
           case 'conditions':
             await assetConditionApi.create({ code: data.code!, name: data.name, isActive: data.isActive });
@@ -395,9 +389,6 @@ export const CatalogsPage: React.FC<{ mode?: 'asset' | 'organization' }> = ({ mo
         case 'types':
           await assetTypeApi.toggleActive(item.typeId, targetActive);
           break;
-        case 'statuses':
-          await assetStatusApi.toggleActive(item.statusId, targetActive);
-          break;
         case 'conditions':
           await assetConditionApi.toggleActive(item.conditionId, targetActive);
           break;
@@ -456,9 +447,6 @@ export const CatalogsPage: React.FC<{ mode?: 'asset' | 'organization' }> = ({ mo
           break;
         case 'types':
           await assetTypeApi.delete(selectedItem.typeId);
-          break;
-        case 'statuses':
-          await assetStatusApi.delete(selectedItem.statusId);
           break;
         case 'conditions':
           await assetConditionApi.delete(selectedItem.conditionId);
@@ -663,7 +651,7 @@ export const CatalogsPage: React.FC<{ mode?: 'asset' | 'organization' }> = ({ mo
             {t(`catalogs:${mode === 'organization' ? 'organizationSubtitle' : 'assetSubtitle'}`)}
           </p>
         </div>
-        {canManageCatalogs && (
+        {canManageCatalogs && activeTab !== 'statuses' && (
           <div className="catalog-header-actions">
           {importable && <button className="btn btn-secondary" onClick={() => setIsImportOpen(true)}>{t('catalogs:import.title')}</button>}
           <button className="btn btn-primary" onClick={handleOpenAdd}>
@@ -735,9 +723,9 @@ export const CatalogsPage: React.FC<{ mode?: 'asset' | 'organization' }> = ({ mo
           columns={getColumns()}
           data={items}
           isLoading={isLoading}
-          onEdit={canManageCatalogs ? handleOpenEdit : undefined}
-          onDelete={canManageCatalogs ? handleOpenDelete : undefined}
-          onToggleActive={canManageCatalogs ? handleToggleActive : undefined}
+          onEdit={canManageCatalogs && activeTab !== 'statuses' ? handleOpenEdit : undefined}
+          onDelete={canManageCatalogs && activeTab !== 'statuses' ? handleOpenDelete : undefined}
+          onToggleActive={canManageCatalogs && activeTab !== 'statuses' ? handleToggleActive : undefined}
           keyExtractor={getKeyExtractor}
         />
 

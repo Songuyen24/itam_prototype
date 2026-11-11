@@ -139,6 +139,21 @@ class AuthorizationControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"ADMIN", "IT_STAFF"})
+    void assetStatusesAreReadOnly(String role) throws Exception {
+        String token = login(role);
+        api(HttpMethod.GET, "/v1/asset-statuses", token, null).andExpect(status().isOk());
+        api(HttpMethod.POST, "/v1/asset-statuses", token, Map.of("code", "AVAILABLE", "name", "Changed"))
+                .andExpect(status().isForbidden());
+        api(HttpMethod.PUT, "/v1/asset-statuses/1", token, Map.of("code", "AVAILABLE", "name", "Changed"))
+                .andExpect(status().isForbidden());
+        api(HttpMethod.DELETE, "/v1/asset-statuses/1", token, null)
+                .andExpect(status().isForbidden());
+        api(HttpMethod.PATCH, "/v1/asset-statuses/1/active", token, null)
+                .andExpect(status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ADMIN", "IT_STAFF"})
     void managers_canManageDepartmentLocationSupplierContacts(String role) throws Exception {
         String token = login(role);
         for (String catalog : List.of("departments", "locations", "suppliers")) {

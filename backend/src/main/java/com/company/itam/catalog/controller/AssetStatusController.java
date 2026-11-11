@@ -1,11 +1,9 @@
 package com.company.itam.catalog.controller;
 
-import com.company.itam.catalog.dto.AssetStatusRequest;
 import com.company.itam.catalog.dto.AssetStatusResponse;
 import com.company.itam.catalog.service.CatalogService;
 import com.company.itam.common.pagination.PageResponse;
 import com.company.itam.common.response.ApiResponse;
-import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -40,34 +38,10 @@ public class AssetStatusController {
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
-    @PostMapping
-    public ResponseEntity<ApiResponse<AssetStatusResponse>> createStatus(@Valid @RequestBody AssetStatusRequest request) {
-        AssetStatusResponse result = catalogService.createAssetStatus(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Tạo trạng thái thành công", result));
+    @RequestMapping(path = {"", "/{id}", "/{id}/active"},
+            method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH})
+    public ResponseEntity<Void> rejectStatusChanges() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<AssetStatusResponse>> updateStatus(
-            @PathVariable Long id,
-            @Valid @RequestBody AssetStatusRequest request) {
-        AssetStatusResponse result = catalogService.updateAssetStatus(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành công", result));
-    }
-
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteStatus(@PathVariable Long id) {
-        catalogService.deleteAssetStatus(id);
-        return ResponseEntity.ok(ApiResponse.success("Xóa trạng thái thành công", null));
-    }
-
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
-    @PatchMapping("/{id}/active")
-    public ResponseEntity<ApiResponse<AssetStatusResponse>> toggleActive(
-            @PathVariable Long id,
-            @RequestParam(required = false) Boolean active) {
-        AssetStatusResponse result = catalogService.toggleActiveStatus(id, active);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành công", result));
-    }
 }
