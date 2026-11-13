@@ -33,7 +33,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "itam.documents.storage-root=target/t15-publication-storage")
+@SpringBootTest(properties = {"itam.documents.storage-root=target/t15-publication-storage", "itam.email.mode=simulated"})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class HandoverPublicationIntegrationTest {

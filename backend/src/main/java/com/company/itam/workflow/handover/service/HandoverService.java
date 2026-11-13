@@ -288,7 +288,7 @@ public class HandoverService {
             if(device.getStatus().getCode()!=AssetStatus.IN_USE||device.getAssignedTo()==null||!device.getAssignedTo().getUserId().equals(req.recipientUserId()))fail("HANDOVER_CHANGED");
         }
         var now=Instant.now();tx.setStatus(TransactionStatus.COMPLETED);tx.setProcessedBy(actor());tx.setProcessedAt(now);tx.setCompletedAt(now);transactions.flush();
-        var batch=finish(req,tx,new HandoverResponse(null,null,null,preview.recipientUserId(),preview.recipientName(),preview.recipientEmail(),preview.destinationLocationId(),preview.destinationLocationName(),preview.handoverDate(),preview.notes(),preview.fingerprint(),selectedLines));
+        var batch=finish(req,tx,new HandoverResponse(null,null,null,preview.recipientUserId(),preview.recipientName(),preview.recipientEmail(),preview.destinationLocationId(),preview.destinationLocationName(),preview.handoverDate(),preview.notes(),preview.fingerprint(),selectedLines,null,null,null,null,preview.recipientEmployeeCode(),0,List.of(),List.of()));
         var rows=jdbc.queryForList("SELECT result::text FROM handover_workflows WHERE transaction_id=? AND result IS NOT NULL",String.class,id);
         var accumulated=mergeLines(rows.isEmpty()?List.of():snapshots.decode(rows.getFirst()).lines(),batch.lines());
         var changed=all.stream().map(g->selected.contains(g)?new Group(g.groupId(),"COMPLETED",g.assetIds(),g.allocationIds(),null,now,null):g).toList();
@@ -297,7 +297,7 @@ public class HandoverService {
         tx.setStatus(pending?TransactionStatus.PARTIAL:TransactionStatus.COMPLETED);
         if(pending)tx.setCompletedAt(null);else release(id);
         transactions.saveAndFlush(tx);
-        var combined=new HandoverResponse(id,tx.getTransactionCode(),tx.getCompletedAt(),preview.recipientUserId(),preview.recipientName(),preview.recipientEmail(),preview.destinationLocationId(),preview.destinationLocationName(),preview.handoverDate(),preview.notes(),preview.fingerprint(),accumulated);
+        var combined=new HandoverResponse(id,tx.getTransactionCode(),tx.getCompletedAt(),preview.recipientUserId(),preview.recipientName(),preview.recipientEmail(),preview.destinationLocationId(),preview.destinationLocationName(),preview.handoverDate(),preview.notes(),preview.fingerprint(),accumulated,tx.getCompletedAt()==null?null:"COMPLETED",null,null,null,preview.recipientEmployeeCode(),0,List.of(),List.of());
         jdbc.update("UPDATE handover_workflows SET result=?::jsonb WHERE transaction_id=?",snapshots.encode(combined),id);
         if(!pending){var result=get(id);snapshots.save(result);publications.afterCommit(id,()->publications.onCompleted(id,result));return result;}
         return get(id);

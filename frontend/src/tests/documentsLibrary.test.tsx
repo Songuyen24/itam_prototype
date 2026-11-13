@@ -31,7 +31,10 @@ describe('documents file library',()=>{
     await act(async()=>{tree=create(<MemoryRouter initialEntries={['/documents?transactionId=42']}><DocumentsPage/></MemoryRouter>);});
     expect(mocks.library).toHaveBeenCalledWith(expect.objectContaining({transactionId:42}));
     expect(mocks.source).toHaveBeenCalledWith(42);
-    expect(tree!.root.findAllByType('select')).toHaveLength(1);
+    const filters = tree!.root.findAllByType('select');
+    expect(filters).toHaveLength(2);
+    expect(filters[0].findAllByType('option').map(option => option.props.value)).toEqual(['', 'INVOICE', 'PURCHASE_ORDER', 'IMPORT_RECEIPT', 'DISPOSAL_REPORT', 'CONTRACT', 'OTHER']);
+    expect(filters[1].findAllByType('option').map(option => option.props.value)).toEqual(['', 'IMPORT', 'DISPOSAL']);
     act(()=>tree!.unmount());tree=null;mocks.user.role='ADMIN';
   });
   it('shows a preview failure without a false unsupported message or download',async()=>{

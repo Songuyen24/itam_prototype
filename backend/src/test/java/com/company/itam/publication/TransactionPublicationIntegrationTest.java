@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
-@SpringBootTest(properties = "itam.documents.storage-root=target/t17-storage")
+@SpringBootTest(properties = {"itam.documents.storage-root=target/t17-storage", "itam.email.mode=simulated"})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class TransactionPublicationIntegrationTest {
