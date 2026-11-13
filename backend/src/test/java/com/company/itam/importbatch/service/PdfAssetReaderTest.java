@@ -73,7 +73,7 @@ public class PdfAssetReaderTest {
         assertThatThrownBy(()->reader.read(file(pdf(PAGES,true)))).hasMessage("OCR_UNAVAILABLE");
     }
     @Test void generatesPrototypeFixturesAndOptionallyChecksRealLocalOcr() throws Exception {
-        Path folder=Path.of("../docs/ocr-prototype");Files.createDirectories(folder);
+        Path folder=Path.of("target/ocr-prototype");Files.createDirectories(folder);
         Files.write(folder.resolve("asset-list-text.pdf"),pdf(PAGES,false));
         byte[] scan=pdf(PAGES,true);Files.write(folder.resolve("asset-list-scan.pdf"),scan);
         String executable=System.getProperty("ocr.test.executable");

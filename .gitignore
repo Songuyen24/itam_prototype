@@ -38,6 +38,10 @@ Thumbs.db
 *.tmp
 
 # Temp
+/outputs/
+/.hallmark/
+/.taste-skill/
+/.ui-evidence/
 *.bak
 *.orig
 .tmp*/
