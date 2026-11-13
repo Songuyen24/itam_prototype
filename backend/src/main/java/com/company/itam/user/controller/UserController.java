@@ -110,8 +110,8 @@ public class UserController {
     }
     @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")
-    public ApiResponse<UserResponse> create(@Valid @RequestBody IdentityService.Profile request) {
-        return ApiResponse.success(messages.getMessage("PROFILE_SAVED"),UserResponse.fromEntity(identities.saveProfile(null,request)));
+    public ApiResponse<UserResponse> create(@Valid @RequestBody IdentityService.CreateUser request) {
+        return ApiResponse.success(messages.getMessage("PROFILE_SAVED"),UserResponse.fromEntity(identities.createUser(request)));
     }
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")

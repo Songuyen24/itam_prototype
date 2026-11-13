@@ -5,6 +5,7 @@ import com.company.itam.asset.service.AssetService;
 import com.company.itam.common.enums.*;
 import com.company.itam.common.exception.AppException;
 import com.company.itam.user.service.IdentityService;
+import com.company.itam.user.service.AccountImportService;
 import com.company.itam.workflow.handover.dto.HandoverRequest;
 import com.company.itam.workflow.handover.service.HandoverService;
 import com.company.itam.workflow.recovery.dto.*;
@@ -21,6 +22,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.*;
+import java.io.ByteArrayOutputStream;
 import org.springframework.transaction.annotation.*;
 import javax.sql.DataSource;
 import java.time.LocalDate;
@@ -46,6 +51,8 @@ class M7IdentityIntegrationTest {
     @Autowired jakarta.persistence.EntityManager em;
     @Autowired DataSource dataSource;
     @Autowired org.springframework.transaction.PlatformTransactionManager manager;
+    @Autowired org.springframework.security.crypto.password.PasswordEncoder passwords;
+    @Autowired AccountImportService accountImports;
     final String password="M7-test-password";
     String marker;
     @BeforeEach void setup() { marker="M7-"+UUID.randomUUID(); loginActor("admin@itam.example","ADMIN"); }
@@ -79,6 +86,17 @@ class M7IdentityIntegrationTest {
         return jdbc.queryForObject("SELECT location_id FROM locations WHERE code=?",Long.class,marker);
     }
     HandoverRequest request(Long person,Long device) { return new HandoverRequest(person,location(),LocalDate.now(),List.of(device),List.of(),marker,null); }
+    MockMultipartFile importFile(String[][] values) throws Exception {
+        try(var book=new XSSFWorkbook(new java.io.ByteArrayInputStream(accountImports.template()));var out=new ByteArrayOutputStream()) {
+            Sheet sheet=book.getSheet("IMPORT");
+            for(int index=0;index<values.length;index++) {
+                Row row=sheet.createRow(index+1);
+                for(int col=0;col<values[index].length;col++) if(values[index][col]!=null) row.createCell(col,CellType.STRING).setCellValue(values[index][col]);
+            }
+            book.write(out);
+            return new MockMultipartFile("file","accounts.xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",out.toByteArray());
+        }
+    }
 
     @Test void profileWithoutEmailOrAccountCanBeSearchedByCodeAndPurReadsOnly() throws Exception {
         Long id=profile();
@@ -91,13 +109,149 @@ class M7IdentityIntegrationTest {
         mvc.perform(post("/v1/users").with(as("IT_STAFF")).contentType("application/json").content("{\"fullName\":\"Name\",\"employeeCode\":\" \"}")).andExpect(status().isBadRequest());
         assertThat(jdbc.queryForObject("SELECT password_hash FROM users WHERE user_id=?",String.class,id)).isNull();
     }
-    @Test void newAccountLinksExistingProfileAndUsernameOnlyLoginWorks() throws Exception {
+    @Test @Transactional(propagation=Propagation.NOT_SUPPORTED)
+    void accountImportPreviewsMixedRowsAndConfirmsOnlyNewLockedUsers() throws Exception {
+        String department=marker+"-dept";
+        jdbc.update("INSERT INTO departments(code,name,is_active) VALUES (?,?,true)",department,"Import department");
+        var file=importFile(new String[][] {
+            {marker+"-01","Default User",null,null,department},
+            {marker+"-02","Custom User",marker+"@example.test"," Custom@1234 ",null},
+            {marker+"-01","Repeated",null,null,null},
+            {marker+"-03","Bad department",null,null,"missing-department"}
+        });
+        try {
+            mvc.perform(multipart("/v1/users/import/preview").file(file).with(as("PUR_STAFF"))).andExpect(status().isForbidden());
+            mvc.perform(multipart("/v1/users/import/preview").file(file).with(as("USER"))).andExpect(status().isForbidden());
+            String preview=mvc.perform(multipart("/v1/users/import/preview").file(file).with(as("ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.valid").value(2)).andExpect(jsonPath("$.data.invalid").value(2))
+                .andReturn().getResponse().getContentAsString();
+            assertThat(preview).doesNotContain("Custom@1234","Pass@1234");
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE employee_code LIKE ?",Integer.class,marker+"-%")).isZero();
+            String confirm=mvc.perform(multipart("/v1/users/import/confirm").file(file).with(as("IT_STAFF")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.created").value(2)).andReturn().getResponse().getContentAsString();
+            assertThat(confirm).doesNotContain("Custom@1234","Pass@1234");
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE employee_code LIKE ? AND login_locked AND NOT access_granted",Integer.class,marker+"-%")).isEqualTo(2);
+            assertThat(passwords.matches("Pass@1234",jdbc.queryForObject("SELECT password_hash FROM users WHERE employee_code=?",String.class,marker+"-01"))).isTrue();
+            assertThat(passwords.matches(" Custom@1234 ",jdbc.queryForObject("SELECT password_hash FROM users WHERE employee_code=?",String.class,marker+"-02"))).isTrue();
+            assertThat(passwords.matches("Custom@1234",jdbc.queryForObject("SELECT password_hash FROM users WHERE employee_code=?",String.class,marker+"-02"))).isFalse();
+            mvc.perform(multipart("/v1/users/import/confirm").file(file).with(as("ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.created").value(0));
+        } finally {
+            jdbc.update("DELETE FROM audit_logs WHERE entity_type='USER' AND entity_id IN (SELECT user_id FROM users WHERE employee_code LIKE ?)",marker+"-%");
+            jdbc.update("DELETE FROM users WHERE employee_code LIKE ?",marker+"-%");
+            jdbc.update("DELETE FROM departments WHERE code=?",department);
+        }
+    }
+    @Test void accountImportRejectsFormulaAndWrongHeader() throws Exception {
+        mvc.perform(get("/v1/users/import/template").with(as("PUR_STAFF"))).andExpect(status().isForbidden());
+        mvc.perform(get("/v1/users/import/template").with(as("ADMIN"))).andExpect(status().isOk())
+            .andExpect(header().string("Content-Disposition","attachment; filename=account-import-template.xlsx"));
+        var leading=importFile(new String[][] {{"00123","Leading zeros",null,null,null}});
+        mvc.perform(multipart("/v1/users/import/preview").file(leading).with(as("ADMIN")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.rows[0].employeeCode").value("00123"));
+        var file=importFile(new String[][] {{marker,"Formula row",null,null,null}});
+        try(var book=new XSSFWorkbook(file.getInputStream());var out=new ByteArrayOutputStream()) {
+            book.getSheet("IMPORT").getRow(1).getCell(0).setCellFormula("1+1");book.write(out);
+            var formula=new MockMultipartFile("file","accounts.xlsx",file.getContentType(),out.toByteArray());
+            mvc.perform(multipart("/v1/users/import/preview").file(formula).with(as("ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.invalid").value(1));
+        }
+        try(var book=new XSSFWorkbook(file.getInputStream());var out=new ByteArrayOutputStream()) {
+            book.getSheet("IMPORT").getRow(0).getCell(0).setCellValue("Wrong header");book.write(out);
+            var wrong=new MockMultipartFile("file","accounts.xlsx",file.getContentType(),out.toByteArray());
+            mvc.perform(multipart("/v1/users/import/preview").file(wrong).with(as("ADMIN"))).andExpect(status().isBadRequest());
+        }
+    }
+    @Test @Transactional(propagation=Propagation.NOT_SUPPORTED)
+    void concurrentAccountImportDoesNotCreateDuplicateUsers() throws Exception {
+        var file=importFile(new String[][] {{marker,"Concurrent user",null,null,null}});
+        try(var pool=Executors.newFixedThreadPool(2)) {
+            var start=new CountDownLatch(1);
+            List<Future<Integer>> outcomes=new ArrayList<>();
+            for(int index=0;index<2;index++) outcomes.add(pool.submit(()->{
+                start.await();
+                var response=mvc.perform(multipart("/v1/users/import/confirm").file(file).with(as("ADMIN"))).andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+                return json.readTree(response).at("/data/created").asInt();
+            }));
+            start.countDown();
+            assertThat(List.of(outcomes.get(0).get(30,TimeUnit.SECONDS),outcomes.get(1).get(30,TimeUnit.SECONDS))).containsExactlyInAnyOrder(1,0);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE employee_code=?",Integer.class,marker)).isEqualTo(1);
+        } finally {
+            jdbc.update("DELETE FROM audit_logs WHERE entity_type='USER' AND entity_id IN (SELECT user_id FROM users WHERE employee_code=?)",marker);
+            jdbc.update("DELETE FROM users WHERE employee_code=?",marker);
+        }
+    }
+    @Test void singleCreateDefaultsToDisabledUserAndHashesDefaultOrCustomPassword() throws Exception {
+        mvc.perform(post("/v1/users").with(as("ADMIN")).contentType("application/json")
+            .content(body(Map.of("fullName","New employee","employeeCode",marker))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.hasAccount").value(true))
+            .andExpect(jsonPath("$.data.accessGranted").value(false))
+            .andExpect(jsonPath("$.data.roleCode").value("USER"));
+        em.flush();
+        String hash=jdbc.queryForObject("SELECT password_hash FROM users WHERE employee_code=?",String.class,marker);
+        assertThat(hash).isNotEqualTo("Pass@1234");
+        assertThat(passwords.matches("Pass@1234",hash)).isTrue();
+
+        mvc.perform(post("/v1/users").with(as("ADMIN")).contentType("application/json")
+            .content(body(Map.of("fullName","Custom employee","employeeCode",marker+"-custom","password","Custom@1234","accessGranted",true))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.accessGranted").value(true));
+        em.flush();
+        String custom=jdbc.queryForObject("SELECT password_hash FROM users WHERE employee_code=?",String.class,marker+"-custom");
+        assertThat(passwords.matches("Custom@1234",custom)).isTrue();
+        assertThat(passwords.matches("Pass@1234",custom)).isFalse();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE employee_code IN (?,?)",Integer.class,marker,marker+"-custom")).isEqualTo(2);
+    }
+    @Test @Transactional(propagation=Propagation.NOT_SUPPORTED)
+    void itCannotEnableLoginAndInvalidPasswordLeavesNoUser() throws Exception {
+        try {
+            mvc.perform(post("/v1/users").with(as("IT_STAFF")).contentType("application/json")
+                .content(body(Map.of("fullName","Blocked","employeeCode",marker,"accessGranted",true))))
+                .andExpect(status().isForbidden());
+            mvc.perform(post("/v1/users").with(as("ADMIN")).contentType("application/json")
+                .content(body(Map.of("fullName","Bad password","employeeCode",marker,"password","short"))))
+                .andExpect(status().isBadRequest());
+            mvc.perform(post("/v1/users").with(as("ADMIN")).contentType("application/json")
+                .content(body(Map.of("fullName","Too long for bcrypt","employeeCode",marker,"password","x".repeat(73)))))
+                .andExpect(status().isBadRequest());
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE employee_code=?",Integer.class,marker)).isZero();
+        } finally {
+            jdbc.update("DELETE FROM audit_logs WHERE entity_type='USER' AND entity_id IN (SELECT user_id FROM users WHERE employee_code=?)",marker);
+            jdbc.update("DELETE FROM users WHERE employee_code=?",marker);
+        }
+    }
+    @Test void itCanCreateDisabledUser() throws Exception {
+        mvc.perform(post("/v1/users").with(as("IT_STAFF")).contentType("application/json")
+            .content(body(Map.of("fullName","Disabled","employeeCode",marker))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.accessGranted").value(false));
+    }
+    @Test @Transactional(propagation=Propagation.NOT_SUPPORTED)
+    void defaultPasswordLoginWorksOnlyAfterAdminGrant() throws Exception {
+        try {
+            mvc.perform(post("/v1/users").with(as("ADMIN")).contentType("application/json")
+                .content(body(Map.of("fullName","Login test","employeeCode",marker))))
+                .andExpect(status().isOk());
+            Long id=jdbc.queryForObject("SELECT user_id FROM users WHERE employee_code=?",Long.class,marker);
+            mvc.perform(post("/v1/auth/login").contentType("application/json")
+                .content(body(Map.of("email",marker,"password","Pass@1234"))))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("LOGIN_ACCESS_NOT_GRANTED"));
+            loginActor("admin@itam.example","ADMIN");
+            identities.updateAccount(id,new IdentityService.UpdateAccount(Role.USER,true,false));
+            assertThat(token(marker,"Pass@1234")).isNotBlank();
+        } finally {
+            jdbc.update("DELETE FROM audit_logs WHERE entity_type='USER' AND entity_id IN (SELECT user_id FROM users WHERE employee_code=?) OR actor_user_id IN (SELECT user_id FROM users WHERE employee_code=?)",marker,marker);
+            jdbc.update("DELETE FROM users WHERE employee_code=?",marker);
+        }
+    }
+    @Test void newAccountLinksExistingProfileAndCodeOnlyLoginWorks() throws Exception {
         Long id=profile(); Long device=device(); jdbc.update("UPDATE assets SET assigned_to=? WHERE asset_id=?",id,device);
         int before=jdbc.queryForObject("SELECT count(*) FROM users",Integer.class);
-        identities.createAccount(new IdentityService.CreateAccount(id," User name "+marker+" ",password,Role.USER,true)); em.flush();em.clear();
+        identities.createAccount(new IdentityService.CreateAccount(id,password,Role.USER,true)); em.flush();em.clear();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM users",Integer.class)).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT assigned_to FROM assets WHERE asset_id=?",Long.class,device)).isEqualTo(id);
-        String token=token("user name "+marker.toLowerCase(Locale.ROOT),password);
+        String token=token(marker.toLowerCase(Locale.ROOT),password);
+        mvc.perform(post("/v1/auth/login").contentType("application/json").content(body(Map.of("email","obsolete-username-"+marker,"password",password))))
+            .andExpect(status().isUnauthorized());
         mvc.perform(get("/v1/users/me/assets").header("Authorization","Bearer "+token)).andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1));
         String me=mvc.perform(get("/v1/auth/me").header("Authorization","Bearer "+token)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(me).doesNotContain("password", "accessVersion");
@@ -105,7 +259,7 @@ class M7IdentityIntegrationTest {
         mvc.perform(get("/v1/accounts").with(as("IT_STAFF"))).andExpect(status().isForbidden());
     }
     @Test void profileLockDoesNotLockAccountButAccountLockInvalidatesOldTokens() throws Exception {
-        Long id=profile(); identities.createAccount(new IdentityService.CreateAccount(id,marker,password,Role.IT_STAFF,false));em.flush();em.clear();
+        Long id=profile(); identities.createAccount(new IdentityService.CreateAccount(id,password,Role.IT_STAFF,false));em.flush();em.clear();
         String first=token(marker,password);loginActor("admin@itam.example","ADMIN");
         identities.profileStatus(id,AccountStatus.LOCKED);em.flush();em.clear();
         mvc.perform(get("/v1/auth/me").header("Authorization","Bearer "+first)).andExpect(status().isOk());
@@ -113,10 +267,10 @@ class M7IdentityIntegrationTest {
         mvc.perform(get("/v1/auth/me").header("Authorization","Bearer "+first)).andExpect(status().isUnauthorized());
         loginActor("admin@itam.example","ADMIN"); identities.updateAccount(id,new IdentityService.UpdateAccount(Role.IT_STAFF,false,false));em.flush();em.clear();
         mvc.perform(get("/v1/auth/me").header("Authorization","Bearer "+first)).andExpect(status().isUnauthorized());
-        assertThat(token(marker,password)).isNotBlank();
+        assertThat(jdbc.queryForObject("SELECT password_hash IS NOT NULL FROM users WHERE user_id=?",Boolean.class,id)).isTrue();
     }
     @Test void ownPasswordRequiresCurrentAndConfirmationAndInvalidatesEverySession() throws Exception {
-        Long id=profile();identities.createAccount(new IdentityService.CreateAccount(id,marker,password,Role.USER,true));em.flush();em.clear();
+        Long id=profile();identities.createAccount(new IdentityService.CreateAccount(id,password,Role.USER,true));em.flush();em.clear();
         String first=token(marker,password),second=token(marker,password);
         for(var request:List.of(Map.of("currentPassword","wrong","newPassword","M7-new-password","confirmPassword","M7-new-password"),
                 Map.of("currentPassword",password,"newPassword","M7-new-password","confirmPassword","different"))) {
@@ -129,15 +283,16 @@ class M7IdentityIntegrationTest {
         assertThat(jdbc.queryForList("SELECT coalesce(old_data::text,'') || coalesce(new_data::text,'') FROM audit_logs WHERE entity_id=? AND entity_type='USER'",String.class,id))
             .allMatch(s->!s.contains(password)&&!s.contains("M7-new-password")&&!s.contains("$2"));
     }
-    @Test void adminCannotChangeOwnPermissionsAndCannotBypassUsernameViaLegacyAccess() throws Exception {
+    @Test void adminCannotChangeOwnPermissionsAndLegacyAccessNeedsCodeOrEmail() throws Exception {
         Long id=profile();
         Long admin=jdbc.queryForObject("SELECT user_id FROM users WHERE email='admin@itam.example'",Long.class);
         mvc.perform(put("/v1/accounts/"+admin).with(as("ADMIN")).contentType("application/json").content("{\"roleCode\":\"USER\",\"accessGranted\":false,\"loginLocked\":true}"))
             .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ACCOUNT_SELF_PERMISSION_DENIED"));
         loginActor("admin@itam.example","ADMIN");
-        mvc.perform(put("/v1/users/"+id+"/access").with(as("ADMIN")).contentType("application/json").content(body(Map.of("granted",true,"status","ACTIVE","password",password))))
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("ACCOUNT_USERNAME_REQUIRED"));
-        assertThat(jdbc.queryForObject("SELECT password_hash FROM users WHERE user_id=?",String.class,id)).isNull();
+        Long legacy=jdbc.queryForObject("INSERT INTO users(full_name,role_id) SELECT ?,role_id FROM roles WHERE code='USER' RETURNING user_id",Long.class,marker+" legacy");
+        mvc.perform(put("/v1/users/"+legacy+"/access").with(as("ADMIN")).contentType("application/json").content(body(Map.of("granted",true,"status","ACTIVE","password",password))))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("ACCOUNT_IDENTIFIER_REQUIRED"));
+        assertThat(jdbc.queryForObject("SELECT password_hash FROM users WHERE user_id=?",String.class,legacy)).isNull();
     }
     @Test void lockedEmailLessProfileCanReturnAssetsAndCompletedSnapshotDoesNotChange() {
         Long id=profile(),device=device();var req=request(id,device);var preview=handovers.preview(req);
@@ -150,25 +305,35 @@ class M7IdentityIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT snapshot::text FROM handover_snapshots WHERE transaction_id=?",String.class,completed.transactionId())).isEqualTo(snapshot);
         assertThatThrownBy(()->handovers.preview(request(id,device))).isInstanceOf(AppException.class).extracting("code").isEqualTo("HANDOVER_RECIPIENT_INACTIVE");
     }
-    @Test void legacyMissingCodeRemainsUsableAndCanBeFilledWithoutChangingIdentity() {
+    @Test void legacyMissingCodeRemainsUsableAndCanBeFilledWithoutChangingIdentity() throws Exception {
         Long id=jdbc.queryForObject("INSERT INTO users(full_name,role_id) SELECT ?,role_id FROM roles WHERE code='USER' RETURNING user_id",Long.class,marker);
         Long device=device();
         assertThat(handovers.preview(request(id,device)).recipientUserId()).isEqualTo(id);
         identities.saveProfile(id,new IdentityService.Profile("Legacy edited",null,null,null,null));
-        identities.createAccount(new IdentityService.CreateAccount(id,marker,password,Role.USER,true));
         identities.saveProfile(id,new IdentityService.Profile("Legacy edited",marker,null,null,null));em.flush();
+        identities.createAccount(new IdentityService.CreateAccount(id,password,Role.USER,true));
+        em.flush();
         assertThat(jdbc.queryForObject("SELECT employee_code FROM users WHERE user_id=?",String.class,id)).isEqualTo(marker);
-        assertThat(jdbc.queryForObject("SELECT username FROM users WHERE user_id=?",String.class,id)).isEqualTo(marker);
+        assertThat(jdbc.queryForObject("SELECT password_hash IS NOT NULL FROM users WHERE user_id=?",Boolean.class,id)).isTrue();
     }
-    @Test void usernameAndEmailNamespacesCannotCollideAndCodeCorrectionNeedsReason() throws Exception {
-        Long first=profile(); identities.createAccount(new IdentityService.CreateAccount(first,marker+"@example.test",password,Role.USER,true));
+    @Test void codeAndEmailNamespacesCannotCollideAndCodeCorrectionNeedsReason() throws Exception {
+        Long first=identities.saveProfile(null,new IdentityService.Profile(marker,marker+"@example.test",null,null,null)).getUserId();
+        identities.createAccount(new IdentityService.CreateAccount(first,password,Role.USER,true));
         Long second=identities.saveProfile(null,new IdentityService.Profile("Other",marker+"-2",null,null,null)).getUserId();
         mvc.perform(put("/v1/users/"+second).with(as("ADMIN")).contentType("application/json")
-            .content(body(Map.of("fullName","Other","employeeCode",marker+"-2","email",marker.toUpperCase(Locale.ROOT)+"@example.test"))))
+            .content(body(Map.of("fullName","Other","employeeCode",marker+"-2","email",(marker+"@example.test").toUpperCase(Locale.ROOT)))))
             .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("IDENTITY_DUPLICATE"));
         mvc.perform(put("/v1/users/"+first).with(as("IT_STAFF")).contentType("application/json")
             .content(body(Map.of("fullName",marker,"employeeCode",marker+"-corrected"))))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("EMPLOYEE_CODE_CORRECTION_REQUIRED"));
+    }
+    @Test void codeCorrectionInvalidatesSessionsWithoutChangingAccess() {
+        Long id=profile(); identities.createAccount(new IdentityService.CreateAccount(id,password,Role.USER,true));em.flush();
+        Long before=jdbc.queryForObject("SELECT access_version FROM users WHERE user_id=?",Long.class,id);
+        identities.saveProfile(id,new IdentityService.Profile(marker,marker+"-fixed",null,null,"Corrected code"));em.flush();
+        assertThat(jdbc.queryForObject("SELECT access_version FROM users WHERE user_id=?",Long.class,id)).isEqualTo(before+1);
+        assertThat(jdbc.queryForObject("SELECT access_granted FROM users WHERE user_id=?",Boolean.class,id)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT password_hash IS NOT NULL FROM users WHERE user_id=?",Boolean.class,id)).isTrue();
     }
     @Test @Transactional(propagation=Propagation.NOT_SUPPORTED)
     void concurrentProfileCreatesCannotDuplicateCompanyCodeOrEmail() throws Exception {
@@ -193,8 +358,8 @@ class M7IdentityIntegrationTest {
     void concurrentAdminsCannotBothDisableEachOtherUsingStaleAuthority() throws Exception {
         Long first=identities.saveProfile(null,new IdentityService.Profile(marker+"A",marker+"A",null,null,null)).getUserId();
         Long second=identities.saveProfile(null,new IdentityService.Profile(marker+"B",marker+"B",null,null,null)).getUserId();
-        identities.createAccount(new IdentityService.CreateAccount(first,marker+"A",password,Role.ADMIN,false));
-        identities.createAccount(new IdentityService.CreateAccount(second,marker+"B",password,Role.ADMIN,false));
+        identities.createAccount(new IdentityService.CreateAccount(first,password,Role.ADMIN,false));
+        identities.createAccount(new IdentityService.CreateAccount(second,password,Role.ADMIN,false));
         try(var pool=Executors.newFixedThreadPool(2)) {
             var start=new CountDownLatch(1);var results=new ArrayList<Future<Boolean>>();
             for(Long actor:List.of(first,second)) results.add(pool.submit(()->{
@@ -210,6 +375,22 @@ class M7IdentityIntegrationTest {
             jdbc.update("DELETE FROM audit_logs WHERE actor_user_id IN (?,?) OR (entity_type='USER' AND entity_id IN (?,?))",first,second,first,second);
             jdbc.update("DELETE FROM users WHERE user_id IN (?,?)",first,second);
         }
+    }
+    @Test @Transactional(propagation=Propagation.NOT_SUPPORTED)
+    void usernameRemovalRequiresIdentifierAndUnambiguousCode() {
+        String schema="username_removal_20261027_"+UUID.randomUUID().toString().replace("-","");
+        var latest=Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).cleanDisabled(false).locations("classpath:db/migration").load();
+        try {
+            Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).target("34").locations("classpath:db/migration").load().migrate();
+            Long id=jdbc.queryForObject("INSERT INTO "+schema+".users(full_name,role_id,username,password_hash) SELECT ?,role_id,?,'legacy-hash' FROM "+schema+".roles WHERE code='USER' RETURNING user_id",Long.class,marker,marker);
+            assertThatThrownBy(latest::migrate).hasMessageContaining("needs a real employee_code or email");
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.columns WHERE table_schema=? AND table_name='users' AND column_name='username'",Integer.class,schema)).isEqualTo(1);
+            jdbc.update("UPDATE "+schema+".users SET employee_code='admin@itam.example' WHERE user_id=?",id);
+            assertThatThrownBy(latest::migrate).hasMessageContaining("matches another user email");
+            jdbc.update("UPDATE "+schema+".users SET employee_code=? WHERE user_id=?",marker,id);
+            assertThat(latest.migrate().success).isTrue();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.columns WHERE table_schema=? AND table_name='users' AND column_name='username'",Integer.class,schema)).isZero();
+        } finally { latest.clean(); }
     }
     @Test @Transactional(propagation=Propagation.NOT_SUPPORTED)
     void migrationPreservesLegacyIdsAssignedAssetsAndLockedStaffWithoutInventingCodes() {
@@ -240,7 +421,8 @@ class M7IdentityIntegrationTest {
             assertThat(latest.migrate().success).isTrue();
             assertThat(jdbc.queryForList("SELECT user_id FROM "+schema+".users ORDER BY user_id",Long.class)).isEqualTo(ids);
             assertThat(jdbc.queryForObject("SELECT assigned_to FROM "+schema+".assets WHERE asset_id=?",Long.class,asset)).isEqualTo(id);
-            assertThat(jdbc.queryForObject("SELECT count(*) FROM "+schema+".users WHERE employee_code IS NOT NULL OR username IS NOT NULL",Integer.class)).isZero();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM "+schema+".users WHERE employee_code IS NOT NULL",Integer.class)).isZero();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.columns WHERE table_schema=? AND table_name='users' AND column_name='username'",Integer.class,schema)).isZero();
             assertThat(jdbc.queryForObject("SELECT login_locked FROM "+schema+".users WHERE user_id=?",Boolean.class,id)).isTrue();
             assertThat(jdbc.queryForObject("SELECT login_locked FROM "+schema+".users WHERE user_id=?",Boolean.class,userId)).isFalse();
             assertThat(jdbc.queryForObject("SELECT snapshot::text FROM "+schema+".handover_snapshots WHERE transaction_id=?",String.class,tx)).isEqualTo(snapshot);

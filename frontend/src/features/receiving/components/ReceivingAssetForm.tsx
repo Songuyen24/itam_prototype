@@ -12,24 +12,34 @@ export function ReceivingAssetForm({initial, refs, busy, onSave, onCancel}:{init
   const model=refs.models.find(m=>m.id===value.modelId);
   return <form onSubmit={e=>{e.preventDefault();void onSave(value);}} className="receiving-form">
     <fieldset disabled={busy}><legend>{t(initial?'receiving.editAsset':'draft.addAsset')}</legend>
-      <div className="receiving-grid">
+      <section className="receiving-form-section"><h3>{t('receiving.sections.identity')}</h3><div className="receiving-form-grid">
         {field('name','text',true)}
         <label className="form-group">{t('receiving.typeId')}{mark}<select className="form-input" required disabled={!!initial} value={value.typeId||''} onChange={e=>setValue(v=>({...v,typeId:Number(e.target.value),modelId:undefined,conditionId:undefined,serialNumber:undefined,warrantyExpiration:undefined,actualCpu:undefined,actualRam:undefined,actualStorage:undefined,actualGraphicsCard:undefined,license:refs.types.find(x=>x.id===Number(e.target.value))?.category==='LICENSE'?{softwareCatalogId:0,assignmentTypeId:0,termTypeId:0,seatCount:1}:undefined}))}><option value="">—</option>{refs.types.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
-        {field('assetTag','text',false,100)}{field('poNumber','text',false,100)}{field('purchaseDate','date')}{field('purchaseCost','number')}
+        {field('assetTag','text',false,100)}
+      </div></section>
+      <section className="receiving-form-section"><h3>{t('receiving.sections.purchase')}</h3><div className="receiving-form-grid">
+        {field('poNumber','text',false,100)}{field('purchaseDate','date')}{field('purchaseCost','number')}
         {select('supplierId',refs.suppliers)}{select('locationId',refs.locations)}{select('departmentId',refs.departments)}
+      </div></section>
         {category!=='LICENSE' && <>
+          <section className="receiving-form-section"><h3>{t('receiving.sections.hardware')}</h3><div className="receiving-form-grid">
           {field('serialNumber')}{select('conditionId',refs.conditions,true)}{select('modelId',refs.models.filter(m=>m.typeId===value.typeId))}{field('warrantyExpiration','date')}
+          </div></section>
+          <details className="receiving-optional-config"><summary>{t('receiving.sections.configuration')}</summary>
+          {model && <p>{t('receiving.defaultConfig')}: {model.default_cpu||'—'} / {model.default_ram||'—'} / {model.default_storage||'—'} / {model.default_graphics_card||'—'}</p>}
+          <div className="receiving-form-grid">
           {field('actualCpu')}{field('actualRam','text',false,100)}{field('actualStorage','text',false,100)}{field('actualGraphicsCard')}
+          </div></details>
         </>}
         {value.license && <>
+          <section className="receiving-form-section"><h3>{t('receiving.sections.license')}</h3><div className="receiving-form-grid">
           {(['softwareCatalogId','assignmentTypeId','termTypeId'] as const).map((key,i)=><label className="form-group" key={key}>{t(`receiving.${key}`)}{mark}<select className="form-input" required value={value.license![key]||''} onChange={e=>patch({license:{...value.license!,[key]:Number(e.target.value)}})}><option value="">—</option>{refs[(['software','assignments','terms'] as const)[i]].map(o=><option key={o.id} value={o.id}>{o.code?t(`receiving.${o.code}`,{defaultValue:o.name}):o.name}</option>)}</select></label>)}
           <label className="form-group">{t('receiving.seatCount')}{mark}<input className="form-input" required type="number" min="1" max="2147483647" step="1" value={value.license.seatCount} onChange={e=>patch({license:{...value.license!,seatCount:Number(e.target.value)}})}/></label>
           <label className="form-group">{t('receiving.expiryDate')}{refs.terms.find(x=>x.id===value.license!.termTypeId)?.code==='SUBSCRIPTION'&&mark}<input className="form-input" type="date" required={refs.terms.find(x=>x.id===value.license!.termTypeId)?.code==='SUBSCRIPTION'} value={value.license.expiryDate??''} onChange={e=>patch({license:{...value.license!,expiryDate:e.target.value||undefined}})}/></label>
+          </div></section>
         </>}
-      </div>
-      {model && <p>{t('receiving.defaultConfig')}: {model.default_cpu||'—'} / {model.default_ram||'—'} / {model.default_storage||'—'} / {model.default_graphics_card||'—'}</p>}
-      <p>{t('receiving.assetHint')}</p>
-      <div className="receiving-actions"><button className="btn btn-primary">{t('receiving.saveAsset')}</button><button type="button" className="btn btn-secondary" onClick={onCancel}>{t('receiving.cancel')}</button></div>
+      <p className="receiving-form-hint">{t('receiving.assetHint')}</p>
+      <div className="receiving-actions receiving-form-actions"><button className="btn btn-primary">{t('receiving.saveAsset')}</button><button type="button" className="btn btn-secondary" onClick={onCancel}>{t('receiving.cancel')}</button></div>
     </fieldset>
   </form>;
 }

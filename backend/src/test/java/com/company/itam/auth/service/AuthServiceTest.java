@@ -99,8 +99,8 @@ class AuthServiceTest {
     }
 
     @Test
-    void login_username_isAccepted() {
-        adminUser.setUsername("admin.test");
+    void login_employeeCode_isAccepted() {
+        adminUser.setEmployeeCode("admin.test");
         LoginRequest req = new LoginRequest();
         req.setEmail("  ADMIN.TEST  ");
         req.setPassword("Password@123");

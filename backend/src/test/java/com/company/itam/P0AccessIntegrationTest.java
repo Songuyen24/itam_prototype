@@ -58,7 +58,7 @@ class P0AccessIntegrationTest {
     String email(){return jdbc.queryForObject("SELECT email FROM users WHERE user_id=?",String.class,person);}
     String access(boolean grant,String status,boolean password) throws Exception {
         return mvc.perform(put("/v1/users/"+person+"/access").with(role("ADMIN")).contentType("application/json")
-                .content("{\"granted\":"+grant+",\"status\":\""+status+"\""+(password?",\"password\":\"P0-test-pass\",\"username\":\"p0-user-"+person+"\"":"")+"}"))
+                .content("{\"granted\":"+grant+",\"status\":\""+status+"\""+(password?",\"password\":\"P0-test-pass\"":"")+"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
     }
     String token() throws Exception {

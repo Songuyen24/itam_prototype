@@ -158,7 +158,7 @@ describe('list request race guards', () => {
     await act(async () => newQuery.resolve(page([{ assetId: 8, assetTag: 'NEW-ASSET', name: 'New asset', statusCode: 'IN_STOCK' }], 2, 2)));
     await act(async () => oldQuery.resolve(page([{ assetId: 9, assetTag: 'OLD-ASSET', name: 'Old asset', statusCode: 'IN_STOCK' }], 99, 9)));
 
-    const assetTags = tree.root.findAllByType('span').flatMap(node => node.children);
+    const assetTags = tree.root.findAllByProps({ className: 'asset-tag-button' }).flatMap(node => node.children);
     expect(assetTags).toContain('NEW-ASSET');
     expect(assetTags).not.toContain('OLD-ASSET');
     expect(tree.root.findAllByType('button').filter(button => button.children.includes('2'))).toHaveLength(1);

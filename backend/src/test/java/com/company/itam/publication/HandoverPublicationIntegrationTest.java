@@ -33,7 +33,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "itam.documents.storage-root=target/t15-publication-storage")
+@SpringBootTest(properties = {"itam.documents.storage-root=target/t15-publication-storage", "itam.email.mode=simulated"})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class HandoverPublicationIntegrationTest {
@@ -89,11 +89,13 @@ class HandoverPublicationIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=?", Long.class, transactionId)).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM email_logs WHERE transaction_id=?", Long.class, transactionId)).isZero();
         mvc.perform(post("/v1/handovers/" + transactionId + "/submit")
+                .header("X-Expected-Version",0)
                 .with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN"))))
                 .andExpect(status().isOk());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM documents WHERE transaction_id=?", Long.class, transactionId)).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM email_logs WHERE transaction_id=?", Long.class, transactionId)).isZero();
         mvc.perform(post("/v1/handovers/" + transactionId + "/confirm")
+                .header("X-Expected-Version",1)
                 .with(user("admin@itam.example").authorities(new SimpleGrantedAuthority("ADMIN"))))
                 .andExpect(status().isOk());
         authenticate();

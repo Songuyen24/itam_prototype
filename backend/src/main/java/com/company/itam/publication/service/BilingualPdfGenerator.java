@@ -82,6 +82,20 @@ public class BilingualPdfGenerator {
         }
     }
 
+    static String groupOutcomeSummary(JsonNode snapshot) {
+        var groups=snapshot.path("groups");
+        if(!groups.isArray()||groups.isEmpty()) return "";
+        int completed=0,cancelled=0,rejected=0;
+        for(var group:groups) switch(group.path("status").asText()) {
+            case "COMPLETED" -> completed++;
+            case "CANCELLED" -> cancelled++;
+            case "REJECTED" -> rejected++;
+            default -> { }
+        }
+        return "Kết quả nhóm / Group outcomes: Đã thực hiện / Completed "+completed
+                +"; Đã hủy / Cancelled "+cancelled+"; Không được duyệt / Rejected "+rejected+".";
+    }
+
     private void configure(Graphics2D g) {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -107,6 +121,8 @@ public class BilingualPdfGenerator {
 
     private List<TextLayout> handoverLines(Graphics2D g, JsonNode snapshot, List<AssetLine> assets) {
         var result = new ArrayList<TextLayout>();
+        String outcomes=groupOutcomeSummary(snapshot);
+        if(!outcomes.isEmpty()) appendWrapped(g,result,outcomes,true);
         appendWrapped(g, result, "Người nhận / Recipient: " + value(first(snapshot, "recipientName")), true);
         appendWrapped(g, result, "Email: " + value(first(snapshot, "recipientEmail")), false);
         appendWrapped(g, result, "Ngày bàn giao / Handover date: " + value(first(snapshot, "handoverDate")), false);
@@ -152,6 +168,8 @@ public class BilingualPdfGenerator {
 
     private List<TextLayout> recoveryLines(Graphics2D g, JsonNode snapshot, List<AssetLine> assets) {
         var result = new ArrayList<TextLayout>();
+        String outcomes=groupOutcomeSummary(snapshot);
+        if(!outcomes.isEmpty()) appendWrapped(g,result,outcomes,true);
         appendWrapped(g, result, "Người trả / Returner: " + value(first(snapshot, "returnerName")), true);
         appendWrapped(g, result, "Email: " + value(first(snapshot, "returnerEmail")), false);
         appendWrapped(g, result, "Ngày thu hồi / Recovery date: " + value(first(snapshot, "recoveryDate")), false);
@@ -188,8 +206,12 @@ public class BilingualPdfGenerator {
 
     private List<TextLayout> disposalLines(Graphics2D g, JsonNode snapshot, List<AssetLine> assets) {
         var result = new ArrayList<TextLayout>();
-        appendWrapped(g, result, "Ngày thanh lý / Disposal date: " + value(first(snapshot, "disposalDate")), false);
+        String outcomes=groupOutcomeSummary(snapshot);
+        if(!outcomes.isEmpty()) appendWrapped(g,result,outcomes,true);
+        appendWrapped(g, result, "Ngày đề nghị / Proposed disposal date: " + value(first(snapshot, "disposalDate")), false);
         appendWrapped(g, result, "Lý do / Reason: " + value(first(snapshot, "reason")), false);
+        for(var group:snapshot.path("groups")) if("COMPLETED".equals(group.path("status").asText()) && group.hasNonNull("executionDate"))
+            appendWrapped(g,result,"Ngày thực hiện / Execution date: "+group.path("executionDate").asText()+" | Chứng từ / Evidence: #"+group.path("documentId").asText(),false);
         appendWrapped(g, result, " ", false);
         appendWrapped(g, result, "TÀI SẢN THANH LÝ / RETIRED ASSETS", true);
         for (int i = 0; i < assets.size(); i++) {

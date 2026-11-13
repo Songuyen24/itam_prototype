@@ -44,15 +44,16 @@ function renderRoute(path: string) {
 }
 
 describe('Role-specific routes and navigation', () => {
-  it('allows only Admin to manage accounts, including USER access', () => {
+  it('lets staff open unified accounts while keeping USER out', () => {
     signIn('ADMIN');
     expect(renderRoute('/user-access')).toContain('data-redirect="/accounts"');
     expect(renderRoute('/accounts')).toContain('management.accounts');
-    for (const role of ['IT_STAFF','PUR_STAFF','USER']) {
+    for (const role of ['IT_STAFF','PUR_STAFF']) {
       signIn(role);
-      expect(renderRoute('/accounts')).toContain('data-redirect=');
-      expect(renderRoute('/employee-profiles')).not.toContain('href="/accounts"');
+      expect(renderRoute('/accounts')).toContain('management.accounts');
     }
+    signIn('USER');
+    expect(renderRoute('/accounts')).toContain('data-redirect="/my-assets"');
   });
   beforeEach(() => {
     session.user = null;
@@ -71,13 +72,17 @@ describe('Role-specific routes and navigation', () => {
 
   it.each(['ADMIN', 'IT_STAFF'])('%s can open inventory and catalogs', (role) => {
     signIn(role);
-    expect(renderRoute('/')).toContain('data-redirect="/assets"');
+    expect(renderRoute('/')).toContain('data-redirect="/dashboard"');
     expect(renderRoute('/assets')).toContain('data-page="assets"');
     expect(renderRoute('/catalogs')).toContain('data-page="catalogs"');
     expect(renderRoute('/organization-catalogs')).toContain('data-page="organization-catalogs"');
     const menu = renderRoute('/catalogs');
     expect(menu).toContain('href="/assets"');
-    expect(menu).toContain('href="/catalogs"');
+    if (role === 'ADMIN') expect(menu).toContain('href="/catalogs"');
+    else {
+      expect(menu).not.toContain('href="/catalogs"');
+      expect(menu).not.toContain('href="/organization-catalogs"');
+    }
     expect(menu).toContain('href="/handovers"');
     expect(menu).toContain('href="/disposals"');
     expect(menu).toContain('href="/dashboard"');
@@ -88,14 +93,16 @@ describe('Role-specific routes and navigation', () => {
   it('orders management links by role and gives collapsed controls accessible names', () => {
     signIn('ADMIN');
     const admin = renderRoute('/catalogs');
-    const paths = ['/employee-profiles', '/catalogs', '/accounts', '/organization-catalogs'];
+    const paths = ['/dashboard', '/assets', '/receivings', '/handovers', '/recoveries', '/disposals', '/reports', '/accounts', '/documents', '/catalogs', '/organization-catalogs'];
     expect(paths.map(path => admin.indexOf(`href="${path}"`))).toEqual([...paths.map(path => admin.indexOf(`href="${path}"`))].sort((a, b) => a - b));
     expect(paths.every(path => admin.includes(`href="${path}"`))).toBe(true);
+    expect(admin).not.toContain('sidebar-demo-switch');
     signIn('PUR_STAFF');
-    const pur = renderRoute('/employee-profiles');
-    expect(pur).toContain('href="/employee-profiles"');
-    expect(pur).not.toContain('href="/catalogs"');
+    const pur = renderRoute('/accounts');
     expect(pur).not.toContain('href="/accounts"');
+    expect(pur).not.toContain('href="/reports"');
+    expect(pur).not.toContain('href="/catalogs"');
+    expect(pur).not.toContain('management.addProfile');
     expect(pur).not.toContain('href="/organization-catalogs"');
 
     signIn('ADMIN');
@@ -106,12 +113,43 @@ describe('Role-specific routes and navigation', () => {
     expect(tree.root.findByProps({ 'aria-label': 'nav.expandSidebar' })).toBeTruthy();
     expect(tree.root.findByProps({ 'aria-label': 'nav.management' }).props['aria-expanded']).toBe(true);
     expect(tree.root.findAllByType('a').filter(link => link.props['aria-label'] === 'nav.assetCatalogs')).toHaveLength(1);
+    act(() => tree.root.findByProps({ 'aria-label': 'nav.management' }).props.onClick());
+    expect(tree.root.findByProps({ 'aria-label': 'nav.collapseSidebar' })).toBeTruthy();
+    expect(tree.root.findByProps({ 'aria-label': 'nav.management' }).props['aria-expanded']).toBe(true);
     act(() => tree.unmount());
+  });
+
+  it('uses a labelled mobile drawer whose links and account action close it', () => {
+    signIn('ADMIN');
+    const previousWindow = globalThis.window;
+    const listeners: Array<() => void> = [];
+    let narrow = true;
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+      matchMedia: () => ({ get matches() { return narrow; }, addEventListener: (_: string, listener: () => void) => listeners.push(listener), removeEventListener: () => {} }),
+    } });
+    let tree!: ReturnType<typeof create>;
+    try {
+      act(() => { tree = create(<MemoryRouter initialEntries={['/catalogs']}><MainLayout /></MemoryRouter>); });
+      const trigger = tree.root.findByProps({ 'aria-label': 'nav.openMenu' });
+      act(() => trigger.props.onClick());
+      expect(tree.root.findByProps({ 'aria-label': 'nav.closeMenu' })).toBeTruthy();
+      act(() => tree.root.findAllByType('a').find(link => link.props.href === '/assets')!.props.onClick({ button: 0, defaultPrevented: false, preventDefault: () => {}, metaKey: false, altKey: false, ctrlKey: false, shiftKey: false }));
+      expect(trigger.props['aria-expanded']).toBe(false);
+      act(() => trigger.props.onClick());
+      act(() => tree.root.findByProps({ 'aria-label': 'nav.account: Current Account' }).props.onClick());
+      expect(trigger.props['aria-expanded']).toBe(false);
+      narrow = false;
+      act(() => listeners.forEach(listener => listener()));
+      expect(tree.root.findByProps({ 'aria-label': 'nav.collapseSidebar' })).toBeTruthy();
+    } finally {
+      act(() => tree?.unmount());
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: previousWindow });
+    }
   });
 
   it.each(['PUR_STAFF', 'USER'])('%s cannot open shared inventory or catalogs directly', (role) => {
     signIn(role);
-    const destination = role === 'USER' ? '/my-assets' : '/employee-profiles';
+    const destination = role === 'USER' ? '/my-assets' : '/receivings';
     for (const path of ['/assets?assignedTo=1', '/catalogs', '/handovers', '/disposals', '/dashboard']) {
       const html = renderRoute(path);
       expect(html).toContain(`data-redirect="${destination}"`);
@@ -130,14 +168,15 @@ describe('Role-specific routes and navigation', () => {
     expect(html).toContain('href="/my-assets"');
   });
 
-  it('PUR can read profiles without account management', () => {
+  it('PUR can read accounts without editing', () => {
     signIn('PUR_STAFF');
-    expect(renderRoute('/')).toContain('data-redirect="/employee-profiles"');
-    expect(renderRoute('/my-assets')).toContain('data-redirect="/employee-profiles"');
-    const html = renderRoute('/employee-profiles');
-    expect(html).toContain('management.profiles');
+    expect(renderRoute('/')).toContain('data-redirect="/receivings"');
+    expect(renderRoute('/my-assets')).toContain('data-redirect="/receivings"');
+    const html = renderRoute('/accounts');
+    expect(html).toContain('management.accounts');
     expect(html).not.toContain('management.addProfile');
     expect(html).not.toContain('data-redirect=');
+    expect(renderRoute('/employee-profiles?keyword=E-7')).toContain('data-redirect="/accounts?keyword=E-7"');
   });
 
   it('unknown roles are sent to login without opening management routes', () => {

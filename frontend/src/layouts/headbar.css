@@ -1,0 +1,19 @@
+.global-search-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.global-search-results h3 { margin: 10px 9px 4px; font-size: 12px; font-weight: 600; color: #536071; }
+.global-search-results h3 span { margin-left: 5px; font-variant-numeric: tabular-nums; }
+.global-search-results button strong, .global-search-results button span { min-width: 0; overflow-wrap: anywhere; }
+.global-search-results .global-search-all { color: #1d4ed8; font-weight: 600; }
+.global-search-message { padding: 8px; color: #536071; font-size: 13px; }
+.global-search-message button { display: inline; width: auto; margin-left: 5px; padding: 2px 4px; border: 0; color: #1d4ed8; font-weight: 600; }
+
+@media (min-width: 769px) {
+  .app-navbar { flex: 0 0 64px; height: 64px; min-height: 64px; padding: 0 24px; flex-wrap: nowrap; background: #fff; border-bottom: 1px solid #e3e7ed; }
+  .app-navbar .navbar-actions { display: flex; align-items: center; width: 100%; gap: 20px; flex-wrap: nowrap; }
+  .app-navbar .global-search { flex: 1; width: auto; max-width: 560px; min-width: 0; margin-right: auto; }
+  .app-navbar .global-search-icon { top: 50%; }
+  .app-navbar .global-search .form-input { height: 34px; padding-left: 38px; background: #f7f8fa; border-color: #dce1e7; }
+  .app-navbar .global-search .form-input:focus { background: #fff; }
+  .app-navbar .global-search-results { top: calc(100% + 8px); }
+  .app-navbar .language-switcher { border-color: #dce1e7; background: #f7f8fa; }
+  .app-navbar .language-switcher-button[aria-pressed='true'] { background: var(--primary); color: var(--text-white); }
+}

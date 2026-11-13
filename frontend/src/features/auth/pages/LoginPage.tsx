@@ -10,32 +10,32 @@ import { getHomePath } from '../permissions';
 
 const QUICK_LOGIN_PRESETS: RolePreset[] = [
   {
-    email: 'admin@itam.example',
+    email: 'demo.nv1@example.com',
     label: 'Administrator',
     description: 'Quản trị viên hệ thống — toàn quyền',
     role: 'ADMIN',
   },
   {
-    email: 'it01@itam.example',
+    email: 'demo.nv2@example.com',
     label: 'IT Staff',
     description: 'IT Support — nhập kho, bàn giao, thu hồi',
     role: 'IT_STAFF',
   },
   {
-    email: 'pur01@itam.example',
+    email: 'demo.nv3@example.com',
     label: 'Purchasing Staff',
     description: 'Mua sắm — tạo phiếu nhập kho',
     role: 'PUR_STAFF',
   },
   {
-    email: 'user01@itam.example',
+    email: 'demo.nv4@example.com',
     label: 'End User',
     description: 'Người dùng cuối — xem tài sản được cấp',
     role: 'USER',
   },
 ];
 
-const DEFAULT_PASSWORD = 'Password@123';
+const demoPassword = import.meta.env.VITE_DEMO_PASSWORD ?? '';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common']);
@@ -75,8 +75,8 @@ const LoginPage: React.FC = () => {
 
   async function handleQuickLogin(preset: RolePreset) {
     setEmail(preset.email);
-    setPassword(DEFAULT_PASSWORD);
-    await doLogin(preset.email, DEFAULT_PASSWORD);
+    setPassword(demoPassword);
+    await doLogin(preset.email, demoPassword);
   }
 
   if (isAuthenticated && !loading) {
@@ -145,7 +145,7 @@ const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        {demoLoginEnabled && <><div className="login-divider">
+        {demoLoginEnabled && demoPassword && <><div className="login-divider">
           <span>{t('auth:quickLoginHeader', 'Đăng nhập nhanh theo vai trò')}</span>
         </div>
 
@@ -168,7 +168,7 @@ const LoginPage: React.FC = () => {
 
         <p className="login-footer">
           {t('auth:defaultPasswordHint', 'Mật khẩu mặc định cho tài khoản seed: ')}
-          <code>Password@123</code>
+          <code>{demoPassword}</code>
         </p></>}
       </div>
     </div>

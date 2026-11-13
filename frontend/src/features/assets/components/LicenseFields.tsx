@@ -21,7 +21,7 @@ export function LicenseFields({ value, onChange }: {value: LicenseInput; onChang
   },[retry]);
   const patch = (data: Partial<LicenseInput>) => onChange({...value,...data});
   const mark = <span aria-hidden="true" style={{color:'var(--danger)',marginLeft:'4px'}}>*</span>;
-  return <fieldset className="license-fields">
+  return <fieldset className="license-fields asset-license-fields">
     <legend>{t('license.title')}</legend>
     {loading && <p role="status">{t('relationships.loading')}</p>}
     {error && <p role="alert">{t('relationships.loadError')} <button type="button" onClick={()=>setRetry(retry+1)}>{t('relationships.retry')}</button></p>}

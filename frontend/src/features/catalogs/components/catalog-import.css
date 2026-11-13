@@ -1,0 +1,9 @@
+.catalog-import-dialog{margin:auto;width:min(800px,calc(100vw - 32px));max-height:90vh;overflow:auto;padding:20px;border:0;border-radius:6px;background:var(--bg-card);color:var(--text-main)}
+.catalog-import-dialog::backdrop{background:#0009}
+.catalog-import-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--border-color);margin-bottom:16px}
+.catalog-import-heading h2{font-size:18px}
+.catalog-import-dialog>label{display:block;margin:16px 0}.catalog-import-dialog>label input{display:block;margin-top:6px}
+.catalog-import-dialog .table-container{margin:14px 0;overflow:auto}
+.catalog-import-dialog .data-table{min-width:600px}
+.catalog-import-pages{display:flex;align-items:center;gap:12px;margin:12px 0}
+.catalog-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}

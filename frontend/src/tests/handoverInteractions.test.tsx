@@ -1,12 +1,13 @@
 import { act, create, ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HandoversPage } from '@/features/handover/pages/HandoversPage';
+import { ApiError } from '@/shared/api/httpClient';
 
 const client = vi.hoisted(() => vi.fn());
 const translate = vi.hoisted(() => (key: string) => key);
 const actor = vi.hoisted(() => ({ id: 1, role: 'IT_STAFF' }));
-vi.mock('@/shared/api/httpClient', () => ({ httpClient: client }));
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: translate }) }));
+vi.mock('@/shared/api/httpClient', async importOriginal => ({ ...(await importOriginal<typeof import('@/shared/api/httpClient')>()), httpClient: client }));
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: translate, i18n: { language: 'en' } }) }));
 vi.mock('@/features/auth/contexts/AuthContext', () => ({ useAuth: () => ({ user: actor }) }));
 vi.mock('@/features/documents/components/PublicationPanel', () => ({ PublicationPanel: () => <p>publication</p> }));
 
@@ -15,7 +16,8 @@ const holder = { id: 7, fullName: 'Mai', email: 'mai@example.com', employeeCode:
 const line = { assetId: 8, assetTag: 'LAP-08', name: 'Laptop', category: 'DEVICE', parentAssetId: null, seats: 0, allocations: [], details: {} };
 const handover = { transactionId: 11, transactionCode: 'HO-11', completedAt: null, status: 'PENDING', requesterId: 1, requesterName: 'ICT',
   request: null, recipientUserId: 7, recipientName: 'Mai', recipientEmail: 'mai@example.com', destinationLocationId: 2,
-  destinationLocationName: 'Office', handoverDate: '2026-10-21', notes: null, fingerprint: 'fp', lines: [line] };
+  destinationLocationName: 'Office', handoverDate: '2026-10-21', notes: null, fingerprint: 'fp', lines: [line], contentVersion: 3,
+  groups: [{ groupId: 'asset:8', status: 'PENDING', assetIds: [8], allocationIds: [] }] };
 const page = (content: unknown[]) => ({ data: { content, pageNumber: 0, pageSize: 10, totalElements: content.length, totalPages: 1, last: true } });
 const renderers: ReactTestRenderer[] = [];
 async function renderPage() {
@@ -37,6 +39,7 @@ describe('handover page interactions', () => {
       if (url.startsWith('/v1/handovers/holders?')) return Promise.resolve(page([holder]));
       if (url.startsWith('/v1/transactions?')) return Promise.resolve(page([{ transactionId: 11, transactionCode: 'HO-11', status: 'PENDING', requesterName: 'ICT' }]));
       if (url === '/v1/handovers/11') return Promise.resolve({ data: handover });
+      if (url === '/v1/handovers/11/progress') return Promise.resolve({ data: { contentVersion: 3, groups: handover.groups } });
       return Promise.resolve(page([]));
     });
   });
@@ -44,28 +47,149 @@ describe('handover page interactions', () => {
 
   it('shows current holders by default and can include employees without holdings', async () => {
     const tree = await renderPage();
-    expect(client.mock.calls[0][0]).toContain('heldOnly=true');
-    await act(async () => button(tree, 'allEmployees').props.onClick());
+    expect(client.mock.calls.some(call => String(call[0]).includes('heldOnly=true'))).toBe(true);
+    await act(async () => tree.root.findAllByType('select')[0].props.onChange({ target: { value: 'all' } }));
     expect(client.mock.calls.some(call => String(call[0]).includes('heldOnly=false'))).toBe(true);
-    expect(tree.root.findAllByType('strong').some(item => item.children.includes('Mai'))).toBe(true);
+    expect(JSON.stringify(tree.toJSON())).toContain('Mai');
+    expect(JSON.stringify(tree.toJSON())).toContain('HO-11');
+    expect(tree.root.findAllByProps({ role: 'tab' })).toHaveLength(0);
+    expect(tree.root.findAllByType('select')).toHaveLength(2);
+  });
+  it('keeps holder and receipt search/page independent', async () => {
+    const tree = await renderPage();
+    const inputs = tree.root.findAllByType('input').filter(input => input.props.type === 'search');
+    expect(inputs).toHaveLength(2);
+    await act(async () => inputs[0].props.onChange({ target: { value: 'Mai' } }));
+    expect(client.mock.calls.some(call => String(call[0]).includes('/holders?keyword=Mai'))).toBe(true);
+    expect(client.mock.calls.some(call => String(call[0]).includes('/transactions?') && String(call[0]).includes('keyword=Mai'))).toBe(false);
+    await act(async () => inputs[1].props.onChange({ target: { value: 'HO-11' } }));
+    expect(client.mock.calls.some(call => String(call[0]).includes('/transactions?') && String(call[0]).includes('keyword=HO-11'))).toBe(true);
+    expect(tree.root.findAllByType('input').filter(input => input.props.type === 'search').map(input => input.props.value)).toEqual(['Mai', 'HO-11']);
+    const holderCalls = client.mock.calls.filter(call => String(call[0]).includes('/holders?')).length;
+    await act(async () => tree.root.findAllByType('select')[1].props.onChange({ target: { value: 'PENDING' } }));
+    expect(client.mock.calls.some(call => String(call[0]).includes('/transactions?') && String(call[0]).includes('status=PENDING'))).toBe(true);
+    expect(client.mock.calls.filter(call => String(call[0]).includes('/holders?'))).toHaveLength(holderCalls);
+    await act(async () => button(tree, 'Mai').props.onClick());
+    expect(client.mock.calls.some(call => String(call[0]).startsWith('/v1/handovers/holders/7?'))).toBe(true);
+    expect(tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })).toHaveLength(1);
+    await act(async () => tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })[0].findAllByType('button').find(item => item.children.includes('close'))!.props.onClick());
+    expect(tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })).toHaveLength(0);
+    await act(async () => button(tree, 'HO-11').props.onClick());
+    expect(tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })).toHaveLength(1);
+    await act(async () => tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })[0].findAllByType('button').find(item => item.children.includes('close'))!.props.onClick());
+    expect(tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })).toHaveLength(0);
+    expect(tree.root.findAllByType('input').filter(input => input.props.type === 'search').map(input => input.props.value)).toEqual(['Mai', 'HO-11']);
+    expect(tree.root.findAllByType('select')[1].props.value).toBe('PENDING');
+    expect(JSON.stringify(tree.toJSON())).toContain('HO-11');
+  });
+  it('opens details from holder name and receipt code and resets each filter set independently', async () => {
+    const tree = await renderPage();
+    await act(async () => button(tree, 'Mai').props.onClick());
+    expect(client.mock.calls.some(call => String(call[0]).startsWith('/v1/handovers/holders/7?'))).toBe(true);
+    await act(async () => button(tree, 'close').props.onClick());
+    await act(async () => button(tree, 'HO-11').props.onClick());
+    expect(client.mock.calls.some(call => call[0] === '/v1/handovers/11')).toBe(true);
+    await act(async () => button(tree, 'close').props.onClick());
+
+    const searches = tree.root.findAllByType('input').filter(input => input.props.type === 'search');
+    await act(async () => searches[0].props.onChange({ target: { value: 'Mai' } }));
+    await act(async () => searches[1].props.onChange({ target: { value: 'HO' } }));
+    await act(async () => tree.root.findAllByType('select')[1].props.onChange({ target: { value: 'PENDING' } }));
+    expect(JSON.stringify(tree.toJSON())).toContain('holderSearchScope');
+    const resets = tree.root.findAllByType('button').filter(item => item.children.includes('resetFilters'));
+    expect(resets).toHaveLength(2);
+    await act(async () => resets[0].props.onClick());
+    expect(tree.root.findAllByType('input').filter(input => input.props.type === 'search').map(input => input.props.value)).toEqual(['', 'HO']);
+    expect(tree.root.findAllByType('select')[0].props.value).toBe('held');
+    expect(tree.root.findAllByType('select')[1].props.value).toBe('PENDING');
+    await act(async () => resets[1].props.onClick());
+    expect(tree.root.findAllByType('input').filter(input => input.props.type === 'search').map(input => input.props.value)).toEqual(['', '']);
+    expect(tree.root.findAllByType('select')[1].props.value).toBe('');
+  });
+  it('filters receipts by created date without changing the holder query and shows holdings as a table', async () => {
+    client.mockImplementation((url: string) => {
+      if (url.startsWith('/v1/handovers/holders/')) return Promise.resolve({ data: { holder, assets: page([{ assetId: 8, assetTag: 'LAP-08', name: 'Laptop', category: 'DEVICE', allocationId: null, seats: 0, serialNumber: 'SER-8', deviceTag: null }]).data } });
+      if (url.startsWith('/v1/handovers/holders?')) return Promise.resolve(page([holder]));
+      if (url.startsWith('/v1/transactions?')) return Promise.resolve(page([{ transactionId: 11, transactionCode: 'HO-11', status: 'PENDING', requesterName: 'ICT' }]));
+      return Promise.resolve(page([]));
+    });
+    const tree = await renderPage();
+    const holderCalls = client.mock.calls.filter(call => String(call[0]).includes('/holders?')).length;
+    await act(async () => tree.root.findAllByType('button').find(item => item.props['aria-label'] === 'createdRange')!.props.onClick());
+    const day = tree.root.findAllByType('button').find(item => item.props['aria-pressed'] !== undefined && item.children.includes('8'))!;
+    await act(async () => day.props.onClick());
+    await act(async () => button(tree, 'receiving.applyRange').props.onClick());
+    expect(client.mock.calls.some(call => String(call[0]).includes('/transactions?') && String(call[0]).includes('from=') && String(call[0]).includes('to='))).toBe(true);
+    expect(client.mock.calls.filter(call => String(call[0]).includes('/holders?'))).toHaveLength(holderCalls);
+    await act(async () => button(tree, 'Mai').props.onClick());
+    const dialog = tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })[0];
+    expect(dialog.findAllByType('th').map(th => th.children[0])).toEqual(['assetTag','assetName','category','serial','deviceTag','seats']);
+    expect(tree.root.findAllByType('td').some(cell => cell.children.includes('SER-8'))).toBe(true);
   });
 
   it('requires the review dialog before confirming a pending physical handover', async () => {
     const tree = await renderPage();
-    await act(async () => button(tree, 'list').props.onClick());
-    await act(async () => tree.root.findAllByType('button').find(item => item.findAllByType('strong').some(node => node.children.includes('HO-11')))!.props.onClick());
+    await act(async () => button(tree, 'HO-11').props.onClick());
+    expect(tree.root.findAllByProps({ className: 'handover-confirm handover-detail-dialog' })).toHaveLength(1);
     expect(client.mock.calls.some(call => String(call[0]).endsWith('/confirm'))).toBe(false);
     await act(async () => button(tree, 'confirmPhysical').props.onClick());
     expect(tree.root.findAllByProps({ id: 'physical-confirm-title' })).toHaveLength(1);
     expect(tree.root.findAllByType('strong').some(item => item.children.includes('LAP-08'))).toBe(true);
+    expect(tree.root.findAllByType('button').find(item => item.children.includes('confirmPhysical') && item.props.disabled)).toBeTruthy();
+    act(() => tree.root.findAllByType('input').find(item => item.props.type === 'checkbox')!.props.onChange());
     expect(client.mock.calls.some(call => String(call[0]).endsWith('/confirm'))).toBe(false);
     expect(tree.root.findAllByType('p').some(item => item.children.includes('publication'))).toBe(false);
   });
 
+  it('requires a reason and sends only the selected group when cancelling the remainder', async () => {
+    actor.role = 'ADMIN';
+    client.mockImplementation((url: string) => {
+      if (url.startsWith('/v1/handovers/holders/')) return Promise.resolve({ data: { holder, assets: page([]).data } });
+      if (url.startsWith('/v1/handovers/holders?')) return Promise.resolve(page([holder]));
+      if (url.startsWith('/v1/transactions?')) return Promise.resolve(page([{ transactionId: 11, transactionCode: 'HO-11', status: 'PENDING', requesterName: 'ICT' }]));
+      if (url === '/v1/handovers/11') return Promise.resolve({ data: handover });
+      if (url === '/v1/handovers/11/progress') return Promise.resolve({ data: { contentVersion: 3, groups: handover.groups } });
+      if (url === '/v1/handovers/11/cancel-lines') return Promise.resolve({ data: handover });
+      throw new Error(`Unexpected ${url}`);
+    });
+    const tree = await renderPage();
+    await act(async () => button(tree, 'HO-11').props.onClick());
+    act(() => button(tree, 'confirmPhysical').props.onClick());
+    const cancel = () => button(tree, 'cancelRemaining');
+    expect(cancel().props.disabled).toBe(true);
+    act(() => tree.root.findAllByType('input').find(item => item.props.type === 'checkbox')!.props.onChange());
+    expect(cancel().props.disabled).toBe(true);
+    act(() => tree.root.findByType('textarea').props.onChange({ target: { value: 'Not delivered' } }));
+    expect(cancel().props.disabled).toBe(false);
+    await act(async () => cancel().props.onClick());
+    expect(client).toHaveBeenCalledWith('/v1/handovers/11/cancel-lines', { method: 'POST', headers: { 'X-Override-Reason': 'Not%20delivered' }, body: JSON.stringify({ expectedVersion: 3, groupIds: ['asset:8'], reason: 'Not delivered' }) });
+  });
+
+  it('reloads the current version after a selected confirmation conflicts', async () => {
+    let version = 3;
+    client.mockImplementation((url: string) => {
+      if (url.startsWith('/v1/handovers/holders/')) return Promise.resolve({ data: { holder, assets: page([]).data } });
+      if (url.startsWith('/v1/handovers/holders?')) return Promise.resolve(page([holder]));
+      if (url.startsWith('/v1/transactions?')) return Promise.resolve(page([{ transactionId: 11, transactionCode: 'HO-11', status: 'PENDING', requesterName: 'ICT' }]));
+      if (url === '/v1/handovers/11') return Promise.resolve({ data: handover });
+      if (url === '/v1/handovers/11/progress') return Promise.resolve({ data: { contentVersion: version, groups: handover.groups } });
+      if (url === '/v1/handovers/11/confirm') { version = 4; return Promise.reject(new ApiError('Updated by Mai', 409, 'WORKFLOW_CHANGED')); }
+      throw new Error(`Unexpected ${url}`);
+    });
+    const tree = await renderPage();
+    await act(async () => button(tree, 'HO-11').props.onClick());
+    act(() => button(tree, 'confirmPhysical').props.onClick());
+    act(() => tree.root.findAllByType('input').find(item => item.props.type === 'checkbox')!.props.onChange());
+    await act(async () => tree.root.findAllByType('dialog').find(item => item.props['aria-labelledby'] === 'physical-confirm-title')!.findAllByType('button').find(item => item.children.includes('confirmPhysical'))!.props.onClick());
+    expect(client).toHaveBeenCalledWith('/v1/handovers/11/confirm', { method: 'POST', body: JSON.stringify({ expectedVersion: 3, groupIds: ['asset:8'] }) });
+    expect(client.mock.calls.filter(call => call[0] === '/v1/handovers/11/confirm')).toHaveLength(1);
+    expect(JSON.stringify(tree.toJSON())).toContain('Updated by Mai');
+    expect(client.mock.calls.filter(call => call[0] === '/v1/handovers/11/progress')).toHaveLength(2);
+  });
+
   it('offers pending cancellation only to Admin, while the creator may withdraw', async () => {
     const tree = await renderPage();
-    await act(async () => button(tree, 'list').props.onClick());
-    await act(async () => tree.root.findAllByType('button').find(item => item.findAllByType('strong').some(node => node.children.includes('HO-11')))!.props.onClick());
+    await act(async () => button(tree, 'HO-11').props.onClick());
     expect(button(tree, 'withdraw')).toBeTruthy();
     expect(button(tree, 'cancel')).toBeUndefined();
     actor.id = 2; actor.role = 'ADMIN';

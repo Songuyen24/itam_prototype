@@ -1,7 +1,7 @@
 export const DOCUMENT_ROLES = ['ADMIN', 'IT_STAFF', 'PUR_STAFF'];
 
 export type TransactionType = 'IMPORT' | 'HANDOVER' | 'RECOVERY' | 'DISPOSAL';
-export type TransactionStatus = 'DRAFT' | 'PENDING' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
+export type TransactionStatus = 'DRAFT' | 'PENDING' | 'PARTIAL' | 'APPROVED' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
 export type DocumentType =
   | 'INVOICE'
   | 'PURCHASE_ORDER'
@@ -41,11 +41,19 @@ export interface DocumentItem {
   locked: boolean;
 }
 
+export interface DocumentLibraryItem extends DocumentItem {
+  transactionCode: string;
+  transactionType: TransactionType;
+  transactionStatus: TransactionStatus;
+}
+
 export interface TransactionFilters {
   type?: TransactionType;
   status?: TransactionStatus;
   statuses?: TransactionStatus[];
   keyword?: string;
+  from?: string;
+  to?: string;
   page?: number;
   size?: number;
 }

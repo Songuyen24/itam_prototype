@@ -2,6 +2,7 @@
   "title": "Asset Recovery",
   "tabForm": "Create Recovery",
   "tabHistory": "History",
+  "creator": "Created by", "createdAt": "Created at", "createdRange": "Created date range",
   "noHistory": "No recovery records yet",
   "colCode": "Code",
   "colReturner": "Returner",
@@ -9,15 +10,26 @@
   "colLocation": "Receiving Location",
   "colAssets": "Assets",
   "hint": "Create a recovery for one returner; check asset relationships before submitting for collection.",
+  "stepReturner": "Returner and receiving location", "stepAssets": "Candidate assets and selection", "stepDetails": "Date and reason",
   "searchAssets": "Search for returner",
   "searchLocations": "Search for receiving location",
   "selectDevices": "Select devices to recover",
   "selectDevicesHint": "Select IN_USE devices belonging to the returner. The system will automatically list attached components and OEM licenses.",
   "noDevices": "No devices selected",
   "selected": "{{count}} device(s) selected",
+  "selectedOption": "Selected",
   "date": "Recovery Date",
   "reason": "Recovery Reason",
   "remove": "Remove",
+  "removeAsset": "Remove asset {{asset}}",
+  "selectedReturner": "Selected returner:",
+  "selectedLocation": "Selected receiving location:",
+  "chooseReturner": "Select returner",
+  "chooseLocation": "Select receiving location",
+  "assetsTitle": "Assets to recover",
+  "assetTag": "Asset tag",
+  "assetName": "Asset name",
+  "assetCategory": "Category",
   "preview": "Check",
   "loading": "Processing...",
   "error": "An error occurred",
@@ -68,6 +80,7 @@
   ,"searchHistory": "Search recoveries"
   ,"filterStatus": "Status"
   ,"allStatuses": "All"
+  ,"resetFilters": "Reset"
   ,"details": "Details"
   ,"edit": "Edit draft"
   ,"submit": "Submit for collection"
@@ -75,6 +88,11 @@
   ,"cancel": "Cancel recovery"
   ,"cancelConfirm": "Cancel this recovery?"
   ,"confirmPhysical": "Confirm assets received"
-  ,"confirmPhysicalHint": "Check the assets physically received before completing recovery."
-  ,"status": { "DRAFT": "Draft", "PENDING": "Pending", "COMPLETED": "Completed", "CANCELLED": "Cancelled" }
+  ,"confirmPhysicalHint": "Select the assets physically received."
+  ,"cancelRemaining": "Cancel selected"
+  ,"cancelRemainingReason": "Reason for cancelling selected items"
+  ,"groupReason": "Reason"
+  ,"changed": "This recovery changed. Latest details have been loaded. Review them before retrying."
+  ,"groupStatus": { "PENDING": "Pending", "APPROVED": "Approved", "COMPLETED": "Completed", "REJECTED": "Rejected", "CANCELLED": "Cancelled" }
+  ,"status": { "DRAFT": "Draft", "PENDING": "Pending", "PARTIAL": "Partially completed", "COMPLETED": "Completed", "CANCELLED": "Cancelled" }
 }

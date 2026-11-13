@@ -43,7 +43,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-@SpringBootTest(properties = "itam.documents.storage-root=target/t17-import-publication-storage")
+@SpringBootTest(properties = {"itam.documents.storage-root=target/t17-import-publication-storage", "itam.email.mode=simulated"})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class ImportPublicationIntegrationTest {

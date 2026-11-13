@@ -63,6 +63,16 @@ describe('T14 receiving',()=>{
     expect(html).not.toMatch(/receiving.expiryDate<span[^>]*>\*<\/span>/);
     expect(html).not.toMatch(/receiving.expiryDate<input[^>]*required/);
   });
+  it('groups required hardware and license fields outside optional configuration',()=>{
+    const hardware=renderToStaticMarkup(<ReceivingAssetForm refs={refs} initial={{name:'Laptop',typeId:1}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);
+    for(const section of ['identity','purchase','hardware','configuration']) expect(hardware).toContain(`receiving.sections.${section}`);
+    expect(hardware.indexOf('receiving.conditionId')).toBeLessThan(hardware.indexOf('<details'));
+    expect(hardware).not.toContain('receiving.sections.license');
+    const license=renderToStaticMarkup(<ReceivingAssetForm refs={refs} initial={{name:'Package',typeId:2,license:{softwareCatalogId:1,assignmentTypeId:1,termTypeId:1,seatCount:10}}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);
+    expect(license).toContain('receiving.sections.license');
+    expect(license).not.toContain('receiving.sections.configuration');
+    expect(license).not.toContain('<details');
+  });
   it('renders frozen model defaults, actual values and effective configuration',()=>{
     const html=renderToStaticMarkup(<ReceivingAssetDetails line={{assetId:1,assetTag:'OLD-TAG',name:'Old name',category:'DEVICE',input:{name:'Old name',typeId:1,actualRam:'32GB'},model:{default_ram:'16GB'},effectiveHardware:{ram:'32GB'}}}/>);
     expect(html).toContain('OLD-TAG');expect(html).toContain('16GB');expect(html).toContain('32GB');
@@ -73,4 +83,13 @@ describe('T14 receiving',()=>{
     expect(Object.keys(en.receiving.events)).toEqual(Object.keys(vn.receiving.events));
     expect(en.receiving.approveConfirm).toContain('all');expect(vn.receiving.approveConfirm).toContain('toàn bộ');
   });
+});
+
+it('keeps supplied details visible once across identity, purchase and technical groups',()=>{
+  const html=renderToStaticMarkup(<ReceivingAssetDetails line={{assetId:1,assetTag:'IT-01',name:'Laptop',category:'DEVICE',input:{name:'Laptop',typeId:1,serialNumber:'SN-01',poNumber:'PO-01',actualCpu:'Core i7',purchaseCost:250},labels:{type:'Laptop type',supplier:'Supplier A',location:'Office B'}}}/>);
+  for (const value of ['SN-01','PO-01','Core i7','Supplier A','Office B','Laptop type']) expect(html.split(value)).toHaveLength(2);
+  expect(html.indexOf('receiving.sections.identity')).toBeLessThan(html.indexOf('SN-01'));
+  expect(html.indexOf('receiving.sections.purchase')).toBeLessThan(html.indexOf('PO-01'));
+  expect(html.indexOf('receiving.sections.purchase')).toBeLessThan(html.indexOf('Supplier A'));
+  expect(html.indexOf('receiving.sections.configuration')).toBeLessThan(html.indexOf('Core i7'));
 });

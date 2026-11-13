@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Service
 @Transactional(readOnly = true)
@@ -40,9 +42,16 @@ public class TransactionReadService {
     public PageResponse<TransactionSummaryResponse> getTransactions(TransactionType type, TransactionStatus status,
                                                                      java.util.Set<TransactionStatus> statuses,
                                                                      String keyword, int page, int size) {
+        return getTransactions(type, status, statuses, keyword, null, null, page, size);
+    }
+
+    public PageResponse<TransactionSummaryResponse> getTransactions(TransactionType type, TransactionStatus status,
+                                                                     java.util.Set<TransactionStatus> statuses,
+                                                                     String keyword, LocalDate from, LocalDate to, int page, int size) {
         accessService.requireTransactionReader();
         if (page < 0 || size < 1 || size > 100 || (keyword != null && keyword.length() > 100)
-                || (status != null && statuses != null) || (statuses != null && statuses.isEmpty())) {
+                || (status != null && statuses != null) || (statuses != null && statuses.isEmpty())
+                || (from != null && to != null && from.isAfter(to)) || (to != null && to.equals(LocalDate.MAX))) {
             throw invalidRequest();
         }
         TransactionType permittedType = type;
@@ -55,6 +64,9 @@ public class TransactionReadService {
         TransactionType filterType = permittedType;
         String search = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT)
                 .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        var zone = ZoneId.systemDefault();
+        var fromInstant = from == null ? null : from.atStartOfDay(zone).toInstant();
+        var toExclusive = to == null ? null : to.plusDays(1).atStartOfDay(zone).toInstant();
         return PageResponse.of(transactionRepository.findAll((root, query, builder) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (filterType != null) {
@@ -68,6 +80,8 @@ public class TransactionReadService {
             if (!search.isEmpty()) {
                 predicates.add(builder.like(builder.lower(root.get("transactionCode")), "%" + search + "%", '\\'));
             }
+            if (fromInstant != null) predicates.add(builder.greaterThanOrEqualTo(root.get("createdAt"), fromInstant));
+            if (toExclusive != null) predicates.add(builder.lessThan(root.get("createdAt"), toExclusive));
             return builder.and(predicates.toArray(Predicate[]::new));
         }, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt", "transactionId")))
                 .map(TransactionSummaryResponse::fromEntity));

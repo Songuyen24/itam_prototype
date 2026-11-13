@@ -1,3 +1,5 @@
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
+import ArrowDropDownOutlinedIcon from '@mui/icons-material/ArrowDropDownOutlined';
 import { demoLoginEnabled } from '@/features/auth/demo';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -69,7 +71,7 @@ export const RoleSwitcher: React.FC = () => {
         title={t('auth:switchRoleTooltip', 'Chuyển vai trò test')}
       >
         <span className="role-switcher-info"><span className={`role-badge role-${role}`}>{role}</span></span>
-        <span aria-hidden style={{ marginLeft: 6, fontSize: 10 }}>▾</span>
+        <ArrowDropDownOutlinedIcon fontSize="small" aria-hidden="true" />
       </button>
 
       {open && (
@@ -96,7 +98,7 @@ export const RoleSwitcher: React.FC = () => {
                   <small>{preset.email}</small>
                 </span>
                 {isCurrent && (
-                  <span className="role-switcher-current-mark" aria-hidden>✓</span>
+                  <span className="role-switcher-current-mark" aria-hidden><CheckOutlinedIcon fontSize="small" /></span>
                 )}
               </button>
             );

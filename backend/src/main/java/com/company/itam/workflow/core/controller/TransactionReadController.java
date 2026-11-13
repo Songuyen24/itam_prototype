@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/v1/transactions")
@@ -34,10 +35,12 @@ public class TransactionReadController {
             @RequestParam(required = false) TransactionStatus status,
             @RequestParam(required = false) java.util.Set<TransactionStatus> statuses,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.success(messageHelper.getMessage("TRANSACTION_LIST_SUCCESS"),
-                transactionService.getTransactions(type, status, statuses, keyword, page, size)));
+                transactionService.getTransactions(type, status, statuses, keyword, from, to, page, size)));
     }
 
     @GetMapping("/{id}")

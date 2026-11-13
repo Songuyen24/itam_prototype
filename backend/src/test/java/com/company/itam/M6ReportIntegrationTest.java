@@ -120,4 +120,17 @@ class M6ReportIntegrationTest {
   mvc.perform(get("/v1/handovers").with(role("PUR_STAFF"))).andExpect(status().isForbidden());
   mvc.perform(put("/v1/reports/permissions/{id}/ASSETS",id).with(role("ADMIN")).contentType("application/json").content("{\"view\":false,\"export\":true}")).andExpect(status().isBadRequest());
  }
+
+ @Test void transactionProgressSeparatesActualWorkFromWaitingAndCancelledGroups() throws Exception {
+  Long admin=jdbc.queryForObject("SELECT user_id FROM users WHERE email='admin@itam.example'",Long.class);
+  String code="M6-progress-"+java.util.UUID.randomUUID();
+  Long id=jdbc.queryForObject("INSERT INTO transactions(transaction_code,type,status,requester_id,created_at) VALUES(?,'HANDOVER','PENDING',?,'2036-01-01') RETURNING transaction_id",Long.class,code,admin);
+  jdbc.update("INSERT INTO workflow_progress(transaction_id,groups) VALUES (?,?::jsonb)",id,"[{\"status\":\"COMPLETED\"},{\"status\":\"PENDING\"},{\"status\":\"CANCELLED\"}]");
+  mvc.perform(get("/v1/reports/transactions?type=HANDOVER&from=2036-01-01&to=2036-01-01").with(role("ADMIN")))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.data.items[0].completed_groups").value(1))
+   .andExpect(jsonPath("$.data.items[0].pending_groups").value(1)).andExpect(jsonPath("$.data.items[0].cancelled_groups").value(1))
+   .andExpect(jsonPath("$.data.items[0].approved_groups").value(0)).andExpect(jsonPath("$.data.summary[0].completed_groups").value(1));
+  mvc.perform(get("/v1/reports/transactions?type=HANDOVER&dateField=completed&from=2036-01-01&to=2036-01-01").with(role("ADMIN")))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(0));
+ }
 }

@@ -1,0 +1,64 @@
+.asset-detail-dialog, .asset-import-dialog {
+  --asset-line: #dce3ec;
+  --asset-muted: #526176;
+  --asset-blue: #2563eb;
+  border: 0; padding: 0; margin: auto; width: min(1000px, calc(100vw - 48px));
+  max-width: none; max-height: 90vh; color: var(--text-main); background: white;
+  border-radius: 8px; box-shadow: 0 20px 60px #0f172a26;
+}
+.asset-detail-dialog::backdrop, .asset-import-dialog::backdrop { background: #0f172a66; }
+.asset-detail-dialog .modal-content { width: 100%; border: 0; border-radius: 8px; box-shadow: none; }
+.asset-detail-dialog .modal-header, .asset-detail-dialog .modal-footer { padding: 18px 24px; flex-shrink: 0; background: white; }
+.asset-detail-body { min-height: 0; overscroll-behavior: contain; scroll-padding-block: 20px; }
+.asset-detail-body > div:first-child { background: white !important; border-radius: 6px !important; gap: 20px !important; }
+.asset-detail-dialog .data-table th { text-transform: none; letter-spacing: 0; }
+.asset-detail-dialog .data-table td, .asset-detail-dialog .data-table th { padding: 12px; font-size: 13px; }
+.asset-relationships { border-top: 1px solid var(--asset-line); padding-top: 20px; }
+.asset-relationships h3 { margin: 0 0 12px; font-size: 16px; }
+.asset-relationships h4 { margin: 20px 0 10px; font-size: 14px; }
+.asset-history-table-wrap { overflow-x: auto; }
+.asset-history-table { width: 100%; min-width: 400px; }
+.asset-overview-label { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+.asset-overview-value { font-size: 14px; font-weight: 600; margin-top: 2px; }
+.asset-license-hint { grid-column: 1 / -1; margin: 0; color: var(--asset-muted); font-size: 12px; }
+.asset-allocation-table-wrap { overflow-x: auto; }
+.asset-allocation-table { width: 100%; min-width: 760px; }
+.asset-relationships p { color: var(--asset-muted); font-size: 13px; line-height: 1.6; }
+.asset-relationships .relationship-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(100px, auto) auto; gap: 8px 16px; padding: 14px 0; font-size: 13px; }
+.relationship-row strong { grid-column: 1 / -1; font-family: monospace; font-size: 13px; }
+.relationship-confirm { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; }
+.asset-relationships .relationship-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: 16px; gap: 12px; background: #f8fafc; border: 1px solid var(--asset-line); border-radius: 6px; }
+.relationship-search > p, .relationship-search > .document-pagination { grid-column: 1 / -1; }
+.relationship-search > p { margin: 0; }
+.relationship-search label { display: grid; gap: 6px; font-size: 13px; color: var(--asset-muted); }
+.relationship-search > button { align-self: end; min-height: 38px; }
+.relationship-add-dialog[open] { position: fixed; inset: 0; margin: auto; border: 0; border-radius: 8px; padding: 0; width: min(620px, calc(100vw - 24px)); max-height: 90vh; color: var(--text-main); box-shadow: 0 20px 60px #0f172a40; }
+.relationship-add-dialog::backdrop { background: #0f172a80; }
+.relationship-add-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; }
+.relationship-add-header h3 { margin: 0; font-size: 16px; }
+.relationship-add-dialog .relationship-search { border: 0; border-top: 1px solid #dce3ec; border-radius: 0; padding: 20px; }
+.relationship-add-dialog :is(button, input, select):focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+.asset-detail-dialog :is(button, input, select):focus-visible, .asset-import-dialog :is(button, input, select):focus-visible { outline: 2px solid var(--asset-blue); outline-offset: 3px; }
+.asset-import-dialog[open] { position: fixed !important; inset: 0 !important; width: min(1180px, calc(100vw - 48px)); height: fit-content; padding: 0 !important; background: white !important; backdrop-filter: none !important; }
+.asset-import-dialog .asset-import-content { max-width: none !important; width: 100%; border-radius: 8px !important; box-shadow: none !important; border: 0; }
+.asset-import-content > div:first-child, .asset-import-content > div:last-child { flex-shrink: 0; }
+.asset-import-content > p { margin: 0; padding: 12px 24px !important; line-height: 1.5; font-size: 13px; background: #f8fafc; }
+.asset-import-content > p + p { padding-top: 0 !important; color: var(--asset-muted); }
+.asset-import-body { min-height: 0; overscroll-behavior: contain; scroll-padding: 20px; }
+.asset-import-body .data-table { font-size: 13px; }
+.asset-import-body .data-table th { text-transform: none; letter-spacing: 0; }
+.asset-import-body .data-table :is(input,select) { min-width: 150px; min-height: 36px; }
+.asset-import-body .data-table :is(th,td) { padding: 12px; vertical-align: top; }
+@media (max-width: 700px) {
+  .asset-detail-dialog, .asset-import-dialog[open] { width: calc(100vw - 24px); max-height: 94vh; }
+  .asset-detail-body > div:first-child { grid-template-columns: minmax(0, 1fr) !important; }
+  .asset-relationships .relationship-row, .asset-relationships .relationship-search { grid-template-columns: minmax(0, 1fr); }
+  .asset-detail-dialog .modal-footer { flex-wrap: wrap; }
+}
+
+@media (min-width: 1000px) {
+ .asset-import-body .asset-upload-layout { display: grid !important; grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr); align-items: start; }
+ .asset-upload-layout > :first-child { grid-column: 1 / -1; background: #f8fafc !important; border-color: var(--asset-line) !important; }
+ .asset-upload-layout > :nth-child(2) { grid-column: 1 / -1; }
+ .asset-upload-layout > :nth-child(3) { min-height: 230px; }
+}

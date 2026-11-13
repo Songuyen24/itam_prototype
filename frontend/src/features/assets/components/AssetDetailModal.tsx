@@ -1,4 +1,6 @@
-import React from 'react';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import React, { useEffect, useRef, useState } from 'react';
+import './asset-workflow.css';
 import { AssetRelationships } from './AssetRelationships';
 import { useTranslation } from 'react-i18next';
 import { AssetDetail } from '../types/asset.types';
@@ -17,8 +19,20 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   onEdit,
 }) => {
   const { t, i18n } = useTranslation('assets');
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [refreshedAsset, setRefreshedAsset] = useState<AssetDetail | null>(null);
+  useEffect(() => {
+    if (!isOpen || !asset) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const previous = document.activeElement as HTMLElement | null;
+    dialog?.showModal();
+    return () => { dialog?.close(); previous?.focus(); };
+  }, [isOpen, asset]);
   if (!isOpen || !asset) return null;
 
+  const detail = refreshedAsset?.assetId === asset.assetId ? refreshedAsset : asset;
+  const license = detail.license;
   const cfg = asset.hardwareConfig || {};
 
   const formatCurrency = (val?: number) => {
@@ -51,10 +65,10 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
+    <dialog ref={dialogRef} className="asset-detail-dialog" aria-label={asset.assetTag} onCancel={onClose}>
       <div
-        className="modal-content"
-        style={{ maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+        className="modal-content asset-detail-content"
+        style={{ maxWidth: '1000px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
       >
         {/* Modal Header */}
         <div className="modal-header">
@@ -73,15 +87,14 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
               {asset.name}
             </div>
           </div>
-          <button type="button" className="btn-close" onClick={onClose}>
-            ✕
+          <button type="button" className="btn-close" aria-label={t('detail.close')} onClick={onClose}>
+            <CloseOutlinedIcon fontSize="small" aria-hidden="true" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div style={{ overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {onEdit && <AssetRelationships key={asset.assetId} asset={asset} />}
-          {!onEdit && asset.license && <p>{asset.license.softwareName} · {t(`license.${asset.license.assignmentTypeCode}`)} · {t(`license.${asset.license.termTypeCode}`)}</p>}
+        <div className="asset-detail-body" style={{ overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {!onEdit && license && <p>{license.softwareName} · {t(`license.${license.assignmentTypeCode}`)} · {t(`license.${license.termTypeCode}`)}</p>}
           {/* Section 1: Overview Grid */}
           <div
             style={{
@@ -94,6 +107,15 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
               border: '1px solid var(--border-color)',
             }}
           >
+            {license && onEdit && <>
+              <div><div className="asset-overview-label">{t('license.software')}</div><div className="asset-overview-value">{license.softwareName}</div></div>
+              <div><div className="asset-overview-label">{t('license.assignment')}</div><div className="asset-overview-value">{t(`license.${license.assignmentTypeCode}`)}</div></div>
+              <div><div className="asset-overview-label">{t('license.term')}</div><div className="asset-overview-value">{t(`license.${license.termTypeCode}`)}</div></div>
+              <div><div className="asset-overview-label">{t('license.seats')}</div><div className="asset-overview-value">{license.seatCount}</div></div>
+              <div><div className="asset-overview-label">{t('license.allocatedSeats')}</div><div className="asset-overview-value">{license.allocatedSeats}</div></div>
+              <div><div className="asset-overview-label">{t('license.availableSeats')}</div><div className="asset-overview-value">{license.availableSeats}</div></div>
+              <div><div className="asset-overview-label">{t('license.expiry')}</div><div className="asset-overview-value">{formatDate(license.expiryDate)}</div></div>
+            </>}
             <div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.type')}</div>
               <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>
@@ -101,7 +123,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
               </div>
             </div>
 
-            <div>
+            {!license && <><div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.model')}</div>
               <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>
                 {asset.modelBrand ? `${asset.modelBrand} ` : ''}{asset.modelName || '—'}
@@ -134,7 +156,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
               <div style={{ fontSize: '14px', fontWeight: 600, color: asset.assignedToFullName ? 'var(--primary)' : 'var(--text-muted)', marginTop: '2px' }}>
                 {asset.assignedToFullName ? `👤 ${asset.assignedToFullName}` : t('detail.unassigned')}
               </div>
-            </div>
+            </div></>}
 
             <div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.department')}</div>
@@ -143,12 +165,12 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
               </div>
             </div>
 
-            <div>
+            {!license && <><div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.location')}</div>
               <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
                 {asset.locationName || '—'}
               </div>
-            </div>
+            </div></>}
 
             <div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.supplier')}</div>
@@ -241,6 +263,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
 
           {/* Section 3: Audit Information */}
           </>}
+          {onEdit && <AssetRelationships key={asset.assetId} asset={asset} onDetailRefresh={setRefreshedAsset} />}
           <div
             style={{
               display: 'flex',
@@ -279,6 +302,6 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
           </button>}
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };

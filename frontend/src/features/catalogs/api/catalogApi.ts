@@ -203,26 +203,6 @@ export const assetStatusApi = {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     return httpClient<ApiResponse<PageResponse<AssetStatusItem>>>(`/v1/asset-statuses?${params}`);
   },
-  create: (data: { code: string; name: string; isActive?: boolean }) =>
-    httpClient<ApiResponse<AssetStatusItem>>('/v1/asset-statuses', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  update: (id: number, data: { code: string; name: string; isActive?: boolean }) =>
-    httpClient<ApiResponse<AssetStatusItem>>(`/v1/asset-statuses/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  delete: (id: number) =>
-    httpClient<ApiResponse<void>>(`/v1/asset-statuses/${id}`, {
-      method: 'DELETE',
-    }),
-  toggleActive: (id: number, active?: boolean) => {
-    const query = active !== undefined ? `?active=${active}` : '';
-    return httpClient<ApiResponse<AssetStatusItem>>(`/v1/asset-statuses/${id}/active${query}`, {
-      method: 'PATCH',
-    });
-  },
 };
 
 // ==========================================

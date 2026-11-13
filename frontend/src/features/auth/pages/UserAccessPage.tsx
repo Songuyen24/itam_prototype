@@ -1,3 +1,5 @@
+import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
+import { TableActionButton } from '@/shared/components/TableActionButton';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { httpClient } from '@/shared/api/httpClient';
@@ -46,7 +48,7 @@ export function UserAccessPage() {
     </tr></thead><tbody>{people.map(person=><tr key={person.id}><td>{person.fullName}<br/>{person.email}</td>
       <td>{person.hasAccount?person.roleCode:t('access.noAccount')}</td>
       <td>{person.roleCode!=='USER'?t('access.staff'):person.loginLocked?t('access.locked'):person.accessGranted?t('access.granted'):t('access.notGranted')}</td>
-      <td>{person.roleCode==='USER'&&<button className="btn btn-secondary" disabled={busy} onClick={()=>select(person)}>{t('access.manage')}</button>}</td>
+      <td>{person.roleCode==='USER'&&<TableActionButton icon={<ManageAccountsOutlinedIcon />} label={t('access.manage')} disabled={busy} onClick={()=>select(person)}/>}</td>
     </tr>)}</tbody></table>{!people.length&&<p>{t('access.empty')}</p>}</div>}
     <div className="receiving-actions"><button className="btn btn-secondary" disabled={loading||page===0} onClick={()=>setPage(v=>v-1)}>{t('access.previous')}</button>
       <span>{page+1} / {Math.max(1,pages)}</span><button className="btn btn-secondary" disabled={loading||page+1>=pages} onClick={()=>setPage(v=>v+1)}>{t('access.next')}</button></div>

@@ -1,4 +1,12 @@
-import React, { useState, useRef } from 'react';
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
+import React, { useState, useRef, useEffect } from 'react';
+import './asset-workflow.css';
 import { useTranslation } from 'react-i18next';
 import { importApi } from '../api/importApi';
 import { receivingApi } from '@/features/receiving/api/receivingApi';
@@ -40,6 +48,39 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const receivingRef = useRef<HTMLDivElement | null>(null);
+  const receivingClose = useRef<() => void>(() => {});
+  const receivingBusy = useRef(false);
+  receivingBusy.current = isUploading || isImporting;
+  const isReceiving = !!receiving;
+  useEffect(() => {
+    if (!isOpen || !isReceiving || typeof document === 'undefined') return;
+    const previous = document.activeElement as HTMLElement | null;
+    receivingRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault(); event.stopImmediatePropagation();
+        if (!receivingBusy.current) receivingClose.current();
+      }
+      if (event.key !== 'Tab') return;
+      const controls = [...(receivingRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary') ?? [])].filter(element => element.getClientRects().length > 0);
+      if (!controls.length) { event.preventDefault(); return; }
+      const first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === receivingRef.current)) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || document.activeElement === receivingRef.current)) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => { document.removeEventListener('keydown', onKeyDown); previous?.focus(); };
+  }, [isOpen, isReceiving]);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  useEffect(() => {
+    if (!isOpen || receiving) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const previous = document.activeElement as HTMLElement | null;
+    dialog?.showModal();
+    return () => { dialog?.close(); previous?.focus(); };
+  }, [isOpen, receiving]);
   if (!isOpen) return null;
 
   const handleReset = () => {
@@ -62,9 +103,12 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   };
 
   const handleClose = () => {
+    if (receiving && receivingBusy.current) return;
     handleReset();
     onClose();
   };
+
+  receivingClose.current = handleClose;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -191,7 +235,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             fontSize: '11px',
             fontWeight: 600,
           }}>
-            ✓ {t('imports:statusBadges.VALID', 'Hợp lệ')}
+            <CheckOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.VALID', 'Hợp lệ')}
           </span>
         );
       case 'DUPLICATE':
@@ -207,7 +251,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             fontSize: '11px',
             fontWeight: 600,
           }}>
-            ⚠️ {t('imports:statusBadges.DUPLICATE', 'Trùng lặp')}
+            <WarningAmberOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.DUPLICATE', 'Trùng lặp')}
           </span>
         );
       case 'INVALID':
@@ -224,14 +268,23 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             fontSize: '11px',
             fontWeight: 600,
           }}>
-            ✕ {t('imports:statusBadges.INVALID', 'Lỗi')}
+            <CloseOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.INVALID', 'Lỗi')}
           </span>
         );
     }
   };
 
+  const Container = receiving ? 'div' : 'dialog';
   return (
-    <div
+    <Container
+      ref={(node: HTMLDialogElement | HTMLDivElement | null) => { if (!receiving) dialogRef.current = node as HTMLDialogElement | null; else receivingRef.current = node as HTMLDivElement | null; }}
+      className={receiving ? "receiving-import-dialog" : "asset-import-dialog"}
+      role={receiving ? 'dialog' : undefined}
+      aria-modal={receiving ? true : undefined}
+      aria-busy={receiving ? isUploading || isImporting : undefined}
+      tabIndex={receiving ? -1 : undefined}
+      aria-label={t(receiving ? 'imports:receivingTitle' : 'imports:title')}
+      onCancel={event => { event.preventDefault(); handleClose(); }}
       style={{
         position: 'fixed',
         top: 0,
@@ -239,7 +292,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
         right: 0,
         bottom: 0,
         backgroundColor: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(4px)',
+        backdropFilter: receiving ? undefined : 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -248,10 +301,10 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
       }}
     >
       <div
-        className="card"
+        className={receiving ? "card" : "card asset-import-content"}
         style={{
           width: '100%',
-          maxWidth: step === 'preview' ? '1100px' : '650px',
+          maxWidth: receiving ? (step === 'preview' ? '1160px' : '960px') : (step === 'preview' ? '1100px' : '650px'),
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
@@ -274,7 +327,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '20px' }}>📥</span>
+
             <div>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
                 {receiving ? t('imports:receivingTitle') : t('imports:title')}
@@ -302,7 +355,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
               borderRadius: '4px',
             }}
           >
-            ✕
+            <CloseOutlinedIcon fontSize="small" aria-hidden="true" />
           </button>
         </div>
 
@@ -310,7 +363,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
         <p style={{ padding: '0 24px', fontSize: 13 }}>{t('imports:ocr.hint')}</p>
         {/* Error Alert if any */}
         {errorMessage && (
-          <div
+          <div role="alert"
             style={{
               margin: '16px 24px 0 24px',
               padding: '12px 16px',
@@ -324,16 +377,16 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
               gap: '8px',
             }}
           >
-            <span>⚠️</span>
+            {!receiving && <WarningAmberOutlinedIcon fontSize="small" aria-hidden="true" />}
             <span>{errorMessage}</span>
           </div>
         )}
 
         {/* Modal Body */}
-        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+        <div className={receiving ? "receiving-import-body" : "asset-import-body"} style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
           {/* STEP 1: UPLOAD */}
           {step === 'upload' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className={receiving ? "receiving-upload-layout" : "asset-upload-layout"} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* Template download card */}
               <div
                 style={{
@@ -368,7 +421,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     fontWeight: 600,
                   }}
                 >
-                  <span>📄</span>
+                  {!receiving && <DescriptionOutlinedIcon fontSize="small" aria-hidden="true" />}
                   <span>{t('imports:upload.downloadTemplate', 'Tải file mẫu (.xlsx)')}</span>
                 </button>
               </div>
@@ -416,7 +469,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   style={{ display: 'none' }}
                 />
 
-                <div style={{ fontSize: '42px', marginBottom: '12px' }}>📊</div>
+                {!receiving && <div style={{ marginBottom: '12px' }}><AssessmentOutlinedIcon sx={{ fontSize: 42 }} aria-hidden="true" /></div>}
 
                 {selectedFile ? (
                   <div>
@@ -455,13 +508,13 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
 
           {/* STEP 2: PREVIEW */}
           {step === 'preview' && previewData && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className={receiving ? 'receiving-import-preview' : undefined} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {needsValidation && <p role="status">{t('imports:ocr.changed')}</p>}
               <button type="button" className="btn btn-secondary" disabled={isUploading || isImporting} onClick={handleValidate}>{t('imports:ocr.validate')}</button>
               {editingRow !== undefined && (() => {
                 const row = previewData.rows.find(item => item.rowNumber === editingRow);
                 if (!row) return null;
-                return <fieldset disabled={isUploading || isImporting} style={{minWidth:0,border:'1px solid #cbd5e1',borderRadius:8,padding:12}}>
+                return <fieldset className={receiving ? 'receiving-import-edit' : undefined} disabled={isUploading || isImporting} style={{minWidth:0,border:'1px solid #cbd5e1',borderRadius:8,padding:12}}>
                   <legend>{t('imports:ocr.editRow',{row:editingRow})}</legend>
                   {row.rawData.sourceText && <p style={{overflowWrap:'anywhere'}}>{t('imports:ocr.source',{page:row.rawData.sourcePage})}: {row.rawData.sourceText}</p>}
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
@@ -605,7 +658,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                     gap: '8px',
                   }}
                 >
-                  <span>ℹ️</span>
+                  {!receiving && <span>ℹ️</span>}
                   <span>
                     {t('imports:preview.warningSkip', 'Lưu ý: Chỉ các dòng hợp lệ mới được import vào cơ sở dữ liệu. Các dòng lỗi sẽ bị bỏ qua.')}
                   </span>
@@ -615,13 +668,13 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
               {/* Preview Table */}
               <div
                 style={{
-                  maxHeight: '380px',
+                  maxHeight: receiving ? undefined : '380px',
                   overflowY: 'auto',
                   border: '1px solid #e2e8f0',
                   borderRadius: '8px',
                 }}
               >
-                <table className="data-table" style={{ width: '100%', fontSize: '12px' }}>
+                <table className="data-table" style={{ width: '100%', fontSize: receiving ? '14px' : '12px' }}>
                   <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>
                     <tr>
                       <th style={{ width: '60px', textAlign: 'center' }}>{t('imports:preview.colRow', 'Dòng')}</th>
@@ -666,7 +719,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                                   )) : row.errorMessage}
                                 </div>
                               ) : (
-                                <span style={{ color: '#16a34a' }}>✓ {t('imports:statusBadges.VALID', 'Sẵn sàng lưu kho')}</span>
+                                <span style={{ color: '#16a34a' }}><CheckOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.VALID', 'Sẵn sàng lưu kho')}</span>
                               )}
                             </td>
                           </tr>
@@ -687,7 +740,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
           {/* STEP 3: COMPLETED */}
           {step === 'completed' && (
             <div style={{ textAlign: 'center', padding: '32px 16px' }}>
-              <div style={{ fontSize: '56px', marginBottom: '16px' }}>🎉</div>
+
               <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
                 {t('imports:completed.resultTitle')}
               </h3>
@@ -695,7 +748,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 {t(receiving ? 'imports:completed.receivingMessage' : 'imports:completed.successMessage', { count: importedCount })}
               </p>
               {result && <p>{t('imports:completed.batchId',{id:result.importBatchId})}</p>}
-              {result?.rows && <div style={{maxHeight:'35vh',overflow:'auto',textAlign:'left',marginBottom:16}}>
+              {result?.rows && <div style={{maxHeight:receiving ? undefined : '35vh',overflow:receiving ? undefined : 'auto',textAlign:'left',marginBottom:16}}>
                 <table className="data-table" style={{width:'100%'}}><thead><tr>
                   <th>{t('imports:preview.colRow')}</th><th>{t('imports:preview.colValidation')}</th><th>{t('imports:preview.colTag')}</th><th>{t('imports:preview.colError')}</th>
                 </tr></thead><tbody>{result.rows.slice(resultPage*20,(resultPage+1)*20).map(row=><tr key={row.rowNumber}>
@@ -754,12 +807,12 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 >
                   {isUploading ? (
                     <>
-                      <span>⏳</span>
+                      {!receiving && <span>⏳</span>}
                       <span>{t('imports:upload.analyzing', 'Đang kiểm tra file...')}</span>
                     </>
                   ) : (
                     <>
-                      <span>🔍</span>
+                      {!receiving && <SearchOutlinedIcon fontSize="small" aria-hidden="true" />}
                       <span>{t('imports:upload.btnPreview', 'Kiểm tra dữ liệu (Preview)')}</span>
                     </>
                   )}
@@ -773,7 +826,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   onClick={() => setStep('upload')}
                   disabled={isImporting || isUploading}
                 >
-                  {t('imports:preview.btnBack', '← Chọn lại file khác')}
+                  <ArrowBackOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:preview.btnBack', 'Chọn lại file khác')}
                 </button>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -801,12 +854,12 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   >
                     {isImporting ? (
                       <>
-                        <span>⏳</span>
+                        {!receiving && <span>⏳</span>}
                         <span>{t('imports:preview.importing', 'Đang nhập dữ liệu...')}</span>
                       </>
                     ) : (
                       <>
-                        <span>✓</span>
+                        <CheckOutlinedIcon fontSize="small" aria-hidden="true" />
                         <span>
                           {t('imports:preview.btnConfirm', { count: previewData?.validRows || 0, defaultValue: `Xác nhận Import (${previewData?.validRows || 0} dòng)` })}
                         </span>
@@ -819,6 +872,6 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </Container>
   );
 };

@@ -2,15 +2,20 @@ import { PaginatedContent } from '@/shared/components/PaginatedContent';
 import { useTranslation } from 'react-i18next';
 import { Handover } from '../api/handoverApi';
 import { PublicationPanel } from '@/features/documents/components/PublicationPanel';
+import { WorkflowGroupList } from '@/shared/components/WorkflowGroupList';
 
 export function HandoverDetails({ value }: { value: Handover }) {
   const { t } = useTranslation('handover');
   return <section className="handover-details">
     <h2>{value.transactionCode ?? t('preview')}</h2>
-    <p>{t('recipient')}: <strong>{value.recipientName}</strong>{value.recipientEmail && <> · {value.recipientEmail}</>}</p>
-    {value.recipientEmployeeCode && <p>{t('employeeCode')}: <strong>{value.recipientEmployeeCode}</strong></p>}
-    <p>{t('location')}: {value.destinationLocationName} · {t('date')}: {value.handoverDate}</p>
-    {value.notes && <p>{t('notes')}: {value.notes}</p>}
+    <dl className="handover-detail-summary">
+      <div><dt>{t('recipient')}</dt><dd><strong>{value.recipientName}</strong>{value.recipientEmail && <span>{value.recipientEmail}</span>}</dd></div>
+      {value.recipientEmployeeCode && <div><dt>{t('employeeCode')}</dt><dd>{value.recipientEmployeeCode}</dd></div>}
+      <div><dt>{t('location')}</dt><dd>{value.destinationLocationName}</dd></div>
+      <div><dt>{t('date')}</dt><dd>{value.handoverDate}</dd></div>
+      {value.notes && <div className="handover-detail-note"><dt>{t('notes')}</dt><dd>{value.notes}</dd></div>}
+    </dl>
+    {!!value.groups?.length && <WorkflowGroupList groups={value.groups} lines={value.proposalLines ?? value.lines} selected={[]} onSelect={() => {}} selectable={null} statusLabel={status => t(`groupStatus.${status}`)} reasonLabel={t('groupReason')} />}
     <PaginatedContent key={value.transactionId} items={value.lines}>{lines => <div className="table-container"><table className="data-table">
       <thead><tr><th>{t('asset')}</th><th>{t('bundle')}</th><th>{t('seats')}</th><th>{t('configuration')}</th></tr></thead>
       <tbody>{lines.map(line => <tr key={line.assetId}>

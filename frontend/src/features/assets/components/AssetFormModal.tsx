@@ -1,5 +1,7 @@
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import { useTranslation } from 'react-i18next';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Department,
   LocationItem,
@@ -19,6 +21,7 @@ import { LicenseInput } from '../types/asset.types';
 import { categoryApi } from '@/features/catalogs/api/catalogApi';
 import { AssetCategoryItem } from '@/features/catalogs/types/catalog.types';
 import { assetApi } from '../api/assetApi';
+import { changeStorageUnit, normalizeRam, normalizeStorage, StorageType, StorageUnit } from './assetCapacity';
 
 interface AssetFormModalProps {
   isOpen: boolean;
@@ -52,6 +55,19 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 }) => {
   const { t } = useTranslation('assets');
   const isEdit = !!initialData;
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const errorDialogRef = useRef<HTMLDialogElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!isOpen || !dialog) return;
+    const opener = document.activeElement;
+    dialog.showModal();
+    return () => {
+      dialog.close();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  }, [isOpen]);
 
   const [categories, setCategories] = useState<AssetCategoryItem[]>([]);
   const [license, setLicense] = useState<LicenseInput>({softwareCatalogId:0,assignmentTypeId:0,termTypeId:0,seatCount:1});
@@ -80,6 +96,8 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
   const [actualCpu, setActualCpu] = useState('');
   const [actualRam, setActualRam] = useState('');
   const [actualStorage, setActualStorage] = useState('');
+  const [storageUnit, setStorageUnit] = useState<StorageUnit>('GB');
+  const [storageType, setStorageType] = useState<StorageType>('');
   const [actualGraphicsCard, setActualGraphicsCard] = useState('');
 
   const category = categories.find(c=>c.categoryId===types.find(x=>x.typeId===typeId)?.categoryId)?.code;
@@ -87,6 +105,17 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
   // Validation warnings / errors
   const [formError, setFormError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  useEffect(() => {
+    const dialog = errorDialogRef.current;
+    if (!submitError || !dialog) return;
+    const submitButton = submitRef.current;
+    dialog.showModal();
+    return () => {
+      dialog.close();
+      if (submitButton?.isConnected) submitButton.focus();
+    };
+  }, [submitError]);
   const [tagError, setTagError] = useState<string | null>(null);
   const [serialError, setSerialError] = useState<string | null>(null);
 
@@ -126,6 +155,8 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
       setActualCpu(cfg?.actualCpu || '');
       setActualRam(cfg?.actualRam || '');
       setActualStorage(cfg?.actualStorage || '');
+      setStorageUnit(/\bTB\b/i.test(cfg?.actualStorage || '') ? 'TB' : 'GB');
+      setStorageType('');
       setActualGraphicsCard(cfg?.actualGraphicsCard || '');
     } else {
       // Defaults for create
@@ -148,10 +179,13 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
       setActualCpu('');
       setActualRam('');
       setActualStorage('');
+      setStorageUnit('GB');
+      setStorageType('');
       setActualGraphicsCard('');
     }
 
     setFormError(null);
+    setSubmitError(null);
     setTagError(null);
     setSerialError(null);
   }, [isOpen, initialData, types, statuses, conditions]);
@@ -226,8 +260,8 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
       conditionId: conditionId !== '' ? Number(conditionId) : undefined,
       warrantyExpiration: warrantyExpiration || undefined,
       actualCpu: actualCpu.trim() ? actualCpu.trim() : undefined,
-      actualRam: actualRam.trim() ? actualRam.trim() : undefined,
-      actualStorage: actualStorage.trim() ? actualStorage.trim() : undefined,
+      actualRam: normalizeRam(actualRam) || undefined,
+      actualStorage: normalizeStorage(actualStorage, storageUnit, storageType) || undefined,
       actualGraphicsCard: actualGraphicsCard.trim() ? actualGraphicsCard.trim() : undefined,
     } as CreateHardwareAssetPayload | UpdateHardwareAssetPayload;
 
@@ -248,41 +282,42 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
     try {
       await onSubmit(payload);
     } catch (err: any) {
-      setFormError(err.message || t('form.saveError'));
+      setSubmitError(err.message || t('form.saveError'));
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-content" style={{ maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+    <><dialog ref={dialogRef} className="catalog-dialog modal-content asset-form-dialog" aria-labelledby="asset-form-title"
+      onCancel={event => { event.preventDefault(); if (!isSaving) onClose(); }}>
+      <div className="asset-form-frame">
         {/* Header */}
         <div className="modal-header">
-          <div className="modal-title">
+          <div className="modal-title" id="asset-form-title">
             {isEdit ? `${t('modal.editTitle')}: ${initialData.assetTag}` : t('modal.createTitle')}
           </div>
-          <button type="button" className="btn-close" onClick={onClose} disabled={isSaving}>
-            ✕
+          <button type="button" className="btn-close" aria-label={t('common:buttons.close')} onClick={onClose} disabled={isSaving}>
+            <CloseOutlinedIcon fontSize="small" aria-hidden="true" />
           </button>
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} style={{ overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleSubmit} className="asset-form-body" aria-busy={isSaving}>
           <p className="text-muted">{t('form.opening')}</p>
           {formError && (
             <div style={{ backgroundColor: 'var(--danger-light)', color: 'var(--danger)', padding: '12px 16px', borderRadius: '6px', fontSize: '14px', fontWeight: 500 }}>
-              ⚠️ {formError}
+              <WarningAmberOutlinedIcon fontSize="small" aria-hidden="true" /> {formError}
             </div>
           )}
 
           {/* Section 1: Basic Information */}
           <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary)', marginBottom: '12px', borderBottom: '2px solid var(--primary-light)', paddingBottom: '6px' }}>
+            <div className="asset-form-section-title">
               {t('form.basic')}
             </div>
 
-            <div className="asset-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+            <div className="asset-form-grid">
               {/* Asset Tag */}
               <div className="form-group">
                 <label className="form-label">
@@ -390,6 +425,12 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                 </select>
               </div>
 
+            </div>
+          </div>
+
+          <div className="asset-form-section">
+            <div className="asset-form-section-title">{t('form.procurement', { defaultValue: 'Procurement' })}</div>
+            <div className="asset-form-grid">
               {/* Supplier */}
               <div className="form-group">
                 <label className="form-label">{t('fields.supplier')}</label>
@@ -449,12 +490,12 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
           {catalogError && <p role="alert">{t('relationships.loadError')}</p>}
           {isLicense ? <LicenseFields value={license} onChange={setLicense} /> : <>
           {/* Section 2: Hardware Details & Specs */}
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary)', marginBottom: '12px', borderBottom: '2px solid var(--primary-light)', paddingBottom: '6px' }}>
+          <div className="asset-form-section">
+            <div className="asset-form-section-title">
               {t('form.hardware')}
             </div>
 
-            <div className="asset-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+            <div className="asset-form-grid">
               {/* Model */}
               <div className="form-group">
                 <label className="form-label">{t('fields.model')}</label>
@@ -517,32 +558,24 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
             {/* Model Default Specs Preview Box */}
             {selectedModel && (
-              <div
-                style={{
-                  backgroundColor: 'var(--primary-light)',
-                  border: '1px solid #bfdbfe',
-                  borderRadius: '8px',
-                  padding: '14px 16px',
-                  margin: '16px 0',
-                }}
-              >
-                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary-hover)', marginBottom: '8px' }}>
+              <div className="asset-model-defaults">
+                <div className="asset-model-defaults-title">
                   {t('form.defaultTitle')} {selectedModel.brand} {selectedModel.name}
                 </div>
-                <div className="asset-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '12px', color: '#1e3a8a' }}>
+                <div className="asset-form-grid asset-defaults-grid">
                   <div>• <strong>CPU:</strong> {selectedModel.defaultCpu || t('form.none')}</div>
                   <div>• <strong>RAM:</strong> {selectedModel.defaultRam || t('form.none')}</div>
                   <div>• <strong>{t('fields.storage')}</strong> {selectedModel.defaultStorage || t('form.none')}</div>
                   <div>• <strong>GPU:</strong> {selectedModel.defaultGraphicsCard || t('form.none')}</div>
                 </div>
-                <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                <div className="asset-defaults-hint">
                   {t('form.defaultHint')}
                 </div>
               </div>
             )}
 
             {/* Actual Specs Fields */}
-            <div className="asset-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginTop: '12px' }}>
+            <div className="asset-form-grid asset-actual-grid">
               <div className="form-group">
                 <label className="form-label">{t('fields.cpu')}</label>
                 <input
@@ -561,19 +594,44 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
                   className="form-input"
                   value={actualRam}
                   onChange={(e) => setActualRam(e.target.value)}
+                  onBlur={() => setActualRam(normalizeRam(actualRam))}
                   placeholder={selectedModel?.defaultRam ? t('form.defaultValue', { value: selectedModel.defaultRam }) : t('form.ram')}
                 />
+                <small className="asset-capacity-hint">{t('form.ramUnitHint')}</small>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">{t('fields.storage')}</label>
+              <div className="form-group asset-storage-fields">
+                <label className="form-label">{t('fields.storage')}
                 <input
                   type="text"
                   className="form-input"
                   value={actualStorage}
                   onChange={(e) => setActualStorage(e.target.value)}
+                  onBlur={() => setActualStorage(normalizeStorage(actualStorage, storageUnit, storageType))}
                   placeholder={selectedModel?.defaultStorage ? t('form.defaultValue', { value: selectedModel.defaultStorage }) : t('form.storage')}
                 />
+                </label>
+                <div className="asset-storage-options">
+                  <label>{t('form.storageUnit')}
+                    <select className="form-input" value={storageUnit} onChange={(e) => {
+                      const next = e.target.value as StorageUnit;
+                      setActualStorage(changeStorageUnit(actualStorage, storageUnit, next));
+                      setStorageUnit(next);
+                    }}>
+                      <option value="GB">GB</option><option value="TB">TB</option>
+                    </select>
+                  </label>
+                  <label>{t('form.storageType')}
+                    <select className="form-input" value={storageType} onChange={(e) => {
+                      const next = e.target.value as StorageType;
+                      setStorageType(next);
+                      setActualStorage(normalizeStorage(actualStorage, storageUnit, next));
+                    }}>
+                      <option value="">{t('form.storageTypeUnspecified')}</option>
+                      <option value="HDD">HDD</option><option value="SSD">SSD</option>
+                    </select>
+                  </label>
+                </div>
               </div>
 
               <div className="form-group">
@@ -591,16 +649,23 @@ export const AssetFormModal: React.FC<AssetFormModalProps> = ({
 
           </>}
           {/* Footer */}
-          <div className="modal-footer" style={{ padding: '16px 0 0 0', marginTop: '10px' }}>
+          <div className="modal-footer asset-form-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
               {t('form.cancel')}
             </button>
-            <button type="submit" className="btn btn-primary" disabled={isSaving || catalogError || !category}>
+            <button ref={submitRef} type="submit" className="btn btn-primary" disabled={isSaving || catalogError || !category}>
               {isSaving ? t('form.saving') : isEdit ? t('form.save') : t('form.create')}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </dialog>
+    {submitError && <dialog ref={errorDialogRef} className="catalog-dialog modal-content asset-submit-error-dialog"
+      aria-labelledby="asset-submit-error-title" aria-describedby="asset-submit-error-message"
+      onCancel={event => { event.preventDefault(); event.stopPropagation(); setSubmitError(null); }}>
+      <div className="modal-header"><div className="modal-title" id="asset-submit-error-title">{t('form.saveError')}</div></div>
+      <p id="asset-submit-error-message">{submitError}</p>
+      <div className="modal-footer"><button type="button" className="btn btn-primary" onClick={() => setSubmitError(null)}>{t('common:buttons.close')}</button></div>
+    </dialog>}</>
   );
 };

@@ -288,8 +288,8 @@ class T16RecoveryIntegrationTest {
             String body = mvc.perform(post("/v1/recoveries").contentType("application/json").content(json.writeValueAsString(request)))
                     .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
             long id = json.readTree(body).at("/data/transactionId").asLong();
-            mvc.perform(post("/v1/recoveries/{id}/submit", id)).andExpect(status().isOk());
-            mvc.perform(post("/v1/recoveries/{id}/confirm", id)).andExpect(status().is5xxServerError());
+            mvc.perform(post("/v1/recoveries/{id}/submit", id).header("X-Expected-Version",0)).andExpect(status().isOk());
+            mvc.perform(post("/v1/recoveries/{id}/confirm", id).header("X-Expected-Version",1)).andExpect(status().is5xxServerError());
         } finally {
             jdbc.execute("DROP TRIGGER t16_block_snapshot ON transaction_publication_snapshots");
             jdbc.execute("DROP FUNCTION t16_block_snapshot()");
@@ -321,8 +321,8 @@ class T16RecoveryIntegrationTest {
         String body = mvc.perform(post("/v1/recoveries").contentType("application/json").content(json.writeValueAsString(request)))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         long id = json.readTree(body).at("/data/transactionId").asLong();
-        mvc.perform(post("/v1/recoveries/{id}/submit", id)).andExpect(status().isOk());
-        body = mvc.perform(post("/v1/recoveries/{id}/confirm", id)).andExpect(status().isOk())
+        mvc.perform(post("/v1/recoveries/{id}/submit", id).header("X-Expected-Version",0)).andExpect(status().isOk());
+        body = mvc.perform(post("/v1/recoveries/{id}/confirm", id).header("X-Expected-Version",1)).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return json.readTree(body);
     }

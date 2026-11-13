@@ -1,26 +1,102 @@
-.handover-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 20px 0; }
-.handover-picker { padding: 16px; border: 1px solid var(--border-color, #ddd); border-radius: 8px; margin-bottom: 12px; }
-.handover-options { display: grid; gap: 6px; margin: 12px 0; }
-.handover-options button { padding: 10px; border: 1px solid #ddd; background: white; text-align: left; border-radius: 4px; overflow-wrap: anywhere; cursor: pointer; }
-.handover-options button[aria-pressed=true] { border-color: #2563eb; background: #eff6ff; }
-.handover-options button:disabled { opacity: .55; cursor: default; }
-.handover-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
-.handover-selected { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #ddd; }
-.handover-selected > span { flex: 1; min-width: 180px; overflow-wrap: anywhere; }
-.handover-selected input { max-width: 110px; }
-.handover-history { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr); gap: 24px; margin-top: 24px; }
-.handover-history > section { min-width: 0; }
-.handover-page-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; }
-.handover-recipient-detail { margin: 12px 0; padding: 12px; border-top: 1px solid var(--border-color, #ddd); }
-.handover-recipient-detail ul { padding-left: 20px; max-height: 160px; overflow: auto; }
-.handover-holder-row { width: 100%; display: grid; gap: 4px; padding: 12px; border: 0; border-bottom: 1px solid var(--border-color, #ddd); background: transparent; text-align: left; cursor: pointer; }
-.handover-holder-row[aria-pressed=true] { background: #eef7f5; box-shadow: inset 3px 0 #087e70; }
-.handover-holder-row span { overflow-wrap: anywhere; }
-.handover-holder-detail ul { padding-left: 20px; line-height: 1.8; }
-.handover-modal-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-.handover-confirm { width: min(1100px, 94vw); max-width: 94vw; max-height: 90vh; overflow: auto; padding: 24px; background: white; border: 0; border-radius: 10px; margin: auto; }
-.handover-confirm::backdrop { background: rgba(15, 23, 42, .6); backdrop-filter: blur(4px); }
+.handover-page { width: 100%; min-width: 0; }
+.handover-page-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.handover-page-header h1 { margin: 0; font-size: 24px; }
+.handover-history { display: grid; gap: 24px; }
+.handover-list-section { min-width: 0; }
+.handover-list-section h2 { margin: 0 0 12px; font-size: 18px; }
+.handover-list-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-card); }
+.handover-list-filters .form-label { min-width: min(220px, 100%); font-size: 12px; }
+.handover-list-filters .form-label:first-child { flex: 1 1 260px; }
+.handover-list-filters .form-input, .handover-list-filters .form-select { display: block; width: 100%; margin-top: 6px; }
+.handover-list-filters .receiving-date-range { min-width: min(220px, 100%); }
+.handover-list-filters .btn { min-height: 38px; }
+.handover-page .receiving-calendar { z-index: 5; }
+.handover-filter-hint { margin: 0 0 12px; color: var(--text-muted); font-size: 13px; }
+.handover-list-section > .table-container { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-card); }
+.handover-list-section .data-table { width: 100%; min-width: 920px; table-layout: auto; border-collapse: separate; border-spacing: 0; }
+.handover-list-section .data-table th, .handover-list-section .data-table td { padding: 11px 12px; vertical-align: middle; overflow-wrap: anywhere; }
+.handover-list-section .data-table th { font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.handover-list-section .data-table th:last-child, .handover-list-section .data-table td:last-child { position: sticky; right: 0; z-index: 1; width: 88px; background: var(--bg-card); border-left: 1px solid var(--border-color); text-align: center; }
+.handover-list-section .data-table th:last-child { z-index: 2; }
+.handover-list-section .data-table tbody tr:hover td:last-child { background: var(--surface-hover); }
+.handover-holders-table th:nth-child(n+4):nth-child(-n+6), .handover-holders-table td:nth-child(n+4):nth-child(-n+6) { text-align: right; }
+.handover-list-state { display: flex; align-items: center; gap: 12px; min-height: 84px; margin: 0; padding: 16px; color: var(--text-muted); }
+.handover-row-link { padding: 0; border: 0; background: none; color: var(--primary); font: inherit; font-weight: 600; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.handover-row-link:hover { text-decoration: underline; }
+.handover-row-link:focus-visible, .handover-confirm button:focus-visible, .handover-picker button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.handover-status { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+.handover-status-draft { background: #edf0f2; color: #4b5563; }
+.handover-status-pending { background: #fff4d6; color: #795900; }
+.handover-status-completed { background: #e5f4ed; color: #176344; }
+.handover-status-cancelled, .handover-status-rejected { background: #f3e8e8; color: #8a4141; }
+.handover-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; padding: 12px 0; color: var(--text-muted); font-size: 13px; }
+.handover-pagination > span { font-variant-numeric: tabular-nums; }
+.handover-confirm { display: none; flex-direction: column; width: min(1000px, calc(100vw - 32px)); max-width: none; max-height: min(90vh, 920px); margin: auto; padding: 0; overflow: hidden; color: var(--text-main); background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow-lg); }
+.handover-confirm[open] { display: flex; }
+.handover-confirm::backdrop { background: rgba(15, 23, 42, .55); }
+.handover-detail-dialog { width: min(920px, calc(100vw - 32px)); }
+.handover-create-dialog { width: min(1100px, calc(100vw - 32px)); }
+.handover-modal-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex: 0 0 auto; padding: 16px 24px; border-bottom: 1px solid var(--border-color); }
+.handover-modal-header h2, .handover-confirm > h2 { margin: 0; font-size: 18px; overflow-wrap: anywhere; }
+.handover-confirm > h2 { padding: 18px 24px; border-bottom: 1px solid var(--border-color); }
+.handover-confirm > p { margin: 0; padding: 16px 24px 0; color: var(--text-muted); font-size: 13px; }
+.handover-confirm > section { min-height: 0; overflow-y: auto; padding: 20px 24px; }
+.handover-confirm > .handover-details { min-height: 0; overflow-y: auto; padding: 20px 24px; margin: 0; }
+.handover-confirm > .handover-pagination { flex: 0 0 auto; justify-content: flex-end; padding: 14px 24px; border-top: 1px solid var(--border-color); background: var(--bg-card); }
+.handover-confirm > section > .handover-pagination, .handover-holder-detail > .btn { position: sticky; bottom: -20px; z-index: 2; padding: 14px 0 0; margin-top: 16px; background: var(--bg-card); }
+.handover-confirm > section > .handover-pagination { border-top: 1px solid var(--border-color); }
+.handover-holder-detail > .btn { display: block; margin-left: auto; }
+.handover-holder-detail h2 { margin: 0 0 4px; font-size: 18px; }
+.handover-holder-detail > p { margin: 0 0 12px; color: var(--text-muted); font-size: 13px; }
+.handover-holder-detail .table-container, .handover-details .table-container { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 6px; }
+.handover-holder-detail table, .handover-details table { width: 100%; min-width: 650px; }
+.handover-holder-detail th, .handover-details th { font-size: 12px; text-transform: none; letter-spacing: 0; }
 .handover-details { min-width: 0; overflow-wrap: anywhere; }
-.handover-details .table-container { overflow-x: auto; }
-.handover-details table { width: 100%; min-width: 550px; }
-@media (max-width: 800px) { .handover-grid, .handover-history { grid-template-columns: 1fr; } .handover-confirm { padding: 16px; } }
+.handover-details h2 { margin: 0 0 14px; font-size: 17px; }
+.handover-detail-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; margin: 0 0 18px; border-top: 1px solid var(--border-color); }
+.handover-detail-summary > div { min-width: 0; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+.handover-detail-summary dt { margin-bottom: 3px; color: var(--text-muted); font-size: 12px; font-weight: 600; }
+.handover-detail-summary dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.handover-detail-summary dd span { display: block; color: var(--text-muted); font-size: 13px; }
+.handover-detail-summary .handover-detail-note { grid-column: 1 / -1; }
+.handover-details td { vertical-align: top; overflow-wrap: anywhere; }
+.handover-form { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: 20px 24px 0; }
+.handover-form > p:first-child { flex: 0 0 auto; margin: 0 0 18px; color: var(--text-muted); font-size: 13px; }
+.handover-form > h2 { margin: 8px 0 12px; padding-top: 18px; border-top: 1px solid var(--border-color); font-size: 15px; }
+.handover-form-footer { position: sticky; bottom: 0; z-index: 3; display: flex; justify-content: flex-end; flex: 0 0 auto; margin: 16px -24px 0; padding: 14px 24px; background: var(--bg-card); border-top: 1px solid var(--border-color); }
+.handover-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 18px; margin-bottom: 18px; }
+.handover-grid > * { min-width: 0; }
+.handover-picker { min-width: 0; margin-bottom: 12px; padding: 14px 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-card); }
+.handover-picker .form-label { display: block; font-size: 12px; font-weight: 600; }
+.handover-picker .form-input { display: block; width: 100%; margin-top: 6px; }
+.handover-picker > p { margin: 12px 0; color: var(--text-muted); font-size: 13px; }
+.handover-options { display: grid; gap: 4px; max-height: 230px; margin: 12px 0; overflow-y: auto; }
+.handover-options button { min-height: 38px; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-card); color: var(--text-main); text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.handover-options button:hover:not(:disabled) { background: var(--surface-hover); }
+.handover-options button[aria-pressed=true] { border-color: var(--primary); background: var(--primary-light); }
+.handover-options button:disabled { opacity: .55; cursor: not-allowed; }
+.handover-picker .handover-pagination { justify-content: space-between; padding: 8px 0 0; border-top: 1px solid var(--border-color); }
+.handover-grid > div > p { margin: 0 0 12px; font-size: 13px; }
+.handover-recipient-detail { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-main); font-size: 13px; }
+.handover-recipient-detail p { margin: 0 0 8px; }
+.handover-recipient-detail ul { max-height: 120px; padding-left: 20px; overflow-y: auto; }
+.handover-selected { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border-color); }
+.handover-selected > span { flex: 1 1 200px; overflow-wrap: anywhere; }
+.handover-selected label { display: grid; gap: 5px; font-size: 12px; font-weight: 600; }
+.handover-selected input { max-width: 110px; }
+.handover-grid > .form-label { display: grid; gap: 6px; font-size: 12px; font-weight: 600; }
+.handover-grid textarea { min-height: 72px; resize: vertical; }
+@media (max-width: 800px) {
+  .handover-grid { grid-template-columns: minmax(0, 1fr); }
+  .handover-modal-header, .handover-confirm > h2 { padding: 14px 16px; }
+  .handover-confirm > section, .handover-confirm > .handover-details { padding: 16px; }
+  .handover-form { padding: 16px 16px 0; }
+  .handover-form-footer { margin: 16px -16px 0; padding: 12px 16px; }
+}
+@media (max-width: 600px) {
+  .handover-detail-summary { grid-template-columns: minmax(0, 1fr); }
+  .handover-list-filters > * { flex: 1 1 100%; }
+  .handover-list-filters .form-label, .handover-list-filters .receiving-date-range { min-width: 0; }
+  .handover-page-header .btn { width: 100%; }
+  .handover-pagination { justify-content: space-between; }
+}

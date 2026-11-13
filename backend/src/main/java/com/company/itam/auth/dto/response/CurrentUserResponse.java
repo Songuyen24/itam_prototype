@@ -9,10 +9,8 @@ public class CurrentUserResponse {
     private Long id;
     private String email;
     private String employeeCode;
-    private String username;
     private Long departmentId;
     public String getEmployeeCode() { return employeeCode; }
-    public String getUsername() { return username; }
     public Long getDepartmentId() { return departmentId; }
     private String fullName;
     private String roleCode;
@@ -27,7 +25,6 @@ public class CurrentUserResponse {
         dto.id = user.getUserId();
         dto.email = user.getEmail();
         dto.employeeCode = user.getEmployeeCode();
-        dto.username = user.getUsername();
         dto.departmentId = user.getDepartment() == null ? null : user.getDepartment().getDepartmentId();
         dto.fullName = user.getFullName();
         RoleEntity role = user.getRole();

@@ -5,6 +5,7 @@ import com.company.itam.common.pagination.PageResponse;
 import com.company.itam.common.util.MessageHelper;
 import com.company.itam.workflow.handover.dto.*;
 import com.company.itam.workflow.handover.service.HandoverService;
+import com.company.itam.workflow.core.dto.WorkflowProgressModels;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -46,24 +47,37 @@ public class HandoverController {
         return ApiResponse.success(messages.getMessage("HANDOVER_READ"),result);
     }
     @PutMapping("/{id}")
-    public ApiResponse<HandoverResponse> update(@PathVariable Long id,@Valid @RequestBody HandoverRequest request) {
-        return ApiResponse.success(messages.getMessage("HANDOVER_READ"),service.update(id,request));
+    public ApiResponse<HandoverResponse> update(@PathVariable Long id,@RequestHeader("X-Expected-Version") Long version,@Valid @RequestBody HandoverRequest request) {
+        return ApiResponse.success(messages.getMessage("HANDOVER_READ"),service.update(id,request,version));
     }
     @PostMapping("/{id}/submit")
-    public ApiResponse<HandoverResponse> submit(@PathVariable Long id) {
-        return ApiResponse.success(messages.getMessage("HANDOVER_READ"),service.submit(id));
+    public ApiResponse<HandoverResponse> submit(@PathVariable Long id,@RequestHeader("X-Expected-Version") Long version) {
+        return ApiResponse.success(messages.getMessage("HANDOVER_READ"),service.submit(id,version));
     }
     @PostMapping("/{id}/withdraw")
-    public ApiResponse<HandoverResponse> withdraw(@PathVariable Long id) {
-        return ApiResponse.success(messages.getMessage("HANDOVER_READ"),service.change(id,"withdraw"));
+    public ApiResponse<HandoverResponse> withdraw(@PathVariable Long id,@RequestHeader("X-Expected-Version") Long version) {
+        return ApiResponse.success(messages.getMessage("HANDOVER_READ"),service.change(id,"withdraw",version));
     }
     @PostMapping("/{id}/cancel")
-    public ApiResponse<HandoverResponse> cancel(@PathVariable Long id) {
-        return ApiResponse.success(messages.getMessage("HANDOVER_READ"),service.change(id,"cancel"));
+    public ApiResponse<HandoverResponse> cancel(@PathVariable Long id,@RequestHeader("X-Expected-Version") Long version) {
+        return ApiResponse.success(messages.getMessage("HANDOVER_READ"),service.change(id,"cancel",version));
     }
     @PostMapping("/{id}/confirm")
-    public ApiResponse<HandoverResponse> confirm(@PathVariable Long id) {
-        return ApiResponse.success(messages.getMessage("HANDOVER_COMPLETED"),service.confirm(id));
+    public ApiResponse<HandoverResponse> confirm(@PathVariable Long id,@RequestHeader("X-Expected-Version") Long version) {
+        return ApiResponse.success(messages.getMessage("HANDOVER_COMPLETED"),service.confirm(id,version));
+    }
+    @PostMapping(value="/{id}/confirm",consumes="application/json")
+    public ApiResponse<HandoverResponse> confirmSelected(@PathVariable Long id,@Valid @RequestBody WorkflowProgressModels.Action action) {
+        return ApiResponse.success(messages.getMessage("HANDOVER_COMPLETED"),service.confirm(id,action));
+    }
+    @PostMapping("/{id}/cancel-lines")
+    public ApiResponse<HandoverResponse> cancelLines(@PathVariable Long id,@Valid @RequestBody WorkflowProgressModels.Action action) {
+        return ApiResponse.success(messages.getMessage("HANDOVER_READ"),service.cancelLines(id,action));
+    }
+    @GetMapping("/{id}/progress")
+    public ApiResponse<java.util.Map<String,Object>> progress(@PathVariable Long id) {
+        var detail=service.get(id);
+        return ApiResponse.success(messages.getMessage("HANDOVER_READ"),java.util.Map.of("contentVersion",detail.contentVersion(),"groups",detail.groups()));
     }
     @GetMapping("/{id}")
     public ApiResponse<HandoverResponse> detail(@PathVariable Long id) {

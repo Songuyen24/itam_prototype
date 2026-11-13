@@ -15,11 +15,12 @@ public final class DisposalModels {
     public record SmartCheckRequest(@NotEmpty List<@NotNull @Positive Long> assetIds) {}
     public record CreateRequest(@NotEmpty List<@NotNull @Positive Long> assetIds, @NotBlank String reason,
             @NotNull LocalDate disposalDate, @NotBlank String expectedFingerprint, String expectedTransactionFingerprint) {}
+    public record ExecuteRequest(@NotNull Long expectedVersion, @NotEmpty List<String> groupIds, @NotNull Long documentId, @NotNull LocalDate executionDate) {}
     public record ApproveRequest(@NotBlank String expectedFingerprint) {}
     public record PerUserDecision(@NotNull @Positive Long allocationId, @NotNull Boolean release) {}
     public record PerUserRequest(@NotBlank String expectedFingerprint,
             @NotEmpty List<@NotNull @jakarta.validation.Valid PerUserDecision> decisions) {}
-    public record RejectRequest(@NotBlank String reason) {}
+    public record RejectRequest(@NotBlank String reason, @NotNull Long expectedVersion) { public RejectRequest(String reason){this(reason,null);} }
     public record AssetLine(Long assetId, String assetTag, String name, String category, String serialNumber, boolean autoAdded) {}
     public record OemAllocation(Long allocationId, Long licenseAssetId, String assetTag,
             Long deviceId, String deviceTag, int seats) {}

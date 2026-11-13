@@ -1,5 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined';
+import { TableActionButton } from '@/shared/components/TableActionButton';
 
 export interface TableColumn<T> {
   header: string;
@@ -83,34 +88,13 @@ export function CatalogTable<T>({
                   <td style={{ textAlign: 'center' }}>
                     <div style={{ display: 'inline-flex', gap: '6px' }}>
                     {onEdit && (
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-secondary"
-                      onClick={() => onEdit(row)}
-                      title={t('common:buttons.edit', 'Chỉnh sửa')}
-                    >
-                      {t('common:buttons.edit', 'Sửa')}
-                    </button>
+                    <TableActionButton icon={<EditOutlinedIcon />} label={t('common:buttons.edit', 'Chỉnh sửa')} onClick={() => onEdit(row)} />
                     )}
                     {onToggleActive && (
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => onToggleActive(row)}
-                        title={isActive ? t('catalogs:columns.lock', 'Vô hiệu hóa') : t('catalogs:columns.unlock', 'Kích hoạt')}
-                      >
-                        {isActive ? t('catalogs:columns.lock', 'Khóa') : t('catalogs:columns.unlock', 'Mở')}
-                      </button>
+                      <TableActionButton icon={isActive ? <LockOutlinedIcon /> : <LockOpenOutlinedIcon />} label={isActive ? t('catalogs:columns.lock', 'Vô hiệu hóa') : t('catalogs:columns.unlock', 'Kích hoạt')} onClick={() => onToggleActive(row)} />
                     )}
                     {onDelete && (
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-danger"
-                      onClick={() => onDelete(row)}
-                      title={t('common:buttons.delete', 'Xóa danh mục')}
-                    >
-                      {t('common:buttons.delete', 'Xóa')}
-                    </button>
+                    <TableActionButton className="btn-danger" icon={<DeleteOutlineOutlinedIcon />} label={t('common:buttons.delete', 'Xóa danh mục')} onClick={() => onDelete(row)} />
                     )}
                   </div>
                   </td>

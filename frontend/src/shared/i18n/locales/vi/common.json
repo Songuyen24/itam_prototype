@@ -1,6 +1,6 @@
 {
   "systemTitle": "HỆ THỐNG QUẢN LÝ VÀ THEO DÕI VÒNG ĐỜI TÀI SẢN CNTT",
-  "search": { "title": "Tìm kiếm chung", "placeholder": "Mã, serial, tài sản hoặc nhân viên", "loading": "Đang tìm...", "empty": "Không có kết quả.", "error": "Không thể tìm kiếm. Hãy thử lại.", "allAssets": "Xem tất cả {{count}} tài sản", "allProfiles": "Xem tất cả {{count}} hồ sơ" },
+  "search": { "title": "Tìm kiếm chung", "placeholder": "Mã, serial, tài sản hoặc nhân viên", "loading": "Đang tìm...", "empty": "Không có kết quả phù hợp.", "error": "Không thể tìm kiếm.", "retry": "Thử lại", "assets": "Tài sản", "profiles": "Hồ sơ nhân viên", "allAssets": "Xem tất cả {{count}} tài sản", "allProfiles": "Xem tất cả {{count}} hồ sơ" },
   "version": "Phiên bản: 1.0.0 (ITAM Bilingual)",
   "language": {
     "vi": "Tiếng Việt",
@@ -9,6 +9,8 @@
   },
   "nav": {
     "mainMenu": "Điều hướng chính",
+    "openMenu": "Mở menu điều hướng",
+    "closeMenu": "Đóng menu điều hướng",
     "management": "Quản lý",
     "assetCatalogs": "Danh mục tài sản",
     "organizationCatalogs": "Danh mục tổ chức",
@@ -89,6 +91,7 @@
     "RETIRED": "Thanh lý / Ngừng sử dụng",
     "DRAFT": "Nháp",
     "PENDING": "Chờ xử lý",
+    "PARTIAL": "Hoàn tất một phần",
     "APPROVED": "Đã duyệt",
     "REJECTED": "Từ chối",
     "COMPLETED": "Hoàn thành",

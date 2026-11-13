@@ -61,6 +61,8 @@ public class SecurityConfig {
                     // Document services also enforce transaction scope and report ownership.
                     .requestMatchers(HttpMethod.GET, "/v1/documents/*/download", "/api/v1/documents/*/download")
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                    .requestMatchers(HttpMethod.GET, "/v1/documents/*/preview", "/api/v1/documents/*/preview")
+                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
                     .requestMatchers(HttpMethod.GET, "/v1/transactions/*/publication", "/api/v1/transactions/*/publication",
                             "/v1/transactions/*/email-logs", "/api/v1/transactions/*/email-logs")
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
@@ -71,7 +73,7 @@ public class SecurityConfig {
                             "/v1/transactions/*", "/api/v1/transactions/*")
                             .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
                     .requestMatchers(HttpMethod.POST, "/v1/documents", "/api/v1/documents")
-                            .hasAnyAuthority("ADMIN", "PUR_STAFF")
+                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
                     .requestMatchers(HttpMethod.DELETE, "/v1/documents/*", "/api/v1/documents/*")
                             .hasAnyAuthority("ADMIN", "PUR_STAFF")
                     // Detail access also requires the ownership check in AssetService.
