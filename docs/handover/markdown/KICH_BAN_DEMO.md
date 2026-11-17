@@ -154,7 +154,17 @@ Vai trò: ADMIN
 
 3. Chọn Duyệt và xác nhận.
 
-Kết quả mong đợi: phiếu thành COMPLETED; tài sản chuyển RETIRED, không còn người sử dụng; OEM vẫn giữ suất và liên kết với thiết bị đã thanh lý.
+Kết quả mong đợi: nhóm được duyệt chuyển APPROVED; tài sản chưa chuyển RETIRED.
+
+### 6.3 Thực hiện thanh lý
+
+Vai trò: ADMIN hoặc IT_STAFF có quyền xử lý phiếu.
+
+1. Mở phiếu có nhóm APPROVED, chọn Thực hiện và nhóm cần xử lý.
+
+2. Chọn/tải chứng từ thực hiện, nhập ngày thực hiện rồi xác nhận.
+
+Kết quả mong đợi: nhóm đã thực hiện thành COMPLETED; tài sản tương ứng chuyển RETIRED, không còn người sử dụng; OEM vẫn giữ suất và liên kết với thiết bị đã thanh lý. Nếu còn nhóm chưa xong, phiếu có thể ở trạng thái PARTIAL.
 
 Nhánh tùy chọn: tạo phiếu khác rồi chọn Từ chối, nhập lý do. Kết quả là REJECTED, tài sản không đổi trạng thái.
 

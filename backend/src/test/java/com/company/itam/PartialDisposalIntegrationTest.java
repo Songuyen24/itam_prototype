@@ -67,7 +67,13 @@ class PartialDisposalIntegrationTest {
         String first=p.path("groups").get(0).path("groupId").asText();String second=p.path("groups").get(1).path("groupId").asText();String third=p.path("groups").get(2).path("groupId").asText();
         mvc.perform(post("/v1/disposals/"+id+"/approve-selected").with(role("IT_STAFF")).contentType("application/json").content(json.writeValueAsString(Map.of("expectedVersion",p.path("contentVersion").asLong(),"groupIds",List.of(first)))))
                 .andExpect(status().isForbidden());
-        postJson("/v1/disposals/"+id+"/approve-selected",Map.of("expectedVersion",p.path("contentVersion").asLong(),"groupIds",List.of(first)),"ADMIN");
+        var approval=postJson("/v1/disposals/"+id+"/approve-selected",Map.of("expectedVersion",p.path("contentVersion").asLong(),"groupIds",List.of(first)),"ADMIN");
+        var approved=json.readTree(mvc.perform(get("/v1/disposals/"+id).with(role("ADMIN")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("data");
+        assertThat(approved.path("requesterName").asText()).isEqualTo(jdbc.queryForObject(
+                "SELECT full_name FROM users WHERE email='it01@itam.example'",String.class));
+        assertThat(approved.path("actorName").asText()).isEqualTo(approval.path("actorName").asText());
+        assertThat(approved.path("actorName").asText()).isNotEqualTo(approved.path("requesterName").asText());
         assertThat(assets.findById(ids.getFirst()).orElseThrow().getStatus().getCode().name()).isEqualTo("DAMAGED");
         p=progress(id);
         postJson("/v1/disposals/"+id+"/reject-selected",Map.of("expectedVersion",p.path("contentVersion").asLong(),"groupIds",List.of(second),"reason","Keep for repair"),"ADMIN");
@@ -84,6 +90,10 @@ class PartialDisposalIntegrationTest {
         p=progress(id);postJson("/v1/disposals/"+id+"/cancel-lines",Map.of("expectedVersion",p.path("contentVersion").asLong(),"groupIds",List.of(third),"reason","Not proceeding"),"ADMIN");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM transaction_assets WHERE transaction_id=?",Long.class,id)).isEqualTo(3);
         assertThat(jdbc.queryForObject("SELECT jsonb_array_length(snapshot->'assets') FROM transaction_publication_snapshots WHERE transaction_id=?",Integer.class,id)).isEqualTo(1);
+        var completed=json.readTree(mvc.perform(get("/v1/disposals/"+id).with(role("ADMIN")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("data");
+        assertThat(completed.path("requesterName").asText()).isEqualTo(approved.path("requesterName").asText());
+        assertThat(completed.path("actorName").asText()).isEqualTo(approved.path("actorName").asText());
         assertThat(assets.hasPendingDisposal(ids.get(2))).isFalse();
     }
 }

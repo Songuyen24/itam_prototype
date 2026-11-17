@@ -9,7 +9,7 @@ export interface DisposalCheck { assets: DisposalAsset[]; warnings: string[]; fi
 export interface Disposal {
   transactionId: number; transactionCode: string; status: 'DRAFT' | 'PENDING' | 'PARTIAL' | 'APPROVED' | 'COMPLETED' | 'REJECTED' | 'CANCELLED'; requesterId?: number;
   contentVersion?: number; groups?: WorkflowGroup[];
-  rejectionReason?: string | null; actorName: string; reason: string; disposalDate: string; createdAt: string; assets: DisposalAsset[]; warnings: string[];
+  rejectionReason?: string | null; actorName: string; requesterName?: string; reason: string; disposalDate: string; createdAt: string; assets: DisposalAsset[]; warnings: string[];
   perUserLinks: PerUserLink[]; oemAllocations: OemAllocation[]; fingerprint: string;
 }
 export interface DisposalRequest { assetIds: number[]; reason: string; disposalDate: string; expectedFingerprint: string; expectedTransactionFingerprint?: string; }

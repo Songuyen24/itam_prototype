@@ -50,15 +50,15 @@ Nội dung do nhóm phản hồi, thay các phương án tạm trái nội dung 
 
 ## Ưu tiên 1 Nghiệm thu môi trường bàn giao
 
-Ngày 25/09/2026 đã chạy regression, migration mới, demo luồng chính và đối soát PDF/Excel trên máy phát triển; xem [BIEN_BAN_BAN_GIAO.md](BIEN_BAN_BAN_GIAO.md). Phần còn lại là chạy trên máy người nhận, kiểm tra các nhánh UI chưa thực hiện, render/rà từng trang Word và điền người nhận/người xác nhận. Không coi thiếu nghiệm thu là chưa có các chức năng T10–T18.
+Ngày 25/09/2026 đã chạy regression, migration mới, demo luồng chính và đối soát PDF/Excel trên máy phát triển; đây là bằng chứng lịch sử tại [BIEN_BAN_BAN_GIAO.md](BIEN_BAN_BAN_GIAO.md). Kiểm tra mã nguồn hiện tại tại [TRANG_THAI_TASK.md](TRANG_THAI_TASK.md). Phần còn lại là chạy trên máy người nhận, kiểm tra các nhánh UI chưa thực hiện, render/rà từng trang Word và điền người nhận/người xác nhận.
 
-### H01 Lịch sử thu hồi không tải phiếu đã lưu
+### H01 Lịch sử thu hồi: đã sửa mã, chờ kiểm tra trình duyệt
 
-Lỗi đã tái hiện ngày 25/09/2026; cần sửa trước nghiệm thu đầy đủ. Tệp liên quan: `frontend/src/features/recovery/pages/RecoveriesPage.tsx` và API client thu hồi/giao dịch. Trang hiện dùng `useState<Recovery[]>([])`, chỉ thêm phiếu mới hoàn tất trong phiên trang; mở lại trang báo không có lịch sử dù database còn phiếu. Phiếu RC-F5B0572E vẫn xem được ở Chứng từ và tải PDF được.
+Lỗi đã tái hiện ngày 25/09/2026: lịch sử trong phiên trang mới trống dù phiếu RC-F5B0572E còn trong database. Hiện `frontend/src/features/recovery/pages/RecoveriesPage.tsx` tải giao dịch loại `RECOVERY` qua API, có phân trang và trạng thái tải/lỗi.
 
-Hành động ưu tiên: dùng API giao dịch để tải lịch sử RECOVERY có phân trang và trạng thái tải/lỗi; giữ nguyên snapshot nghiệp vụ, không tạo bản sao lịch sử bằng localStorage. Tái sử dụng API đọc đã có khi phù hợp, bổ sung endpoint chi tiết chỉ nếu giao diện thực sự cần và nguồn hiện tại chưa đáp ứng.
+Việc còn lại: kiểm tra bằng trình duyệt thật với dữ liệu lưu trong database sau reload và đăng nhập lại.
 
-Kiểm tra/tiêu chí chấp nhận: tạo một phiếu bằng IT, reload và đăng nhập lại; ADMIN và IT vẫn tìm thấy cùng mã phiếu, mở đúng PDF, không nhân bản dòng; USER/PUR không được mở lịch sử thu hồi ngoài quyền. Có test hồi quy cho lần mount mới và trạng thái API lỗi. Chưa triển khai sửa trong đợt chuẩn bị tài liệu.
+Tiêu chí chấp nhận: tạo một phiếu bằng IT, reload và đăng nhập lại; ADMIN và IT vẫn tìm thấy cùng mã phiếu, mở đúng PDF, không nhân bản dòng; USER/PUR không được mở lịch sử thu hồi ngoài quyền.
 
 Mục tiêu là xác nhận frontend, backend, PostgreSQL và storage làm việc cùng nhau trên môi trường nhóm tiếp nhận sử dụng.
 

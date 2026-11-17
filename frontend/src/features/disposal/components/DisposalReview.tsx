@@ -94,7 +94,7 @@ export function DisposalDetail({ value, role, userId, onTransition, onEdit, deci
     <dl className="disposal-metadata">
       <div><dt>{t('state')}</dt><dd><span className={`disposal-status disposal-status-${value.status.toLowerCase()}`}>{t(`common:status.${value.status}`)}</span></dd></div>
       <div><dt>{t('code')}</dt><dd>{value.transactionCode}</dd></div>
-      <div><dt>{t('requester')}</dt><dd>{value.actorName}</dd></div>
+      <div><dt>{t('requester')}</dt><dd>{value.requesterName ?? value.actorName}</dd></div>
       <div><dt>{t('reason')}</dt><dd>{value.reason}</dd></div>
       {value.rejectionReason && <div><dt>{t('rejectReason')}</dt><dd>{value.rejectionReason}</dd></div>}
       <div><dt>{t('date')}</dt><dd>{value.disposalDate}</dd></div>

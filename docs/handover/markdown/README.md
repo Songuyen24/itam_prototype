@@ -16,7 +16,7 @@ ITAM Prototype hỗ trợ quản lý vòng đời tài sản công nghệ thông
 
 - [BIEN_BAN_BAN_GIAO.md](BIEN_BAN_BAN_GIAO.md): phiên bản, kết quả kiểm tra thực tế, mã phiếu demo và phần xác nhận tiếp nhận.
 
-- [TRANG_THAI_TASK.md](TRANG_THAI_TASK.md): trạng thái T10–T18/T11B/T12B với source và commit merge.
+- [TRANG_THAI_TASK.md](TRANG_THAI_TASK.md): trạng thái kiểm tra mã nguồn hiện tại và giới hạn nghiệm thu.
 
 - [HUONG_DAN_CAI_DAT.md](HUONG_DAN_CAI_DAT.md): chuẩn bị máy, database, cấu hình, chạy ứng dụng và xử lý lỗi.
 
@@ -58,7 +58,7 @@ Backend dùng Java 21, Spring Boot 3.3.0, JPA, Spring Security và Flyway; front
 
 - docs/handover/: bộ tài liệu bàn giao.
 
-- .tmp/: log và artifact kiểm tra, không phải dữ liệu nghiệp vụ chính.
+- Log và artifact kiểm tra lịch sử được lưu ngoài repository; không phải dữ liệu nghiệp vụ chính.
 
 ## Điều kiện sử dụng
 

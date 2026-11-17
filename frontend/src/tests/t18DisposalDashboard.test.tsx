@@ -98,6 +98,19 @@ describe('T18 disposal and dashboard', () => {
     expect(html).toMatch(/button[^>]*disabled=""[^>]*>approve/);
   });
 
+  it('shows the requester rather than the approving actor in disposal detail', () => {
+    const html = renderToStaticMarkup(<DisposalDetail value={{
+      transactionId: 9, transactionCode: 'DIS-09', status: 'APPROVED', requesterId: 29,
+      requesterName: 'IT Requester', actorName: 'Admin Approver', reason: 'Broken',
+      disposalDate: '2026-09-15', createdAt: '2026-09-14T10:00:00Z', fingerprint: 'viewed',
+      warnings: [], assets: [], perUserLinks: [], oemAllocations: [],
+    }} role="ADMIN" decisions={{}} saving={false} action={null} rejectReason=""
+      onDecision={() => {}} onResolve={() => {}} onChooseAction={() => {}} onRejectReason={() => {}}
+      onApprove={() => {}} onReject={() => {}} onClose={() => {}} />);
+    expect(html).toContain('<dt>requester</dt><dd>IT Requester</dd>');
+    expect(html).not.toContain('<dt>requester</dt><dd>Admin Approver</dd>');
+  });
+
   it('translates only known dashboard system labels', () => {
     const t = (key: string, options?: Record<string, unknown>) => `${key}:${String(options?.defaultValue ?? '')}`;
     expect(dashboardLabel(t, 'byStatus', 'IN_STOCK')).toBe('common:status.IN_STOCK:IN_STOCK');

@@ -31,5 +31,5 @@ public final class DisposalModels {
     public record DisposalResponse(Long transactionId, String transactionCode, String status, String reason,
             LocalDate disposalDate, Instant createdAt, String actorName, List<AssetLine> assets,
             List<OemAllocation> oemAllocations, List<PerUserLink> perUserLinks,
-            List<String> warnings, String fingerprint, Long requesterId, String rejectionReason) {}
+            List<String> warnings, String fingerprint, Long requesterId, String rejectionReason, String requesterName) {}
 }

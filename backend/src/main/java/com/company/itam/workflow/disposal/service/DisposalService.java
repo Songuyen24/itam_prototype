@@ -110,6 +110,7 @@ public class DisposalService {
                     ((ObjectNode)frozen).set("oemAllocations",frozen.get("proposalOemAllocations"));
                     ((ObjectNode)frozen).set("perUserLinks",frozen.get("proposalPerUserLinks"));
                 }
+                if (!frozen.hasNonNull("requesterName")) ((ObjectNode)frozen).put("requesterName", tx.getRequester().getFullName());
                 return mapper.treeToValue(frozen,DisposalResponse.class);
             }
             catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
@@ -627,7 +628,7 @@ public class DisposalService {
         UserEntity displayActor = tx.getProcessedBy() == null ? tx.getRequester() : tx.getProcessedBy();
         return new DisposalResponse(tx.getTransactionId(), tx.getTransactionCode(), tx.getStatus().name(), detail.getReason(),
                 detail.getDisposalDate(), tx.getCreatedAt(), displayActor.getFullName(), prepared.assetLines(),
-                prepared.oemAllocations(), prepared.perUserLinks(), prepared.warnings(), fingerprint(tx, detail, prepared), tx.getRequester().getUserId(), tx.getRejectionReason());
+                prepared.oemAllocations(), prepared.perUserLinks(), prepared.warnings(), fingerprint(tx, detail, prepared), tx.getRequester().getUserId(), tx.getRejectionReason(), tx.getRequester().getFullName());
     }
 
     private String fingerprint(TransactionEntity tx, TransactionDisposalDetailEntity detail, Prepared prepared) {

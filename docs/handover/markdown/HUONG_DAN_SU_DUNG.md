@@ -126,7 +126,7 @@ Thiết bị/linh kiện được chuyển sang IN_USE và gán người nhận/
 
 ## 7. Thu hồi
 
-Lưu ý phiên bản kiểm tra ngày 25/09/2026: tab Lịch sử thu hồi chỉ giữ các phiếu vừa tạo trong phiên trang, chưa tải lại phiếu cũ khi mở trang/reload (H01). Để tra cứu phiếu đã lưu, vào Chứng từ, lọc loại Thu hồi hoặc nhập mã phiếu và mở PDF. Dữ liệu backend vẫn được lưu; không tạo lại phiếu chỉ vì tab Lịch sử đang trống.
+Tab Lịch sử thu hồi tải các phiếu đã lưu từ API giao dịch và có phân trang. Mã hiện tại đã sửa lỗi H01 ghi nhận ngày 25/09/2026; việc hiển thị sau reload/đăng nhập lại vẫn cần kiểm tra trên trình duyệt với dữ liệu thật.
 
 1. Vào Thu hồi, chọn người trả và vị trí nhận.
 
@@ -150,9 +150,11 @@ OEM đi cùng thiết bị và không thể thu hồi riêng. Nếu không thu h
 
 3. Nếu có liên kết Per-User, ADMIN/IT_STAFF phải chọn giải phóng suất hoặc giữ cấp phát hoạt động nhưng gỡ khỏi thiết bị.
 
-4. ADMIN mở phiếu chờ, kiểm tra lại rồi Duyệt hoặc Từ chối với lý do.
+4. ADMIN mở phiếu chờ, kiểm tra lại rồi Duyệt hoặc Từ chối với lý do. Phiếu được duyệt chuyển sang APPROVED; tài sản vẫn được giữ để chờ thực hiện.
 
-Duyệt chuyển tài sản sang RETIRED và bỏ người sử dụng. OEM vẫn gắn với thiết bị, trở về trạng thái giữ suất; license Per-User đang được cấp trực tiếp không thể đem thanh lý như một tài sản license.
+5. Với nhóm đã duyệt, chọn Thực hiện, nhập ngày thực hiện và chọn/tải chứng từ thực hiện. Chỉ nhóm được thực hiện mới chuyển COMPLETED.
+
+Thực hiện mới chuyển tài sản sang RETIRED và bỏ người sử dụng. OEM vẫn gắn với thiết bị, trở về trạng thái giữ suất; license Per-User đang được cấp trực tiếp không thể đem thanh lý như một tài sản license.
 
 ## 9. Chứng từ, PDF và email giả lập
 
