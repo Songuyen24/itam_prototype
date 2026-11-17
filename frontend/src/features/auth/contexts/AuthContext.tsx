@@ -1,4 +1,4 @@
-import { demoLoginEnabled } from '../demo';
+import { demoLoginEnabled, demoPassword } from '../demo';
 import React, {
   createContext,
   useContext,
@@ -93,9 +93,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [clearSession]);
 
   const switchRole = useCallback(async (email: string) => {
-    if (!demoLoginEnabled) throw new Error('Demo login is disabled');
-    await login({ email, password: 'Password@123' });
-  }, [login]);
+    if (!demoLoginEnabled || !demoPassword) throw new Error('Demo login is disabled');
+    const currentOperation = operation.current;
+    const currentToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const res = await authApi.login({ email, password: demoPassword });
+    if (operation.current !== currentOperation || localStorage.getItem(TOKEN_STORAGE_KEY) !== currentToken) {
+      throw new Error('Session changed while switching account');
+    }
+    applyLoginResponse(res);
+  }, [applyLoginResponse]);
 
   useEffect(() => {
     registerUnauthorizedHandler(clearSession);

@@ -34,6 +34,32 @@ describe('T18 disposal interactions', () => {
   beforeEach(() => { client.mockReset(); auth.role = 'ADMIN'; });
   afterEach(() => { while (renderers.length) act(() => renderers.pop()!.unmount()); });
 
+  it('defaults disposal and execution dates to the local calendar day', async () => {
+    vi.stubEnv('TZ', 'Asia/Ho_Chi_Minh');
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-16T17:30:00Z'));
+    try {
+      auth.role = 'IT_STAFF';
+      client.mockImplementation((url?: string) => {
+        const endpoint = String(url);
+        if (endpoint === '/v1/disposals/9') return Promise.resolve({ data: { ...detail(), status: 'APPROVED', groups: [{ ...detail().groups[0], status: 'APPROVED' }] } });
+        if (endpoint === '/v1/disposals/9/progress') return Promise.resolve({ data: { contentVersion: 3, groups: [{ ...detail().groups[0], status: 'APPROVED' }] } });
+        if (endpoint.startsWith('/v1/transactions')) return Promise.resolve(page([summary]));
+        return Promise.resolve(page([]));
+      });
+      const tree = await renderPage();
+      await act(async () => tree.root.findAllByType('button').find(button => button.children.includes('createTitle'))!.props.onClick({ currentTarget: {} }));
+      expect(tree.root.findByProps({ type: 'date' }).props.value).toBe('2026-11-17');
+      act(() => tree.root.findAllByType('button').find(button => button.children.includes('close'))!.props.onClick());
+      await act(async () => group(tree, 'PENDING').findAllByType('button').find(button => button.props['aria-label'] === 'review')!.props.onClick({ currentTarget: {} }));
+      act(() => tree.root.findAllByType('button').find(button => button.children.includes('execute'))!.props.onClick());
+      expect(tree.root.findByProps({ type: 'date' }).props.value).toBe('2026-11-17');
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('shows IT create in a modal and lets Admin edit a draft without a create command', async () => {
     client.mockImplementation((url?: string) => {
       const endpoint = String(url);

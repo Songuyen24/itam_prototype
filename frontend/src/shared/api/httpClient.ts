@@ -118,8 +118,10 @@ async function httpClient<T>(
       // ignore parse errors
     }
     assertCurrentSession(token, revision, currentLang);
-    clearLocalSession();
-    onUnauthorized?.();
+    if (endpoint !== '/v1/auth/login') {
+      clearLocalSession();
+      onUnauthorized?.();
+    }
     throw new ApiError(errorMessage, 401, 'UNAUTHORIZED');
   }
 

@@ -55,6 +55,25 @@ class PartialDisposalIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE transaction_id=? AND action='DISPOSAL_DEADLINE_EXTENDED'",Long.class,id)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT content_version FROM transactions WHERE transaction_id=?",Long.class,id)).isEqualTo(1);
     }
+    @Test void finalExecutionAuditRecordsCompletedStatus() throws Exception {
+        long admin=jdbc.queryForObject("SELECT user_id FROM users WHERE email='admin@itam.example'",Long.class);
+        String code="FINAL-DI-"+UUID.randomUUID();
+        long type=jdbc.queryForObject("INSERT INTO asset_types(code,name,category_id,is_active) SELECT ?,?,category_id,true FROM asset_categories WHERE code='DEVICE' RETURNING type_id",Long.class,code,code);
+        long asset=jdbc.queryForObject("INSERT INTO assets(asset_tag,name,type_id,status_id,created_by) VALUES(?,?,?,(SELECT status_id FROM asset_statuses WHERE code='DAMAGED'),?) RETURNING asset_id",Long.class,code,"Broken device",type,admin);
+        var check=postJson("/v1/disposals/smart-check",Map.of("assetIds",List.of(asset)),"IT_STAFF");
+        var created=postJson("/v1/disposals",Map.of("assetIds",List.of(asset),"reason","Beyond repair","disposalDate",LocalDate.now().toString(),"expectedFingerprint",check.path("fingerprint").asText()),"IT_STAFF");
+        long id=created.path("transactionId").asLong();var p=progress(id);
+        String group=p.path("groups").get(0).path("groupId").asText();
+        postJson("/v1/disposals/"+id+"/approve-selected",Map.of("expectedVersion",p.path("contentVersion").asLong(),"groupIds",List.of(group)),"ADMIN");
+        p=progress(id);
+        var uploaded=json.readTree(mvc.perform(multipart("/v1/documents").file(new MockMultipartFile("file","proof.pdf","application/pdf","%PDF-1.4\n%%EOF".getBytes()))
+                .with(role("IT_STAFF")).param("transactionId",Long.toString(id)).param("documentType","DISPOSAL_REPORT").param("expectedVersion",p.path("contentVersion").asText()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("data");
+        p=progress(id);
+        var executed=postJson("/v1/disposals/"+id+"/execute",Map.of("expectedVersion",p.path("contentVersion").asLong(),"groupIds",List.of(group),"documentId",uploaded.path("documentId").asLong(),"executionDate",LocalDate.now().toString()),"IT_STAFF");
+        assertThat(executed.path("status").asText()).isEqualTo("COMPLETED");
+        assertThat(jdbc.queryForObject("SELECT new_data->>'status' FROM audit_logs WHERE transaction_id=? AND entity_type='TRANSACTION' AND action='DISPOSAL_COMPLETED'",String.class,id)).isEqualTo("COMPLETED");
+    }
     @Test void approvesAndExecutesSelectedAssetsWithoutRetiringRejectedOrCancelledProposal() throws Exception {
         long admin=jdbc.queryForObject("SELECT user_id FROM users WHERE email='admin@itam.example'",Long.class);
         String code="PART-DI-"+UUID.randomUUID();
@@ -85,6 +104,8 @@ class PartialDisposalIntegrationTest {
         p=progress(id);long version=p.path("contentVersion").asLong();
         var executed=postJson("/v1/disposals/"+id+"/execute",Map.of("expectedVersion",version,"groupIds",List.of(first),"documentId",uploaded.path("documentId").asLong(),"executionDate",LocalDate.now().toString()),"IT_STAFF");
         assertThat(executed.path("status").asText()).isEqualTo("PARTIAL");
+        assertThat(jdbc.queryForObject("SELECT new_data->>'status' FROM audit_logs WHERE transaction_id=? AND entity_type='TRANSACTION' AND action='DISPOSAL_EXECUTED' ORDER BY audit_log_id DESC LIMIT 1", String.class, id)).isEqualTo("PARTIAL");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE transaction_id=? AND action='DISPOSAL_COMPLETED'", Integer.class, id)).isZero();
         assertThat(jdbc.queryForObject("SELECT s.code FROM assets a JOIN asset_statuses s USING(status_id) WHERE a.asset_id=?",String.class,ids.getFirst())).isEqualTo("RETIRED");
         mvc.perform(post("/v1/disposals/"+id+"/execute").with(role("ADMIN")).contentType("application/json").content(json.writeValueAsString(Map.of("expectedVersion",version,"groupIds",List.of(first),"documentId",uploaded.path("documentId").asLong(),"executionDate",LocalDate.now().toString())))).andExpect(status().isConflict());
         p=progress(id);postJson("/v1/disposals/"+id+"/cancel-lines",Map.of("expectedVersion",p.path("contentVersion").asLong(),"groupIds",List.of(third),"reason","Not proceeding"),"ADMIN");

@@ -1,41 +1,11 @@
-import { demoLoginEnabled } from '../demo';
+import { demoLoginEnabled, demoPassword, demoRolePresets } from '../demo';
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher/LanguageSwitcher';
 import { ApiError } from '@/shared/api/httpClient';
-import { RolePreset } from '../types/auth.types';
 import { getHomePath } from '../permissions';
-
-const QUICK_LOGIN_PRESETS: RolePreset[] = [
-  {
-    email: 'demo.nv1@example.com',
-    label: 'Administrator',
-    description: 'Quản trị viên hệ thống — toàn quyền',
-    role: 'ADMIN',
-  },
-  {
-    email: 'demo.nv2@example.com',
-    label: 'IT Staff',
-    description: 'IT Support — nhập kho, bàn giao, thu hồi',
-    role: 'IT_STAFF',
-  },
-  {
-    email: 'demo.nv3@example.com',
-    label: 'Purchasing Staff',
-    description: 'Mua sắm — tạo phiếu nhập kho',
-    role: 'PUR_STAFF',
-  },
-  {
-    email: 'demo.nv4@example.com',
-    label: 'End User',
-    description: 'Người dùng cuối — xem tài sản được cấp',
-    role: 'USER',
-  },
-];
-
-const demoPassword = import.meta.env.VITE_DEMO_PASSWORD ?? '';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common']);
@@ -73,7 +43,7 @@ const LoginPage: React.FC = () => {
     void doLogin(email.trim(), password);
   }
 
-  async function handleQuickLogin(preset: RolePreset) {
+  async function handleQuickLogin(preset: (typeof demoRolePresets)[number]) {
     setEmail(preset.email);
     setPassword(demoPassword);
     await doLogin(preset.email, demoPassword);
@@ -150,7 +120,7 @@ const LoginPage: React.FC = () => {
         </div>
 
         <div className="quick-login-grid">
-          {QUICK_LOGIN_PRESETS.map((preset) => (
+          {demoRolePresets.map((preset) => (
             <button
               key={preset.email}
               type="button"

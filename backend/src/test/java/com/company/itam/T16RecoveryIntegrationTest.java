@@ -122,6 +122,36 @@ class T16RecoveryIntegrationTest {
     }
 
     @Test
+    void cancelledPerUserGroupCannotLeaveItsDeviceRecoveredWithAnActiveLink() throws Exception {
+        Long device = create("DEVICE"), packageId = license("PER_USER", 1);
+        handovers.complete(confirmed(List.of(device), List.of(new HandoverRequest.LicenseLine(packageId, 1, device))));
+        Long allocation = allocation(packageId, device);
+        var check = smart(List.of(device), List.of());
+        var request = Map.of("returnerUserId", returner(), "receivingLocationId", location(), "recoveryDate", "2026-09-17", "reason", "Cancelled license group",
+                "assetIds", List.of(device), "allocationIds", List.of(), "componentActions", Map.of(), "perUserActions", Map.of(allocation.toString(), false), "expectedFingerprint", check.path("fingerprint").asText());
+        var body = mvc.perform(post("/v1/recoveries").contentType("application/json").content(json.writeValueAsString(request)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long id = json.readTree(body).at("/data/transactionId").asLong();
+        mvc.perform(post("/v1/recoveries/{id}/submit", id).header("X-Expected-Version", 0)).andExpect(status().isOk());
+        var groups = json.readTree(jdbc.queryForObject("SELECT groups::text FROM workflow_progress WHERE transaction_id=?", String.class, id));
+        String deviceGroup = null, licenseGroup = null;
+        for (var group : groups) {
+            if (group.path("groupId").asText().startsWith("asset:")) deviceGroup = group.path("groupId").asText();
+            else licenseGroup = group.path("groupId").asText();
+        }
+        mvc.perform(post("/v1/recoveries/{id}/cancel-remaining", id).header("X-Override-Reason", "Keep license")
+                .contentType("application/json").content(json.writeValueAsString(Map.of("expectedVersion", 1, "groupIds", List.of(licenseGroup), "reason", "Keep license"))))
+                .andExpect(status().isOk());
+        mvc.perform(post("/v1/recoveries/{id}/confirm", id).contentType("application/json")
+                .content(json.writeValueAsString(Map.of("expectedVersion", 2, "groupIds", List.of(deviceGroup)))))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("WORKFLOW_GROUP_REQUIRED"));
+        assertThat(state(device)).isEqualTo("IN_USE");
+        assertThat(jdbc.queryForObject("SELECT status='ACTIVE' AND device_asset_id=? AND user_id=? FROM license_allocations WHERE allocation_id=?", Boolean.class, device, returner(), allocation)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM recovery_asset_reservations WHERE transaction_id=? AND asset_id=?", Integer.class, id, device)).isOne();
+        assertThat(jdbc.queryForObject("SELECT content_version FROM transactions WHERE transaction_id=?", Long.class, id)).isEqualTo(2);
+    }
+
+    @Test
     void recoveryGroupsSharedOemPackageOnceForMultipleSelectedDevices() throws Exception {
         Long first = create("DEVICE"), second = create("DEVICE"), oem = license("OEM", 2);
         relationships.create(first, oem, RelationshipType.INSTALLED_ON); relationships.create(second, oem, RelationshipType.INSTALLED_ON);

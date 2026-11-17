@@ -1,23 +1,10 @@
 import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
 import ArrowDropDownOutlinedIcon from '@mui/icons-material/ArrowDropDownOutlined';
-import { demoLoginEnabled } from '@/features/auth/demo';
+import { demoLoginEnabled, demoPassword, demoRolePresets } from '@/features/auth/demo';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
-
-interface Preset {
-  email: string;
-  role: string;
-  label: string;
-}
-
-const QUICK_PRESETS: Preset[] = [
-  { email: 'admin@itam.example', role: 'ADMIN', label: 'Administrator' },
-  { email: 'it01@itam.example', role: 'IT_STAFF', label: 'IT Staff' },
-  { email: 'pur01@itam.example', role: 'PUR_STAFF', label: 'Purchasing Staff' },
-  { email: 'user01@itam.example', role: 'USER', label: 'End User' },
-];
 
 export const RoleSwitcher: React.FC = () => {
   const { t } = useTranslation(['auth', 'common']);
@@ -25,6 +12,7 @@ export const RoleSwitcher: React.FC = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -40,13 +28,14 @@ export const RoleSwitcher: React.FC = () => {
 
   async function handleSwitch(email: string) {
     setBusy(true);
+    setError('');
     try {
       await switchRole(email);
       setOpen(false);
       // Sau khi đổi role quay về trang chủ để đảm bảo dữ liệu reload đúng quyền
       navigate('/', { replace: true });
-    } catch {
-      navigate('/login', { replace: true });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t('auth:errors.unknown'));
     } finally {
       setBusy(false);
     }
@@ -81,7 +70,8 @@ export const RoleSwitcher: React.FC = () => {
             <small>{t('auth:switchAccountHeader', 'Chuyển vai trò test nhanh')}</small>
           </div>
 
-          {demoLoginEnabled && QUICK_PRESETS.map((preset) => {
+          {error && <p role="alert">{error}</p>}
+          {demoLoginEnabled && demoPassword && demoRolePresets.map((preset) => {
             const isCurrent = preset.email === user.email;
             return (
               <button

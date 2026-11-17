@@ -11,6 +11,8 @@ import { disposalApi, Disposal, DisposalAsset, DisposalCheck } from '../api/disp
 import { DisposalDetail, DisposalReview } from '../components/DisposalReview';
 import './disposal.css';
 
+function localDate() { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
+
 export function DisposalsPage() {
   const { t } = useTranslation('disposal');
   const { user } = useAuth();
@@ -25,7 +27,7 @@ export function DisposalsPage() {
   const [editingFingerprint,setEditingFingerprint] = useState('');
   const [reload, setReload] = useState(0);
   const [reason, setReason] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(localDate);
   const [assetLoading, setAssetLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -37,7 +39,7 @@ export function DisposalsPage() {
   const [action, setAction] = useState<'approve' | 'reject' | 'execute' | 'extend' | 'cancelApproved' | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
-  const [executionDate, setExecutionDate] = useState(new Date().toISOString().slice(0, 10));
+  const [executionDate, setExecutionDate] = useState(localDate);
   const [dueDate, setDueDate] = useState('');
   const [documentId, setDocumentId] = useState(0);
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
@@ -73,7 +75,7 @@ export function DisposalsPage() {
 
   const closeForm = () => {
     if (saving || createReview) return;
-    setCreating(false); setEditingId(null); setEditingFingerprint(''); setSelected([]); setReason(''); setDate(new Date().toISOString().slice(0, 10)); setAssetKeyword(''); setAssetPage(0); setError('');
+    setCreating(false); setEditingId(null); setEditingFingerprint(''); setSelected([]); setReason(''); setDate(localDate()); setAssetKeyword(''); setAssetPage(0); setError('');
   };
 
   const submit = async (event: FormEvent) => {
@@ -91,7 +93,7 @@ export function DisposalsPage() {
     try {
       const body={ assetIds: selected, reason, disposalDate: date, expectedFingerprint: createReview.fingerprint, expectedTransactionFingerprint: editingFingerprint };
       if(editingId) await disposalApi.edit(editingId,body); else if (draft) await disposalApi.createDraft(body); else await disposalApi.create(body);
-      setNotice(t(editingId || draft ? 'savedDraft' : 'created')); setCreateReview(null); setCreating(false); setEditingId(null); setEditingFingerprint(''); setSelected([]); setReason(''); setDate(new Date().toISOString().slice(0, 10)); setAssetKeyword(''); setAssetPage(0); setReload(value => value + 1);
+      setNotice(t(editingId || draft ? 'savedDraft' : 'created')); setCreateReview(null); setCreating(false); setEditingId(null); setEditingFingerprint(''); setSelected([]); setReason(''); setDate(localDate()); setAssetKeyword(''); setAssetPage(0); setReload(value => value + 1);
     } catch (cause) {
       setError(cause instanceof ApiError && cause.status === 409 ? `${t('changed')} ${cause.message}` : cause instanceof Error ? cause.message : t('error'));
       if (editingId && cause instanceof ApiError && cause.status === 409) {

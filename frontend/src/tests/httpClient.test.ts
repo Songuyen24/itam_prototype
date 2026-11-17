@@ -100,6 +100,20 @@ describe('httpClient Bearer token + 401 handler', () => {
     expect(onUnauthorized).toHaveBeenCalledOnce();
   });
 
+  it('keeps the current account when a new login returns 401', async () => {
+    const onUnauthorized = vi.fn();
+    registerUnauthorizedHandler(onUnauthorized);
+    localStorage.setItem('itam_auth_token', 'current.token');
+    localStorage.setItem('itam_auth_user', JSON.stringify({ id: 1 }));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ message: 'Invalid credentials' }), { status: 401 }));
+
+    await expect(httpClient('/v1/auth/login', { method: 'POST', body: '{}' })).rejects.toMatchObject({ status: 401 });
+
+    expect(localStorage.getItem('itam_auth_token')).toBe('current.token');
+    expect(localStorage.getItem('itam_auth_user')).toBe(JSON.stringify({ id: 1 }));
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+
   it('accepts a successful document detach with no response body', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
     await expect(httpClient<void>('/v1/documents/1?expectedVersion=2', { method: 'DELETE' })).resolves.toBeUndefined();

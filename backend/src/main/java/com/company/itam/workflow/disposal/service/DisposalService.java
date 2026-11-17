@@ -370,7 +370,7 @@ public class DisposalService {
         Instant now = Instant.now();
         var next=all.stream().map(g->selected.contains(g)?new Group(g.groupId(),"COMPLETED",g.assetIds(),g.allocationIds(),g.reason(),g.approvedAt(),g.dueDate(),request.executionDate(),request.documentId()):g).toList();
         progress.save(id,next);updateState(tx,next);tx.setUpdatedAt(now);
-        recordTransaction(tx, actor, "DISPOSAL_COMPLETED", Map.of("status", "COMPLETED"));
+        recordTransaction(tx, actor, tx.getStatus()==TransactionStatus.COMPLETED ? "DISPOSAL_COMPLETED" : "DISPOSAL_EXECUTED", Map.of("status", tx.getStatus().name()));
         transactions.flush(); assets.flush(); audit.flush();
         DisposalResponse result = response(tx, detail, prepareStored(stored, false));
         if(tx.getStatus()==TransactionStatus.COMPLETED) savePublicationSnapshot(tx, result);

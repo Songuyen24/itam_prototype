@@ -562,7 +562,7 @@ public class RecoveryService {
             if(categoryOf(asset(assetId))==AssetCategory.DEVICE)for(var allocation:allocations.findByDeviceAssetId(assetId))
                 if(allocation.getStatus()==LicenseAllocationStatus.ACTIVE&&LicenseCodes.PER_USER.equals(licenseCode(allocation.getLicense()))) {
                     var seat=all.stream().filter(g->g.allocationIds().contains(allocation.getAllocationId())).findFirst().orElse(null);
-                    if(seat==null||"PENDING".equals(seat.status())&&!selected.contains(seat))fail("WORKFLOW_GROUP_REQUIRED");
+                    if(seat==null||!selected.contains(seat))fail("WORKFLOW_GROUP_REQUIRED");
                 }
         var physical=new TreeSet<Long>();var allocationIds=new TreeSet<Long>();
         for(var group:selected) {
