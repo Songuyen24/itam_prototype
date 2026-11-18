@@ -1,10 +1,13 @@
 package com.company.itam.asset.relationship.entity;
 
+import java.time.Instant;
+
+import jakarta.persistence.*;
+
 import com.company.itam.asset.entity.AssetEntity;
+import com.company.itam.asset.entity.LicenseAllocationEntity;
 import com.company.itam.asset.relationship.enums.RelationshipType;
 import com.company.itam.user.entity.UserEntity;
-import jakarta.persistence.*;
-import java.time.Instant;
 
 @Entity
 @Table(name = "asset_relationships")
@@ -17,9 +20,15 @@ public class AssetRelationshipEntity {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "allocation_id")
-    private com.company.itam.asset.entity.LicenseAllocationEntity allocation;
-    public com.company.itam.asset.entity.LicenseAllocationEntity getAllocation() { return allocation; }
-    public void setAllocation(com.company.itam.asset.entity.LicenseAllocationEntity value) { allocation = value; }
+    private LicenseAllocationEntity allocation;
+
+    public LicenseAllocationEntity getAllocation() {
+        return allocation;
+    }
+
+    public void setAllocation(LicenseAllocationEntity value) {
+        allocation = value;
+    }
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_asset_id", nullable = false)

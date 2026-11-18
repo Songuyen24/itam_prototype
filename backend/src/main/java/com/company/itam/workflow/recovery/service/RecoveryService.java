@@ -1,31 +1,14 @@
 package com.company.itam.workflow.recovery.service;
 
-import com.company.itam.asset.entity.*;
-import com.company.itam.asset.repository.*;
-import com.company.itam.asset.relationship.entity.AssetRelationshipEntity;
-import com.company.itam.asset.relationship.enums.RelationshipType;
-import com.company.itam.asset.service.LicenseCodes;
-import com.company.itam.asset.service.AssetAuditService;
-import com.company.itam.audit.entity.AuditLogEntity;
-import com.company.itam.audit.repository.AuditLogRepository;
-import com.company.itam.catalog.repository.AssetStatusRepository;
-import com.company.itam.common.enums.*;
-import com.company.itam.common.exception.*;
-import com.company.itam.common.util.MessageHelper;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.company.itam.location.entity.LocationEntity;
-import com.company.itam.location.repository.LocationRepository;
-import com.company.itam.user.entity.UserEntity;
-import com.company.itam.user.repository.UserRepository;
-import com.company.itam.workflow.core.entity.*;
-import com.company.itam.workflow.core.enums.*;
-import com.company.itam.workflow.core.repository.*;
-import com.company.itam.workflow.core.dto.WorkflowProgressModels;
-import com.company.itam.workflow.core.dto.WorkflowProgressModels.Group;
-import com.company.itam.workflow.core.service.WorkflowProgressService;
-import com.company.itam.workflow.recovery.dto.*;
-import com.company.itam.workflow.recovery.entity.TransactionRecoveryDetailEntity;
-import com.company.itam.workflow.recovery.repository.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,11 +16,36 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.company.itam.asset.entity.*;
+import com.company.itam.asset.relationship.entity.AssetRelationshipEntity;
+import com.company.itam.asset.relationship.enums.RelationshipType;
+import com.company.itam.asset.relationship.repository.AssetRelationshipRepository;
+import com.company.itam.asset.repository.*;
+import com.company.itam.asset.service.AssetAuditService;
+import com.company.itam.asset.service.LicenseCodes;
+import com.company.itam.audit.entity.AuditLogEntity;
+import com.company.itam.audit.repository.AuditLogRepository;
+import com.company.itam.catalog.repository.AssetStatusRepository;
+import com.company.itam.common.enums.*;
+import com.company.itam.common.exception.*;
+import com.company.itam.common.pagination.PageResponse;
+import com.company.itam.common.util.MessageHelper;
+import com.company.itam.location.repository.LocationRepository;
+import com.company.itam.publication.service.TransactionPublicationService;
+import com.company.itam.user.entity.UserEntity;
+import com.company.itam.user.repository.UserRepository;
+import com.company.itam.workflow.core.dto.WorkflowProgressModels;
+import com.company.itam.workflow.core.dto.WorkflowProgressModels.Group;
+import com.company.itam.workflow.core.entity.*;
+import com.company.itam.workflow.core.enums.*;
+import com.company.itam.workflow.core.repository.*;
+import com.company.itam.workflow.core.service.WorkflowAccessService;
+import com.company.itam.workflow.core.service.WorkflowProgressService;
+import com.company.itam.workflow.recovery.dto.*;
+import com.company.itam.workflow.recovery.entity.TransactionRecoveryDetailEntity;
+import com.company.itam.workflow.recovery.repository.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional(readOnly = true)
@@ -46,7 +54,7 @@ public class RecoveryService {
 
     private final AssetRepository assets;
     private final LicenseAllocationRepository allocations;
-    private final com.company.itam.asset.relationship.repository.AssetRelationshipRepository relationships;
+    private final AssetRelationshipRepository relationships;
     private final TransactionRepository transactions;
     private final TransactionAssetRepository txAssets;
     private final TransactionRecoveryDetailRepository recoveryDetails;
@@ -58,14 +66,14 @@ public class RecoveryService {
     private final AssetAuditService assetAudit;
     private final MessageHelper messages;
     private final ObjectMapper mapper;
-    private final com.company.itam.workflow.core.service.WorkflowAccessService access;
-    private final com.company.itam.publication.service.TransactionPublicationService publications;
+    private final WorkflowAccessService access;
+    private final TransactionPublicationService publications;
     private final WorkflowProgressService progress;
 
     public RecoveryService(
             AssetRepository assets,
             LicenseAllocationRepository allocations,
-            com.company.itam.asset.relationship.repository.AssetRelationshipRepository relationships,
+            AssetRelationshipRepository relationships,
             TransactionRepository transactions,
             TransactionAssetRepository txAssets,
             TransactionRecoveryDetailRepository recoveryDetails,
@@ -73,7 +81,13 @@ public class RecoveryService {
             LocationRepository locations,
             AssetStatusRepository statuses,
             AuditLogRepository auditLogs,
-            JdbcTemplate jdbc, AssetAuditService assetAudit, MessageHelper messages, ObjectMapper mapper, com.company.itam.workflow.core.service.WorkflowAccessService access, com.company.itam.publication.service.TransactionPublicationService publications, WorkflowProgressService progress) {
+            JdbcTemplate jdbc,
+            AssetAuditService assetAudit,
+            MessageHelper messages,
+            ObjectMapper mapper,
+            WorkflowAccessService access,
+            TransactionPublicationService publications,
+            WorkflowProgressService progress) {
         this.assets = assets;
         this.allocations = allocations;
         this.relationships = relationships;
@@ -87,7 +101,10 @@ public class RecoveryService {
         this.jdbc = jdbc;
         this.assetAudit = assetAudit;
         this.messages = messages;
-        this.mapper = mapper; this.access = access; this.publications = publications; this.progress = progress;
+        this.mapper = mapper;
+        this.access = access;
+        this.publications = publications;
+        this.progress = progress;
     }
 
     private String currentUser() {
@@ -112,7 +129,8 @@ public class RecoveryService {
 
     private String licenseCode(AssetEntity lic) {
         return lic.getLicenseDetails() != null && lic.getLicenseDetails().getAssignmentType() != null
-                ? lic.getLicenseDetails().getAssignmentType().getCode() : null;
+                ? lic.getLicenseDetails().getAssignmentType().getCode()
+                : null;
     }
 
     private void fail(String code) {
@@ -125,28 +143,45 @@ public class RecoveryService {
     // Scenario A (main): IT selects a DEVICE IN_USE → auto-discover components, OEM, Per-User
     // Scenario B: IT selects a Per-User LICENSE asset alone → BLOCKED with message
     // Scenario C: IT selects a COMPONENT alone → BLOCKED with message
-    // Scenario D: IT selects an OEM LICENSE alone → BLOCKED with message (OEM is always auto-bundled)
+    // Scenario D: IT selects an OEM LICENSE alone → BLOCKED with message (OEM is always
+    // auto-bundled)
     // ========================================================================
 
-    public SmartCheckResponse smartCheck(SmartCheckRequest request) { return prepare(request, false).response(); }
+    public SmartCheckResponse smartCheck(SmartCheckRequest request) {
+        return prepare(request, false).response();
+    }
 
     /** One discovery contract for preview and completion.  IDs are scalar until locks are held. */
     private Prepared prepare(SmartCheckRequest request, boolean lock) {
         if (request.assetIds().stream().anyMatch(id -> id == null || id < 1)
-                || request.allocationIds() != null && request.allocationIds().stream().anyMatch(id -> id == null || id < 1)) fail("RECOVERY_DUPLICATE");
-        var returner = users.findById(request.returnerUserId()).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
-        if (request.assetIds().isEmpty() && (request.allocationIds() == null || request.allocationIds().isEmpty())) fail("EMPTY_TRANSACTION");
+                || request.allocationIds() != null
+                        && request.allocationIds().stream().anyMatch(id -> id == null || id < 1))
+            fail("RECOVERY_DUPLICATE");
+        var returner = users.findById(request.returnerUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
+        if (request.assetIds().isEmpty()
+                && (request.allocationIds() == null || request.allocationIds().isEmpty())) fail("EMPTY_TRANSACTION");
         List<Long> idList = new ArrayList<>(new LinkedHashSet<>(request.assetIds())); // keep order, dedup
-        if (request.allocationIds() != null) for (Long allocationId : request.allocationIds())
-            idList.add(allocations.licenseId(allocationId).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND")));
+        if (request.allocationIds() != null)
+            for (Long allocationId : request.allocationIds())
+                idList.add(allocations
+                        .licenseId(allocationId)
+                        .orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND")));
         idList = new ArrayList<>(new LinkedHashSet<>(idList));
         if (new HashSet<>(request.assetIds()).size() != request.assetIds().size()) fail("RECOVERY_DUPLICATE");
-        if (request.allocationIds()!=null && (request.allocationIds().stream().anyMatch(Objects::isNull) || new HashSet<>(request.allocationIds()).size()!=request.allocationIds().size())) fail("RECOVERY_DUPLICATE");
+        if (request.allocationIds() != null
+                && (request.allocationIds().stream().anyMatch(Objects::isNull)
+                        || new HashSet<>(request.allocationIds()).size()
+                                != request.allocationIds().size())) fail("RECOVERY_DUPLICATE");
         var scalarLinks = links(idList);
         var lockIds = new TreeSet<>(idList);
-        scalarLinks.forEach(l -> { lockIds.add(l.parent()); lockIds.add(l.child()); });
+        scalarLinks.forEach(l -> {
+            lockIds.add(l.parent());
+            lockIds.add(l.child());
+        });
         if (lock) {
-            for (Long id : lockIds) assets.lockById(id).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
+            for (Long id : lockIds)
+                assets.lockById(id).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
             if (!scalarLinks.equals(links(idList))) fail("RECOVERY_CHANGED");
         }
 
@@ -157,11 +192,11 @@ public class RecoveryService {
         List<SmartCheckResponse.ComponentDecision> componentDecisions = new ArrayList<>();
 
         // Categorize selected assets by type
-        List<AssetEntity> selectedDevices    = new ArrayList<>(); // DEVICE category
+        List<AssetEntity> selectedDevices = new ArrayList<>(); // DEVICE category
         List<AssetEntity> selectedComponents = new ArrayList<>(); // COMPONENT category
         List<AssetEntity> selectedPerUserLic = new ArrayList<>(); // Per-User LICENSE assets
-        List<AssetEntity> selectedOemLic    = new ArrayList<>(); // OEM LICENSE assets
-        List<AssetEntity> selectedOther      = new ArrayList<>(); // everything else (e.g. other category)
+        List<AssetEntity> selectedOemLic = new ArrayList<>(); // OEM LICENSE assets
+        List<AssetEntity> selectedOther = new ArrayList<>(); // everything else (e.g. other category)
 
         for (Long id : idList) {
             var a = asset(id);
@@ -171,9 +206,9 @@ public class RecoveryService {
                 continue;
             }
             switch (cat) {
-                case DEVICE     -> selectedDevices.add(a);
-                case COMPONENT  -> selectedComponents.add(a);
-                case LICENSE    -> {
+                case DEVICE -> selectedDevices.add(a);
+                case COMPONENT -> selectedComponents.add(a);
+                case LICENSE -> {
                     String code = licenseCode(a);
                     if (LicenseCodes.PER_USER.equals(code)) {
                         selectedPerUserLic.add(a);
@@ -193,16 +228,21 @@ public class RecoveryService {
             for (var alloc : allocations.findAllByLicenseAssetId(lic.getAssetId())) {
                 if (request.allocationIds() != null && request.allocationIds().contains(alloc.getAllocationId())) {
                     selected = true;
-                    if (!validPerUser(alloc, request.returnerUserId())) { blocked.add(blocked(lic, request.returnerUserId())); continue; }
+                    if (!validPerUser(alloc, request.returnerUserId())) {
+                        blocked.add(blocked(lic, request.returnerUserId()));
+                        continue;
+                    }
                     optional.add(new SmartCheckResponse.OptionalAsset(
-                            alloc.getAllocationId(), lic.getAssetId(), lic.getAssetTag(), lic.getName(),
+                            alloc.getAllocationId(),
+                            lic.getAssetId(),
+                            lic.getAssetTag(),
+                            lic.getName(),
                             alloc.getSeatCount(),
                             alloc.getUser() != null ? alloc.getUser().getUserId() : null,
                             alloc.getUser() != null ? alloc.getUser().getFullName() : null,
                             alloc.getDevice() == null ? null : alloc.getDevice().getAssetId(),
                             alloc.getDevice() == null ? null : alloc.getDevice().getAssetTag(),
-                            true
-                    ));
+                            true));
                 }
             }
             if (!selected) fail("RECOVERY_CHANGED");
@@ -214,8 +254,14 @@ public class RecoveryService {
         for (var comp : selectedComponents) {
             if (!physicalValid(comp, request.returnerUserId())) blocked.add(blocked(comp, request.returnerUserId()));
             else {
-                required.add(new SmartCheckResponse.RequiredAsset(comp.getAssetId(), comp.getAssetTag(), comp.getName(), categoryCode(comp), messages.getMessage("RECOVERY_COMPONENT_SELECTED")));
-                componentDecisions.add(componentDecision(comp, !request.assetIds().contains(parentId(comp.getAssetId()))));
+                required.add(new SmartCheckResponse.RequiredAsset(
+                        comp.getAssetId(),
+                        comp.getAssetTag(),
+                        comp.getName(),
+                        categoryCode(comp),
+                        messages.getMessage("RECOVERY_COMPONENT_SELECTED")));
+                componentDecisions.add(
+                        componentDecision(comp, !request.assetIds().contains(parentId(comp.getAssetId()))));
             }
         }
 
@@ -234,8 +280,7 @@ public class RecoveryService {
                     ? messages.getMessage("RECOVERY_OEM_NOT_ALLOWED") + " (" + parentTag + ")"
                     : messages.getMessage("RECOVERY_OEM_NOT_ALLOWED");
             blocked.add(new SmartCheckResponse.BlockedAsset(
-                    lic.getAssetId(), lic.getAssetTag(), lic.getName(),
-                    categoryCode(lic), msg));
+                    lic.getAssetId(), lic.getAssetTag(), lic.getName(), categoryCode(lic), msg));
         }
 
         // ----------------------------------------------------------------
@@ -248,8 +293,11 @@ public class RecoveryService {
                 blocked.add(blocked(dev, request.returnerUserId()));
             } else {
                 required.add(new SmartCheckResponse.RequiredAsset(
-                        dev.getAssetId(), dev.getAssetTag(), dev.getName(),
-                        categoryCode(dev), messages.getMessage("RECOVERY_DEVICE_SELECTED")));
+                        dev.getAssetId(),
+                        dev.getAssetTag(),
+                        dev.getName(),
+                        categoryCode(dev),
+                        messages.getMessage("RECOVERY_DEVICE_SELECTED")));
             }
         }
 
@@ -259,9 +307,17 @@ public class RecoveryService {
             for (var rel : relationships.findByParentAssetAssetId(dev.getAssetId())) {
                 if (rel.getRelationshipType() == RelationshipType.COMPONENT_OF) {
                     var child = rel.getChildAsset();
-                    if (!physicalValid(child, request.returnerUserId())) { blocked.add(blocked(child, request.returnerUserId())); continue; }
+                    if (!physicalValid(child, request.returnerUserId())) {
+                        blocked.add(blocked(child, request.returnerUserId()));
+                        continue;
+                    }
                     if (selectedComponents.contains(child)) continue;
-                    required.add(new SmartCheckResponse.RequiredAsset(child.getAssetId(), child.getAssetTag(), child.getName(), categoryCode(child), messages.getMessage("RECOVERY_COMPONENT_SELECTED")));
+                    required.add(new SmartCheckResponse.RequiredAsset(
+                            child.getAssetId(),
+                            child.getAssetTag(),
+                            child.getName(),
+                            categoryCode(child),
+                            messages.getMessage("RECOVERY_COMPONENT_SELECTED")));
                     componentDecisions.add(componentDecision(child, false));
                 }
             }
@@ -273,20 +329,33 @@ public class RecoveryService {
                 if (rel.getRelationshipType() == RelationshipType.INSTALLED_ON) {
                     var lic = rel.getChildAsset();
                     String licCode = licenseCode(lic);
-                    // If OEM was also selected by user → already blocked (D) — still show as required for clarity
+                    // If OEM was also selected by user → already blocked (D) — still show as
+                    // required for clarity
                     if (licCode != null && LicenseCodes.OEM.equals(licCode)) {
                         var allocation = rel.getAllocation();
-                        if (allocation == null || allocation.getStatus() != LicenseAllocationStatus.ACTIVE || allocation.getUser() == null
-                                || !allocation.getUser().getUserId().equals(request.returnerUserId()) || allocation.getDevice() == null
-                                || !allocation.getDevice().getAssetId().equals(dev.getAssetId()) || !allocation.getLicense().getAssetId().equals(lic.getAssetId())) {
-                            blocked.add(new SmartCheckResponse.BlockedAsset(lic.getAssetId(), lic.getAssetTag(), lic.getName(), categoryCode(lic), messages.getMessage("RECOVERY_OEM_BUNDLED")));
+                        if (allocation == null
+                                || allocation.getStatus() != LicenseAllocationStatus.ACTIVE
+                                || allocation.getUser() == null
+                                || !allocation.getUser().getUserId().equals(request.returnerUserId())
+                                || allocation.getDevice() == null
+                                || !allocation.getDevice().getAssetId().equals(dev.getAssetId())
+                                || !allocation.getLicense().getAssetId().equals(lic.getAssetId())) {
+                            blocked.add(new SmartCheckResponse.BlockedAsset(
+                                    lic.getAssetId(),
+                                    lic.getAssetTag(),
+                                    lic.getName(),
+                                    categoryCode(lic),
+                                    messages.getMessage("RECOVERY_OEM_BUNDLED")));
                             continue;
                         }
                         boolean alreadyBlocked = selectedOemLic.contains(lic);
                         if (!alreadyBlocked) {
                             required.add(new SmartCheckResponse.RequiredAsset(
-                                    lic.getAssetId(), lic.getAssetTag(), lic.getName(),
-                                    categoryCode(lic), messages.getMessage("RECOVERY_OEM_BUNDLED")));
+                                    lic.getAssetId(),
+                                    lic.getAssetTag(),
+                                    lic.getName(),
+                                    categoryCode(lic),
+                                    messages.getMessage("RECOVERY_OEM_BUNDLED")));
                         }
                     }
                 }
@@ -300,16 +369,21 @@ public class RecoveryService {
                 String licCode = licenseCode(lic);
                 if (licCode != null && LicenseCodes.PER_USER.equals(licCode)) {
                     if (alloc.getStatus() != LicenseAllocationStatus.ACTIVE) continue;
-                    if (!validPerUser(alloc, request.returnerUserId())) { blocked.add(blocked(lic, request.returnerUserId())); continue; }
+                    if (!validPerUser(alloc, request.returnerUserId())) {
+                        blocked.add(blocked(lic, request.returnerUserId()));
+                        continue;
+                    }
                     optional.add(new SmartCheckResponse.OptionalAsset(
-                            alloc.getAllocationId(), lic.getAssetId(), lic.getAssetTag(), lic.getName(),
+                            alloc.getAllocationId(),
+                            lic.getAssetId(),
+                            lic.getAssetTag(),
+                            lic.getName(),
                             alloc.getSeatCount(),
                             alloc.getUser() != null ? alloc.getUser().getUserId() : null,
                             alloc.getUser() != null ? alloc.getUser().getFullName() : null,
                             dev.getAssetId(),
                             dev.getAssetTag(),
-                            true
-                    ));
+                            true));
                 }
             }
         }
@@ -332,336 +406,847 @@ public class RecoveryService {
         var uniqueOptional = new LinkedHashMap<Long, SmartCheckResponse.OptionalAsset>();
         for (var value : optional) uniqueOptional.putIfAbsent(value.allocationId(), value);
         optional = new ArrayList<>(uniqueOptional.values());
-        return new Prepared(new SmartCheckResponse(required, optional, blocked, componentDecisions, warnings, fingerprint), List.copyOf(lockIds), scalarLinks);
+        return new Prepared(
+                new SmartCheckResponse(required, optional, blocked, componentDecisions, warnings, fingerprint),
+                List.copyOf(lockIds),
+                scalarLinks);
     }
 
-    private UserEntity actor() { return users.findByPrincipal(currentUser()).orElseThrow(); }
+    private UserEntity actor() {
+        return users.findByPrincipal(currentUser()).orElseThrow();
+    }
+
     private TransactionEntity transaction(Long id, boolean lock) {
-        var tx=(lock?transactions.findForUpdate(id):transactions.findById(id)).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
-        if(tx.getType()!=TransactionType.RECOVERY) throw new ResourceNotFoundException("RESOURCE_NOT_FOUND");
+        var tx = (lock ? transactions.findForUpdate(id) : transactions.findById(id))
+                .orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
+        if (tx.getType() != TransactionType.RECOVERY) throw new ResourceNotFoundException("RESOURCE_NOT_FOUND");
         return tx;
     }
+
     private String encode(Object value) {
-        try { return mapper.writeValueAsString(value); }
-        catch(com.fasterxml.jackson.core.JsonProcessingException e) { throw new IllegalStateException(e); }
+        try {
+            return mapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
     }
-    private <T> T decode(String value,Class<T> type) {
-        try { return mapper.readValue(value,type); }
-        catch(com.fasterxml.jackson.core.JsonProcessingException e) { throw new IllegalStateException(e); }
+
+    private <T> T decode(String value, Class<T> type) {
+        try {
+            return mapper.readValue(value, type);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
     }
+
     private RecoveryRequest request(Long id) {
-        var rows=jdbc.queryForList("SELECT request::text FROM recovery_workflows WHERE transaction_id=?",String.class,id);
-        return rows.isEmpty()?null:decode(rows.get(0),RecoveryRequest.class);
+        var rows = jdbc.queryForList(
+                "SELECT request::text FROM recovery_workflows WHERE transaction_id=?", String.class, id);
+        return rows.isEmpty() ? null : decode(rows.get(0), RecoveryRequest.class);
     }
+
     public RecoveryResponse get(Long id) {
-        var tx=transaction(id,false);
-        var rows=jdbc.queryForList("SELECT snapshot::text FROM transaction_publication_snapshots WHERE transaction_id=?",String.class,id);
-        if(rows.isEmpty()) rows=jdbc.queryForList("SELECT result::text FROM recovery_workflows WHERE transaction_id=? AND result IS NOT NULL",String.class,id);
+        var tx = transaction(id, false);
+        var rows = jdbc.queryForList(
+                "SELECT snapshot::text FROM transaction_publication_snapshots WHERE transaction_id=?",
+                String.class,
+                id);
+        if (rows.isEmpty())
+            rows = jdbc.queryForList(
+                    "SELECT result::text FROM recovery_workflows WHERE transaction_id=? AND result IS NOT NULL",
+                    String.class,
+                    id);
         RecoveryResponse p;
-        if(!rows.isEmpty()) p=decode(rows.get(0),RecoveryResponse.class);
+        if (!rows.isEmpty()) p = decode(rows.get(0), RecoveryResponse.class);
         else {
-            var previews=jdbc.queryForList("SELECT preview::text FROM recovery_workflows WHERE transaction_id=?",String.class,id);
-            if(!previews.isEmpty()) p=decode(previews.get(0),RecoveryResponse.class);
+            var previews = jdbc.queryForList(
+                    "SELECT preview::text FROM recovery_workflows WHERE transaction_id=?", String.class, id);
+            if (!previews.isEmpty()) p = decode(previews.get(0), RecoveryResponse.class);
             else {
                 // Legacy completed tickets may predate publication snapshots.
-                var d=recoveryDetails.findById(id).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
-                var lines=txAssets.findByTransactionTransactionId(id).stream().map(l->{var a=l.getAsset();return new RecoveryResponse.RecoveryLine(a.getAssetId(),a.getAssetTag(),a.getName(),categoryCode(a),null,0,List.of(),Map.of());}).toList();
-                p=new RecoveryResponse(id,tx.getTransactionCode(),tx.getCompletedAt(),d.getReturner().getUserId(),d.getReturner().getFullName(),d.getReturner().getEmail(),d.getReceivingLocation().getLocationId(),d.getReceivingLocation().getName(),d.getRecoveryDate(),d.getReason(),"",lines);
+                var d = recoveryDetails
+                        .findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
+                var lines = txAssets.findByTransactionTransactionId(id).stream()
+                        .map(l -> {
+                            var a = l.getAsset();
+                            return new RecoveryResponse.RecoveryLine(
+                                    a.getAssetId(),
+                                    a.getAssetTag(),
+                                    a.getName(),
+                                    categoryCode(a),
+                                    null,
+                                    0,
+                                    List.of(),
+                                    Map.of());
+                        })
+                        .toList();
+                p = new RecoveryResponse(
+                        id,
+                        tx.getTransactionCode(),
+                        tx.getCompletedAt(),
+                        d.getReturner().getUserId(),
+                        d.getReturner().getFullName(),
+                        d.getReturner().getEmail(),
+                        d.getReceivingLocation().getLocationId(),
+                        d.getReceivingLocation().getName(),
+                        d.getRecoveryDate(),
+                        d.getReason(),
+                        "",
+                        lines);
             }
         }
-        if(tx.getStatus()==TransactionStatus.PARTIAL) {
-            var previews=jdbc.queryForList("SELECT preview::text FROM recovery_workflows WHERE transaction_id=?",String.class,id);
-            if(!previews.isEmpty())p=new RecoveryResponse(p.transactionId(),p.transactionCode(),p.completedAt(),p.returnerUserId(),p.returnerName(),p.returnerEmail(),p.receivingLocationId(),p.receivingLocationName(),p.recoveryDate(),p.reason(),p.fingerprint(),mergeLines(decode(previews.getFirst(),RecoveryResponse.class).lines(),p.lines()));
+        if (tx.getStatus() == TransactionStatus.PARTIAL) {
+            var previews = jdbc.queryForList(
+                    "SELECT preview::text FROM recovery_workflows WHERE transaction_id=?", String.class, id);
+            if (!previews.isEmpty())
+                p = new RecoveryResponse(
+                        p.transactionId(),
+                        p.transactionCode(),
+                        p.completedAt(),
+                        p.returnerUserId(),
+                        p.returnerName(),
+                        p.returnerEmail(),
+                        p.receivingLocationId(),
+                        p.receivingLocationName(),
+                        p.recoveryDate(),
+                        p.reason(),
+                        p.fingerprint(),
+                        mergeLines(
+                                decode(previews.getFirst(), RecoveryResponse.class)
+                                        .lines(),
+                                p.lines()));
         }
-        var proposals=jdbc.queryForList("SELECT preview::text FROM recovery_workflows WHERE transaction_id=?",String.class,id);
-        var proposalLines=proposals.isEmpty()?p.lines():decode(proposals.getFirst(),RecoveryResponse.class).lines();
-        return new RecoveryResponse(id,tx.getTransactionCode(),tx.getCompletedAt(),p.returnerUserId(),p.returnerName(),p.returnerEmail(),p.receivingLocationId(),p.receivingLocationName(),p.recoveryDate(),p.reason(),p.fingerprint(),p.lines(),tx.getStatus().name(),tx.getRequester().getUserId(),tx.getRequester().getFullName(),request(id),tx.getContentVersion(),readGroups(tx),proposalLines);
+        var proposals = jdbc.queryForList(
+                "SELECT preview::text FROM recovery_workflows WHERE transaction_id=?", String.class, id);
+        var proposalLines = proposals.isEmpty()
+                ? p.lines()
+                : decode(proposals.getFirst(), RecoveryResponse.class).lines();
+        return new RecoveryResponse(
+                id,
+                tx.getTransactionCode(),
+                tx.getCompletedAt(),
+                p.returnerUserId(),
+                p.returnerName(),
+                p.returnerEmail(),
+                p.receivingLocationId(),
+                p.receivingLocationName(),
+                p.recoveryDate(),
+                p.reason(),
+                p.fingerprint(),
+                p.lines(),
+                tx.getStatus().name(),
+                tx.getRequester().getUserId(),
+                tx.getRequester().getFullName(),
+                request(id),
+                tx.getContentVersion(),
+                readGroups(tx),
+                proposalLines);
     }
+
     private List<Group> readGroups(TransactionEntity tx) {
-        var existing=progress.read(tx.getTransactionId());
-        if(!existing.isEmpty()||tx.getStatus()!=TransactionStatus.PENDING)return existing;
-        var rows=jdbc.queryForList("SELECT preview::text FROM recovery_workflows WHERE transaction_id=?",String.class,tx.getTransactionId());
-        if(rows.isEmpty())return List.of();
-        var preview=decode(rows.getFirst(),RecoveryResponse.class);
-        var ids=preview.lines().stream().map(RecoveryResponse.RecoveryLine::assetId).collect(Collectors.toSet());
-        var grouped=new LinkedHashMap<Long,LinkedHashSet<Long>>();
-        for(var line:preview.lines())if(!"LICENSE".equals(line.category())) {
-            Long root=line.parentAssetId()!=null&&ids.contains(line.parentAssetId())?line.parentAssetId():line.assetId();
-            grouped.computeIfAbsent(root,k->new LinkedHashSet<>()).add(line.assetId());
+        var existing = progress.read(tx.getTransactionId());
+        if (!existing.isEmpty() || tx.getStatus() != TransactionStatus.PENDING) return existing;
+        var rows = jdbc.queryForList(
+                "SELECT preview::text FROM recovery_workflows WHERE transaction_id=?",
+                String.class,
+                tx.getTransactionId());
+        if (rows.isEmpty()) return List.of();
+        var preview = decode(rows.getFirst(), RecoveryResponse.class);
+        var ids = preview.lines().stream()
+                .map(RecoveryResponse.RecoveryLine::assetId)
+                .collect(Collectors.toSet());
+        var grouped = new LinkedHashMap<Long, LinkedHashSet<Long>>();
+        for (var line : preview.lines())
+            if (!"LICENSE".equals(line.category())) {
+                Long root = line.parentAssetId() != null && ids.contains(line.parentAssetId())
+                        ? line.parentAssetId()
+                        : line.assetId();
+                grouped.computeIfAbsent(root, k -> new LinkedHashSet<>()).add(line.assetId());
+            }
+        var result = new ArrayList<Group>();
+        for (var entry : grouped.entrySet()) {
+            var groupAssets = entry.getValue();
+            var oem = new ArrayList<Long>();
+            for (var link : links(groupAssets))
+                if (groupAssets.contains(link.parent())
+                        && "INSTALLED_ON".equals(link.type())
+                        && link.allocation() != null
+                        && LicenseCodes.OEM.equals(licenseCode(asset(link.child())))) {
+                    groupAssets.add(link.child());
+                    oem.add(link.allocation());
+                }
+            result.add(
+                    new Group("asset:" + entry.getKey(), "PENDING", List.copyOf(groupAssets), oem, null, null, null));
         }
-        var result=new ArrayList<Group>();
-        for(var entry:grouped.entrySet()) {
-            var groupAssets=entry.getValue();var oem=new ArrayList<Long>();
-            for(var link:links(groupAssets))if(groupAssets.contains(link.parent())&&"INSTALLED_ON".equals(link.type())&&link.allocation()!=null
-                    &&LicenseCodes.OEM.equals(licenseCode(asset(link.child())))) {groupAssets.add(link.child());oem.add(link.allocation());}
-            result.add(new Group("asset:"+entry.getKey(),"PENDING",List.copyOf(groupAssets),oem,null,null,null));
-        }
-        for(var line:preview.lines())for(var allocation:line.allocations())if(LicenseCodes.PER_USER.equals(allocation.assignmentType()))
-            result.add(new Group("allocation:"+allocation.allocationId(),"PENDING",List.of(line.assetId()),List.of(allocation.allocationId()),null,null,null));
+        for (var line : preview.lines())
+            for (var allocation : line.allocations())
+                if (LicenseCodes.PER_USER.equals(allocation.assignmentType()))
+                    result.add(new Group(
+                            "allocation:" + allocation.allocationId(),
+                            "PENDING",
+                            List.of(line.assetId()),
+                            List.of(allocation.allocationId()),
+                            null,
+                            null,
+                            null));
         return result;
     }
-    private List<RecoveryResponse.RecoveryLine> mergeLines(List<RecoveryResponse.RecoveryLine> base,List<RecoveryResponse.RecoveryLine> added) {
-        var result=new LinkedHashMap<Long,RecoveryResponse.RecoveryLine>();
-        for(var line:base)result.put(line.assetId(),line);
-        for(var line:added) {
-            var old=result.get(line.assetId());
-            if(old!=null&&!old.allocations().isEmpty()&&!line.allocations().isEmpty()) {
-                var allocationsById=new LinkedHashMap<Long,RecoveryResponse.AllocationResult>();
-                for(var allocation:old.allocations())allocationsById.put(allocation.allocationId(),allocation);
-                for(var allocation:line.allocations())allocationsById.put(allocation.allocationId(),allocation);
-                var merged=new ArrayList<>(allocationsById.values());
-                line=new RecoveryResponse.RecoveryLine(line.assetId(),line.assetTag(),line.name(),line.category(),line.parentAssetId(),merged.stream().filter(a->!"UNLINKED".equals(a.action())).mapToInt(RecoveryResponse.AllocationResult::seats).sum(),merged,line.details());
+
+    private List<RecoveryResponse.RecoveryLine> mergeLines(
+            List<RecoveryResponse.RecoveryLine> base, List<RecoveryResponse.RecoveryLine> added) {
+        var result = new LinkedHashMap<Long, RecoveryResponse.RecoveryLine>();
+        for (var line : base) result.put(line.assetId(), line);
+        for (var line : added) {
+            var old = result.get(line.assetId());
+            if (old != null
+                    && !old.allocations().isEmpty()
+                    && !line.allocations().isEmpty()) {
+                var allocationsById = new LinkedHashMap<Long, RecoveryResponse.AllocationResult>();
+                for (var allocation : old.allocations()) allocationsById.put(allocation.allocationId(), allocation);
+                for (var allocation : line.allocations()) allocationsById.put(allocation.allocationId(), allocation);
+                var merged = new ArrayList<>(allocationsById.values());
+                line = new RecoveryResponse.RecoveryLine(
+                        line.assetId(),
+                        line.assetTag(),
+                        line.name(),
+                        line.category(),
+                        line.parentAssetId(),
+                        merged.stream()
+                                .filter(a -> !"UNLINKED".equals(a.action()))
+                                .mapToInt(RecoveryResponse.AllocationResult::seats)
+                                .sum(),
+                        merged,
+                        line.details());
             }
-            result.put(line.assetId(),line);
+            result.put(line.assetId(), line);
         }
         return new ArrayList<>(result.values());
     }
-    public com.company.itam.common.pagination.PageResponse<RecoveryResponse> list(String keyword,String status,int page,int size) {
-        if(page<0||size<1||size>100||keyword.length()>100) fail("VALIDATION_INVALID");
-        TransactionStatus filter=null;
-        if(status!=null&&!status.isBlank()) try {filter=TransactionStatus.valueOf(status);} catch(IllegalArgumentException e){fail("VALIDATION_INVALID");}
-        final var selected=filter;
-        String search="%"+keyword.trim().toLowerCase(Locale.ROOT).replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%";
-        var result=transactions.findAll((root,q,b)-> {
-            var d=q.subquery(Long.class);var detail=d.from(TransactionRecoveryDetailEntity.class);
-            d.select(detail.get("transactionId")).where(b.equal(detail.get("transactionId"),root.get("transactionId")),b.or(b.like(b.lower(detail.get("returner").get("fullName")),search,'\\'),b.like(b.lower(detail.get("returner").get("employeeCode")),search,'\\')));
-            return b.and(b.equal(root.get("type"),TransactionType.RECOVERY),selected==null?b.conjunction():b.equal(root.get("status"),selected),b.or(b.like(b.lower(root.get("transactionCode")),search,'\\'),b.exists(d)));
-        },org.springframework.data.domain.PageRequest.of(page,size,org.springframework.data.domain.Sort.by("transactionId").descending()));
-        return com.company.itam.common.pagination.PageResponse.of(result.map(t->get(t.getTransactionId())));
+
+    public PageResponse<RecoveryResponse> list(String keyword, String status, int page, int size) {
+        if (page < 0 || size < 1 || size > 100 || keyword.length() > 100) fail("VALIDATION_INVALID");
+        TransactionStatus filter = null;
+        if (status != null && !status.isBlank())
+            try {
+                filter = TransactionStatus.valueOf(status);
+            } catch (IllegalArgumentException e) {
+                fail("VALIDATION_INVALID");
+            }
+        final var selected = filter;
+        String search = "%"
+                + keyword.trim()
+                        .toLowerCase(Locale.ROOT)
+                        .replace("\\", "\\\\")
+                        .replace("%", "\\%")
+                        .replace("_", "\\_") + "%";
+        var result = transactions.findAll(
+                (root, q, b) -> {
+                    var d = q.subquery(Long.class);
+                    var detail = d.from(TransactionRecoveryDetailEntity.class);
+                    d.select(detail.get("transactionId"))
+                            .where(
+                                    b.equal(detail.get("transactionId"), root.get("transactionId")),
+                                    b.or(
+                                            b.like(
+                                                    b.lower(detail.get("returner")
+                                                            .get("fullName")),
+                                                    search,
+                                                    '\\'),
+                                            b.like(
+                                                    b.lower(detail.get("returner")
+                                                            .get("employeeCode")),
+                                                    search,
+                                                    '\\')));
+                    return b.and(
+                            b.equal(root.get("type"), TransactionType.RECOVERY),
+                            selected == null ? b.conjunction() : b.equal(root.get("status"), selected),
+                            b.or(b.like(b.lower(root.get("transactionCode")), search, '\\'), b.exists(d)));
+                },
+                PageRequest.of(page, size, Sort.by("transactionId").descending()));
+        return PageResponse.of(result.map(t -> get(t.getTransactionId())));
     }
-    private SmartCheckResponse validate(RecoveryRequest req,boolean lock) {
-        var location=locations.findById(req.receivingLocationId()).orElseThrow(()->new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
-        if(!Boolean.TRUE.equals(location.getIsActive())) fail("RECOVERY_LOCATION_INACTIVE");
-        var check=prepare(new SmartCheckRequest(req.assetIds(),req.returnerUserId(),req.allocationIds(),req.reason()),lock).response();
-        if(!check.blockedAssets().isEmpty()) fail("RECOVERY_BLOCKED_ASSETS");
-        if(!Objects.equals(req.expectedFingerprint(),check.fingerprint())) fail("RECOVERY_CHANGED");
-        var optional=check.optionalAssets().stream().map(SmartCheckResponse.OptionalAsset::allocationId).collect(Collectors.toSet());
-        if(!optional.equals(req.perUserActions()==null?Set.of():req.perUserActions().keySet())||req.perUserActions()!=null&&req.perUserActions().values().stream().anyMatch(Objects::isNull)) fail("RECOVERY_CHANGED");
-        if(req.allocationIds()!=null&&!req.allocationIds().stream().allMatch(id->Boolean.TRUE.equals(req.perUserActions().get(id)))) fail("RECOVERY_CHANGED");
-        var components=check.componentDecisions().stream().map(SmartCheckResponse.ComponentDecision::assetId).collect(Collectors.toSet());
-        if(!components.equals(req.componentActions()==null?Set.of():req.componentActions().keySet())) fail("RECOVERY_CHANGED");
-        for(var decision:check.componentDecisions()) {var action=req.componentActions().get(decision.assetId());if(action==null||decision.options().stream().noneMatch(o->o.action().equals(action.componentAction()))) fail("RECOVERY_CHANGED");}
+
+    private SmartCheckResponse validate(RecoveryRequest req, boolean lock) {
+        var location = locations
+                .findById(req.receivingLocationId())
+                .orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
+        if (!Boolean.TRUE.equals(location.getIsActive())) fail("RECOVERY_LOCATION_INACTIVE");
+        var check = prepare(
+                        new SmartCheckRequest(req.assetIds(), req.returnerUserId(), req.allocationIds(), req.reason()),
+                        lock)
+                .response();
+        if (!check.blockedAssets().isEmpty()) fail("RECOVERY_BLOCKED_ASSETS");
+        if (!Objects.equals(req.expectedFingerprint(), check.fingerprint())) fail("RECOVERY_CHANGED");
+        var optional = check.optionalAssets().stream()
+                .map(SmartCheckResponse.OptionalAsset::allocationId)
+                .collect(Collectors.toSet());
+        if (!optional.equals(
+                        req.perUserActions() == null
+                                ? Set.of()
+                                : req.perUserActions().keySet())
+                || req.perUserActions() != null
+                        && req.perUserActions().values().stream().anyMatch(Objects::isNull)) fail("RECOVERY_CHANGED");
+        if (req.allocationIds() != null
+                && !req.allocationIds().stream()
+                        .allMatch(id -> Boolean.TRUE.equals(req.perUserActions().get(id)))) fail("RECOVERY_CHANGED");
+        var components = check.componentDecisions().stream()
+                .map(SmartCheckResponse.ComponentDecision::assetId)
+                .collect(Collectors.toSet());
+        if (!components.equals(
+                req.componentActions() == null
+                        ? Set.of()
+                        : req.componentActions().keySet())) fail("RECOVERY_CHANGED");
+        for (var decision : check.componentDecisions()) {
+            var action = req.componentActions().get(decision.assetId());
+            if (action == null
+                    || decision.options().stream().noneMatch(o -> o.action().equals(action.componentAction())))
+                fail("RECOVERY_CHANGED");
+        }
         return check;
     }
-    private void store(TransactionEntity tx,RecoveryRequest req,SmartCheckResponse check) {
-        var d=recoveryDetails.findById(tx.getTransactionId()).orElseGet(TransactionRecoveryDetailEntity::new);
-        var owner=users.findById(req.returnerUserId()).orElseThrow();var location=locations.findById(req.receivingLocationId()).orElseThrow();
-        d.setTransaction(tx);d.setReturner(owner);d.setReceivingLocation(location);d.setRecoveryDate(req.recoveryDate());d.setReason(req.reason());recoveryDetails.saveAndFlush(d);tx.setNotes(req.reason());
-        var lines=new LinkedHashMap<Long,RecoveryResponse.RecoveryLine>();
-        for(var a:check.requiredAssets()) lines.put(a.assetId(),new RecoveryResponse.RecoveryLine(a.assetId(),a.assetTag(),a.name(),a.category(),parentId(a.assetId()),0,List.of(),Map.of()));
-        for(var a:check.optionalAssets()) {
-            var prev=lines.get(a.assetId());var al=new ArrayList<RecoveryResponse.AllocationResult>(prev==null?List.of():prev.allocations());
-            al.add(new RecoveryResponse.AllocationResult(a.allocationId(),a.seats(),Boolean.TRUE.equals(req.perUserActions().get(a.allocationId()))?"RECOVER":"UNLINKED",LicenseCodes.PER_USER));
-            lines.put(a.assetId(),new RecoveryResponse.RecoveryLine(a.assetId(),a.assetTag(),a.name(),"LICENSE",null,al.stream().mapToInt(RecoveryResponse.AllocationResult::seats).sum(),al,Map.of()));
+
+    private void store(TransactionEntity tx, RecoveryRequest req, SmartCheckResponse check) {
+        var d = recoveryDetails.findById(tx.getTransactionId()).orElseGet(TransactionRecoveryDetailEntity::new);
+        var owner = users.findById(req.returnerUserId()).orElseThrow();
+        var location = locations.findById(req.receivingLocationId()).orElseThrow();
+        d.setTransaction(tx);
+        d.setReturner(owner);
+        d.setReceivingLocation(location);
+        d.setRecoveryDate(req.recoveryDate());
+        d.setReason(req.reason());
+        recoveryDetails.saveAndFlush(d);
+        tx.setNotes(req.reason());
+        var lines = new LinkedHashMap<Long, RecoveryResponse.RecoveryLine>();
+        for (var a : check.requiredAssets())
+            lines.put(
+                    a.assetId(),
+                    new RecoveryResponse.RecoveryLine(
+                            a.assetId(),
+                            a.assetTag(),
+                            a.name(),
+                            a.category(),
+                            parentId(a.assetId()),
+                            0,
+                            List.of(),
+                            Map.of()));
+        for (var a : check.optionalAssets()) {
+            var prev = lines.get(a.assetId());
+            var al = new ArrayList<RecoveryResponse.AllocationResult>(prev == null ? List.of() : prev.allocations());
+            al.add(new RecoveryResponse.AllocationResult(
+                    a.allocationId(),
+                    a.seats(),
+                    Boolean.TRUE.equals(req.perUserActions().get(a.allocationId())) ? "RECOVER" : "UNLINKED",
+                    LicenseCodes.PER_USER));
+            lines.put(
+                    a.assetId(),
+                    new RecoveryResponse.RecoveryLine(
+                            a.assetId(),
+                            a.assetTag(),
+                            a.name(),
+                            "LICENSE",
+                            null,
+                            al.stream()
+                                    .mapToInt(RecoveryResponse.AllocationResult::seats)
+                                    .sum(),
+                            al,
+                            Map.of()));
         }
-        var preview=new RecoveryResponse(tx.getTransactionId(),tx.getTransactionCode(),null,owner.getUserId(),owner.getFullName(),owner.getEmail(),location.getLocationId(),location.getName(),req.recoveryDate(),req.reason(),check.fingerprint(),new ArrayList<>(lines.values()));
-        jdbc.update("DELETE FROM transaction_assets WHERE transaction_id=?",tx.getTransactionId());int n=0;
-        for(var id:lines.keySet()) jdbc.update("INSERT INTO transaction_assets(transaction_id,asset_id,line_number) VALUES (?,?,?)",tx.getTransactionId(),id,++n);
-        jdbc.update("INSERT INTO recovery_workflows(transaction_id,request,preview) VALUES (?,?::jsonb,?::jsonb) ON CONFLICT(transaction_id) DO UPDATE SET request=EXCLUDED.request,preview=EXCLUDED.preview",tx.getTransactionId(),encode(req),encode(preview));
-        progress.save(tx.getTransactionId(),List.of());
+        var preview = new RecoveryResponse(
+                tx.getTransactionId(),
+                tx.getTransactionCode(),
+                null,
+                owner.getUserId(),
+                owner.getFullName(),
+                owner.getEmail(),
+                location.getLocationId(),
+                location.getName(),
+                req.recoveryDate(),
+                req.reason(),
+                check.fingerprint(),
+                new ArrayList<>(lines.values()));
+        jdbc.update("DELETE FROM transaction_assets WHERE transaction_id=?", tx.getTransactionId());
+        int n = 0;
+        for (var id : lines.keySet())
+            jdbc.update(
+                    "INSERT INTO transaction_assets(transaction_id,asset_id,line_number) VALUES (?,?,?)",
+                    tx.getTransactionId(),
+                    id,
+                    ++n);
+        jdbc.update(
+                "INSERT INTO recovery_workflows(transaction_id,request,preview) VALUES (?,?::jsonb,?::jsonb) ON CONFLICT(transaction_id) DO UPDATE SET request=EXCLUDED.request,preview=EXCLUDED.preview",
+                tx.getTransactionId(),
+                encode(req),
+                encode(preview));
+        progress.save(tx.getTransactionId(), List.of());
     }
-    private void record(TransactionEntity tx,String action) {
-        var log=new AuditLogEntity();log.setEntityType("TRANSACTION");log.setEntityId(tx.getTransactionId());log.setTransaction(tx);log.setAction(action);log.setActor(actor());log.setNewData(Map.of("status",tx.getStatus().name()));auditLogs.save(log);
+
+    private void record(TransactionEntity tx, String action) {
+        var log = new AuditLogEntity();
+        log.setEntityType("TRANSACTION");
+        log.setEntityId(tx.getTransactionId());
+        log.setTransaction(tx);
+        log.setAction(action);
+        log.setActor(actor());
+        log.setNewData(Map.of("status", tx.getStatus().name()));
+        auditLogs.save(log);
     }
+
     @Transactional
     public RecoveryResponse create(RecoveryRequest req) {
-        var check=validate(req,false);var tx=new TransactionEntity();tx.setTransactionCode("RC-"+UUID.randomUUID());tx.setType(TransactionType.RECOVERY);tx.setStatus(TransactionStatus.DRAFT);tx.setRequester(actor());transactions.saveAndFlush(tx);
-        store(tx,req,check);record(tx,"RECOVERY_CREATED");return get(tx.getTransactionId());
+        var check = validate(req, false);
+        var tx = new TransactionEntity();
+        tx.setTransactionCode("RC-" + UUID.randomUUID());
+        tx.setType(TransactionType.RECOVERY);
+        tx.setStatus(TransactionStatus.DRAFT);
+        tx.setRequester(actor());
+        transactions.saveAndFlush(tx);
+        store(tx, req, check);
+        record(tx, "RECOVERY_CREATED");
+        return get(tx.getTransactionId());
     }
+
     @Transactional
-    public RecoveryResponse update(Long id,RecoveryRequest req) {
-        var tx=transaction(id,true);access.requireCreator(tx,false);if(tx.getStatus()!=TransactionStatus.DRAFT) fail("DOCUMENT_LOCKED");
-        store(tx,req,validate(req,false));progress.advance(tx);transactions.flush();record(tx,"RECOVERY_UPDATED");return get(id);
+    public RecoveryResponse update(Long id, RecoveryRequest req) {
+        var tx = transaction(id, true);
+        access.requireCreator(tx, false);
+        if (tx.getStatus() != TransactionStatus.DRAFT) fail("DOCUMENT_LOCKED");
+        store(tx, req, validate(req, false));
+        progress.advance(tx);
+        transactions.flush();
+        record(tx, "RECOVERY_UPDATED");
+        return get(id);
     }
+
     @Transactional
-    public RecoveryResponse update(Long id,RecoveryRequest req,Long version) {progress.requireVersion(transaction(id,true),version);return update(id,req);}
+    public RecoveryResponse update(Long id, RecoveryRequest req, Long version) {
+        progress.requireVersion(transaction(id, true), version);
+        return update(id, req);
+    }
+
     private void lockRequest(RecoveryRequest req) {
-        var ids=new TreeSet<>(req.assetIds());
-        if(req.allocationIds()!=null) for(var id:req.allocationIds()) ids.add(allocations.licenseId(id).orElseThrow());
-        for(var l:links(new ArrayList<>(ids))) {ids.add(l.parent());ids.add(l.child());}
-        for(var id:ids) assets.lockById(id).orElseThrow();
+        var ids = new TreeSet<>(req.assetIds());
+        if (req.allocationIds() != null)
+            for (var id : req.allocationIds()) ids.add(allocations.licenseId(id).orElseThrow());
+        for (var l : links(new ArrayList<>(ids))) {
+            ids.add(l.parent());
+            ids.add(l.child());
+        }
+        for (var id : ids) assets.lockById(id).orElseThrow();
     }
+
     private void release(Long id) {
-        jdbc.update("DELETE FROM recovery_asset_reservations WHERE transaction_id=?",id);
-        jdbc.update("DELETE FROM recovery_allocation_reservations WHERE transaction_id=?",id);
+        jdbc.update("DELETE FROM recovery_asset_reservations WHERE transaction_id=?", id);
+        jdbc.update("DELETE FROM recovery_allocation_reservations WHERE transaction_id=?", id);
     }
-    private void releaseUnusedAssets(Long id,List<Group> groups) {
-        var needed=new HashSet<Long>();
-        for(var group:groups) if("PENDING".equals(group.status())) {
-            for(var assetId:group.assetIds()) if(categoryOf(asset(assetId))!=AssetCategory.LICENSE)needed.add(assetId);
-            for(var allocationId:group.allocationIds()) {
-                var a=allocations.findById(allocationId).orElseThrow();
-                if(a.getDevice()!=null)needed.add(a.getDevice().getAssetId());
+
+    private void releaseUnusedAssets(Long id, List<Group> groups) {
+        var needed = new HashSet<Long>();
+        for (var group : groups)
+            if ("PENDING".equals(group.status())) {
+                for (var assetId : group.assetIds())
+                    if (categoryOf(asset(assetId)) != AssetCategory.LICENSE) needed.add(assetId);
+                for (var allocationId : group.allocationIds()) {
+                    var a = allocations.findById(allocationId).orElseThrow();
+                    if (a.getDevice() != null) needed.add(a.getDevice().getAssetId());
+                }
             }
-        }
-        for(var assetId:jdbc.queryForList("SELECT asset_id FROM recovery_asset_reservations WHERE transaction_id=?",Long.class,id))
-            if(!needed.contains(assetId))jdbc.update("DELETE FROM recovery_asset_reservations WHERE asset_id=? AND transaction_id=?",assetId,id);
+        for (var assetId : jdbc.queryForList(
+                "SELECT asset_id FROM recovery_asset_reservations WHERE transaction_id=?", Long.class, id))
+            if (!needed.contains(assetId))
+                jdbc.update(
+                        "DELETE FROM recovery_asset_reservations WHERE asset_id=? AND transaction_id=?", assetId, id);
     }
+
     private List<Group> groups(SmartCheckResponse check) {
-        var grouped=new LinkedHashMap<Long,LinkedHashSet<Long>>();
-        for(var line:check.requiredAssets()) if(!"LICENSE".equals(line.category())) {
-            Long parent=parentId(line.assetId());
-            Long root=parent!=null&&check.requiredAssets().stream().anyMatch(a->a.assetId().equals(parent))?parent:line.assetId();
-            grouped.computeIfAbsent(root,ignored->new LinkedHashSet<>()).add(line.assetId());
+        var grouped = new LinkedHashMap<Long, LinkedHashSet<Long>>();
+        for (var line : check.requiredAssets())
+            if (!"LICENSE".equals(line.category())) {
+                Long parent = parentId(line.assetId());
+                Long root = parent != null
+                                && check.requiredAssets().stream()
+                                        .anyMatch(a -> a.assetId().equals(parent))
+                        ? parent
+                        : line.assetId();
+                grouped.computeIfAbsent(root, ignored -> new LinkedHashSet<>()).add(line.assetId());
+            }
+        var result = new ArrayList<Group>();
+        for (var entry : grouped.entrySet()) {
+            var assetIds = new LinkedHashSet<>(entry.getValue());
+            var allocationIds = new LinkedHashSet<Long>();
+            for (var link : links(assetIds))
+                if (assetIds.contains(link.parent())
+                        && "INSTALLED_ON".equals(link.type())
+                        && link.allocation() != null
+                        && LicenseCodes.OEM.equals(licenseCode(asset(link.child())))) {
+                    assetIds.add(link.child());
+                    allocationIds.add(link.allocation());
+                }
+            result.add(new Group(
+                    "asset:" + entry.getKey(),
+                    "PENDING",
+                    List.copyOf(assetIds),
+                    List.copyOf(allocationIds),
+                    null,
+                    null,
+                    null));
         }
-        var result=new ArrayList<Group>();
-        for(var entry:grouped.entrySet()) {
-            var assetIds=new LinkedHashSet<>(entry.getValue());var allocationIds=new LinkedHashSet<Long>();
-            for(var link:links(assetIds)) if(assetIds.contains(link.parent())&&"INSTALLED_ON".equals(link.type())&&link.allocation()!=null
-                    &&LicenseCodes.OEM.equals(licenseCode(asset(link.child())))) {assetIds.add(link.child());allocationIds.add(link.allocation());}
-            result.add(new Group("asset:"+entry.getKey(),"PENDING",List.copyOf(assetIds),List.copyOf(allocationIds),null,null,null));
-        }
-        for(var line:check.optionalAssets()) result.add(new Group("allocation:"+line.allocationId(),"PENDING",List.of(line.assetId()),List.of(line.allocationId()),null,null,null));
+        for (var line : check.optionalAssets())
+            result.add(new Group(
+                    "allocation:" + line.allocationId(),
+                    "PENDING",
+                    List.of(line.assetId()),
+                    List.of(line.allocationId()),
+                    null,
+                    null,
+                    null));
         return result;
     }
+
     @Transactional
     public RecoveryResponse submit(Long id) {
-        var tx=transaction(id,true);access.requireCreator(tx,false);if(tx.getStatus()==TransactionStatus.PENDING)return get(id);if(tx.getStatus()!=TransactionStatus.DRAFT)fail("DOCUMENT_LOCKED");
-        var req=request(id);var check=validate(req,true);
-        var physical=new TreeSet<Long>();var allocationIds=new TreeSet<Long>();
-        for(var a:check.requiredAssets()) if(!"LICENSE".equals(a.category()))physical.add(a.assetId());
-        for(var a:check.optionalAssets()) {allocationIds.add(a.allocationId());if(a.deviceId()!=null)physical.add(a.deviceId());}
-        for(var l:links(physical)) if(l.allocation()!=null&&physical.contains(l.parent())) allocationIds.add(l.allocation());
-        for(var assetId:physical) {
-            if(assets.hasPendingDisposal(assetId))fail("DISPOSAL_ALREADY_PENDING");
-            if(assets.hasPendingHandover(assetId)||assets.hasPendingRecovery(assetId))fail("RECOVERY_ASSET_RESERVED");
-            jdbc.update("INSERT INTO recovery_asset_reservations(asset_id,transaction_id) VALUES (?,?)",assetId,id);
+        var tx = transaction(id, true);
+        access.requireCreator(tx, false);
+        if (tx.getStatus() == TransactionStatus.PENDING) return get(id);
+        if (tx.getStatus() != TransactionStatus.DRAFT) fail("DOCUMENT_LOCKED");
+        var req = request(id);
+        var check = validate(req, true);
+        var physical = new TreeSet<Long>();
+        var allocationIds = new TreeSet<Long>();
+        for (var a : check.requiredAssets()) if (!"LICENSE".equals(a.category())) physical.add(a.assetId());
+        for (var a : check.optionalAssets()) {
+            allocationIds.add(a.allocationId());
+            if (a.deviceId() != null) physical.add(a.deviceId());
         }
-        for(var allocationId:allocationIds) {
-            if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM recovery_allocation_reservations WHERE allocation_id=?)",Boolean.class,allocationId)))fail("RECOVERY_ASSET_RESERVED");
-            jdbc.update("INSERT INTO recovery_allocation_reservations(allocation_id,transaction_id) VALUES (?,?)",allocationId,id);
+        for (var l : links(physical))
+            if (l.allocation() != null && physical.contains(l.parent())) allocationIds.add(l.allocation());
+        for (var assetId : physical) {
+            if (assets.hasPendingDisposal(assetId)) fail("DISPOSAL_ALREADY_PENDING");
+            if (assets.hasPendingHandover(assetId) || assets.hasPendingRecovery(assetId))
+                fail("RECOVERY_ASSET_RESERVED");
+            jdbc.update("INSERT INTO recovery_asset_reservations(asset_id,transaction_id) VALUES (?,?)", assetId, id);
         }
-        progress.save(id,groups(check));tx.setStatus(TransactionStatus.PENDING);progress.advance(tx);transactions.flush();record(tx,"RECOVERY_SUBMITTED");return get(id);
+        for (var allocationId : allocationIds) {
+            if (Boolean.TRUE.equals(jdbc.queryForObject(
+                    "SELECT EXISTS(SELECT 1 FROM recovery_allocation_reservations WHERE allocation_id=?)",
+                    Boolean.class,
+                    allocationId))) fail("RECOVERY_ASSET_RESERVED");
+            jdbc.update(
+                    "INSERT INTO recovery_allocation_reservations(allocation_id,transaction_id) VALUES (?,?)",
+                    allocationId,
+                    id);
+        }
+        progress.save(id, groups(check));
+        tx.setStatus(TransactionStatus.PENDING);
+        progress.advance(tx);
+        transactions.flush();
+        record(tx, "RECOVERY_SUBMITTED");
+        return get(id);
     }
+
     @Transactional
-    public RecoveryResponse submit(Long id,Long version) {progress.requireVersion(transaction(id,true),version);return submit(id);}
-    @Transactional
-    public RecoveryResponse change(Long id,String action) {
-        var tx=transaction(id,true);access.requireCreator(tx,"cancel".equals(action)&&tx.getStatus()==TransactionStatus.PENDING);
-        if("withdraw".equals(action)&&tx.getStatus()==TransactionStatus.PENDING) {lockRequest(request(id));release(id);tx.setStatus(TransactionStatus.DRAFT);progress.advance(tx);}
-        else if("cancel".equals(action)&&(tx.getStatus()==TransactionStatus.DRAFT||tx.getStatus()==TransactionStatus.PENDING)) {lockRequest(request(id));release(id);tx.setStatus(TransactionStatus.CANCELLED);progress.save(id,progress.read(id).stream().map(g->new Group(g.groupId(),"CANCELLED",g.assetIds(),g.allocationIds(),null,Instant.now(),null)).toList());progress.advance(tx);}
-        else fail("DOCUMENT_LOCKED");
-        transactions.flush();record(tx,"RECOVERY_"+action.toUpperCase(Locale.ROOT));return get(id);
+    public RecoveryResponse submit(Long id, Long version) {
+        progress.requireVersion(transaction(id, true), version);
+        return submit(id);
     }
+
     @Transactional
-    public RecoveryResponse change(Long id,String action,Long version) {progress.requireVersion(transaction(id,true),version);return change(id,action);}
+    public RecoveryResponse change(Long id, String action) {
+        var tx = transaction(id, true);
+        access.requireCreator(tx, "cancel".equals(action) && tx.getStatus() == TransactionStatus.PENDING);
+        if ("withdraw".equals(action) && tx.getStatus() == TransactionStatus.PENDING) {
+            lockRequest(request(id));
+            release(id);
+            tx.setStatus(TransactionStatus.DRAFT);
+            progress.advance(tx);
+        } else if ("cancel".equals(action)
+                && (tx.getStatus() == TransactionStatus.DRAFT || tx.getStatus() == TransactionStatus.PENDING)) {
+            lockRequest(request(id));
+            release(id);
+            tx.setStatus(TransactionStatus.CANCELLED);
+            progress.save(
+                    id,
+                    progress.read(id).stream()
+                            .map(g -> new Group(
+                                    g.groupId(),
+                                    "CANCELLED",
+                                    g.assetIds(),
+                                    g.allocationIds(),
+                                    null,
+                                    Instant.now(),
+                                    null))
+                            .toList());
+            progress.advance(tx);
+        } else fail("DOCUMENT_LOCKED");
+        transactions.flush();
+        record(tx, "RECOVERY_" + action.toUpperCase(Locale.ROOT));
+        return get(id);
+    }
+
+    @Transactional
+    public RecoveryResponse change(Long id, String action, Long version) {
+        progress.requireVersion(transaction(id, true), version);
+        return change(id, action);
+    }
+
     @Transactional
     public RecoveryResponse confirm(Long id) {
-        var tx=transaction(id,true);if(tx.getStatus()==TransactionStatus.COMPLETED)return get(id);
-        if(tx.getStatus()!=TransactionStatus.PENDING)fail("DOCUMENT_LOCKED");
-        return confirm(id,new WorkflowProgressModels.Action(tx.getContentVersion(),readGroups(tx).stream().filter(g->"PENDING".equals(g.status())).map(Group::groupId).toList(),null));
+        var tx = transaction(id, true);
+        if (tx.getStatus() == TransactionStatus.COMPLETED) return get(id);
+        if (tx.getStatus() != TransactionStatus.PENDING) fail("DOCUMENT_LOCKED");
+        return confirm(
+                id,
+                new WorkflowProgressModels.Action(
+                        tx.getContentVersion(),
+                        readGroups(tx).stream()
+                                .filter(g -> "PENDING".equals(g.status()))
+                                .map(Group::groupId)
+                                .toList(),
+                        null));
     }
+
     @Transactional
-    public RecoveryResponse confirm(Long id,Long version) {progress.requireVersion(transaction(id,true),version);return confirm(id);}
+    public RecoveryResponse confirm(Long id, Long version) {
+        progress.requireVersion(transaction(id, true), version);
+        return confirm(id);
+    }
+
     @Transactional
-    public RecoveryResponse confirm(Long id,WorkflowProgressModels.Action action) {
-        var tx=transaction(id,true);progress.requireVersion(tx,action.expectedVersion());
-        if(tx.getStatus()!=TransactionStatus.PENDING&&tx.getStatus()!=TransactionStatus.PARTIAL)fail("DOCUMENT_LOCKED");
-        var all=readGroups(tx);var selected=progress.requireSelection(all,action.groupIds(),"PENDING");
-        for(var group:selected) if(group.groupId().startsWith("asset:"))for(var assetId:group.assetIds())
-            if(categoryOf(asset(assetId))==AssetCategory.DEVICE)for(var allocation:allocations.findByDeviceAssetId(assetId))
-                if(allocation.getStatus()==LicenseAllocationStatus.ACTIVE&&LicenseCodes.PER_USER.equals(licenseCode(allocation.getLicense()))) {
-                    var seat=all.stream().filter(g->g.allocationIds().contains(allocation.getAllocationId())).findFirst().orElse(null);
-                    if(seat==null||!selected.contains(seat))fail("WORKFLOW_GROUP_REQUIRED");
-                }
-        var physical=new TreeSet<Long>();var allocationIds=new TreeSet<Long>();
-        for(var group:selected) {
-            for(var assetId:group.assetIds()) if(categoryOf(asset(assetId))!=AssetCategory.LICENSE)physical.add(assetId);
+    public RecoveryResponse confirm(Long id, WorkflowProgressModels.Action action) {
+        var tx = transaction(id, true);
+        progress.requireVersion(tx, action.expectedVersion());
+        if (tx.getStatus() != TransactionStatus.PENDING && tx.getStatus() != TransactionStatus.PARTIAL)
+            fail("DOCUMENT_LOCKED");
+        var all = readGroups(tx);
+        var selected = progress.requireSelection(all, action.groupIds(), "PENDING");
+        for (var group : selected)
+            if (group.groupId().startsWith("asset:"))
+                for (var assetId : group.assetIds())
+                    if (categoryOf(asset(assetId)) == AssetCategory.DEVICE)
+                        for (var allocation : allocations.findByDeviceAssetId(assetId))
+                            if (allocation.getStatus() == LicenseAllocationStatus.ACTIVE
+                                    && LicenseCodes.PER_USER.equals(licenseCode(allocation.getLicense()))) {
+                                var seat = all.stream()
+                                        .filter(g -> g.allocationIds().contains(allocation.getAllocationId()))
+                                        .findFirst()
+                                        .orElse(null);
+                                if (seat == null || !selected.contains(seat)) fail("WORKFLOW_GROUP_REQUIRED");
+                            }
+        var physical = new TreeSet<Long>();
+        var allocationIds = new TreeSet<Long>();
+        for (var group : selected) {
+            for (var assetId : group.assetIds())
+                if (categoryOf(asset(assetId)) != AssetCategory.LICENSE) physical.add(assetId);
             allocationIds.addAll(group.allocationIds());
         }
-        for(var assetId:physical) assets.lockById(assetId).orElseThrow();
-        for(var assetId:physical) {
-            var owner=jdbc.queryForList("SELECT transaction_id FROM recovery_asset_reservations WHERE asset_id=?",Long.class,assetId);
-            if(owner.size()!=1||!owner.getFirst().equals(id)) fail("RECOVERY_CHANGED");
+        for (var assetId : physical) assets.lockById(assetId).orElseThrow();
+        for (var assetId : physical) {
+            var owner = jdbc.queryForList(
+                    "SELECT transaction_id FROM recovery_asset_reservations WHERE asset_id=?", Long.class, assetId);
+            if (owner.size() != 1 || !owner.getFirst().equals(id)) fail("RECOVERY_CHANGED");
         }
-        for(var allocationId:allocationIds) {
-            var owner=jdbc.queryForList("SELECT transaction_id FROM recovery_allocation_reservations WHERE allocation_id=?",Long.class,allocationId);
-            if(owner.size()!=1||!owner.getFirst().equals(id)) fail("RECOVERY_CHANGED");
+        for (var allocationId : allocationIds) {
+            var owner = jdbc.queryForList(
+                    "SELECT transaction_id FROM recovery_allocation_reservations WHERE allocation_id=?",
+                    Long.class,
+                    allocationId);
+            if (owner.size() != 1 || !owner.getFirst().equals(id)) fail("RECOVERY_CHANGED");
         }
-        for(var assetId:physical) jdbc.update("DELETE FROM recovery_asset_reservations WHERE asset_id=? AND transaction_id=?",assetId,id);
-        for(var allocationId:allocationIds) jdbc.update("DELETE FROM recovery_allocation_reservations WHERE allocation_id=? AND transaction_id=?",allocationId,id);
-        var req=request(id);var returner=req.returnerUserId();
-        for(var assetId:physical) {var a=asset(assetId);if(a.getStatus().getCode()!=AssetStatus.IN_USE||a.getAssignedTo()==null||!returner.equals(a.getAssignedTo().getUserId()))fail("RECOVERY_CHANGED");}
-        for(var allocationId:allocationIds) {var a=allocations.findById(allocationId).orElseThrow();if(a.getStatus()!=LicenseAllocationStatus.ACTIVE||a.getUser()==null||!returner.equals(a.getUser().getUserId()))fail("RECOVERY_CHANGED");}
-        var batch=finish(req,tx,selected);
-        var previous=jdbc.queryForList("SELECT result::text FROM recovery_workflows WHERE transaction_id=? AND result IS NOT NULL",String.class,id);
-        var lines=mergeLines(previous.isEmpty()?List.of():decode(previous.getFirst(),RecoveryResponse.class).lines(),batch.lines());
-        var now=Instant.now();var changed=all.stream().map(g->selected.contains(g)?new Group(g.groupId(),"COMPLETED",g.assetIds(),g.allocationIds(),null,now,null):g).toList();
-        progress.save(id,changed);releaseUnusedAssets(id,changed);progress.advance(tx);
-        tx.setProcessedBy(actor());tx.setProcessedAt(now);
-        boolean pending=changed.stream().anyMatch(g->"PENDING".equals(g.status()));
-        tx.setStatus(pending?TransactionStatus.PARTIAL:TransactionStatus.COMPLETED);
-        if(!pending){tx.setCompletedAt(now);release(id);}
-        transactions.saveAndFlush(tx);
-        var combined=new RecoveryResponse(id,tx.getTransactionCode(),tx.getCompletedAt(),batch.returnerUserId(),batch.returnerName(),batch.returnerEmail(),batch.receivingLocationId(),batch.receivingLocationName(),batch.recoveryDate(),batch.reason(),batch.fingerprint(),lines);
-        jdbc.update("UPDATE recovery_workflows SET result=?::jsonb WHERE transaction_id=?",encode(combined),id);
-        if(!pending) {
-            var result=get(id);jdbc.update("INSERT INTO transaction_publication_snapshots(transaction_id,snapshot) VALUES (?,?::jsonb)",id,encode(result));
-            publications.afterCommit(id,()->publications.onCompleted(id,result));return result;
+        for (var assetId : physical)
+            jdbc.update("DELETE FROM recovery_asset_reservations WHERE asset_id=? AND transaction_id=?", assetId, id);
+        for (var allocationId : allocationIds)
+            jdbc.update(
+                    "DELETE FROM recovery_allocation_reservations WHERE allocation_id=? AND transaction_id=?",
+                    allocationId,
+                    id);
+        var req = request(id);
+        var returner = req.returnerUserId();
+        for (var assetId : physical) {
+            var a = asset(assetId);
+            if (a.getStatus().getCode() != AssetStatus.IN_USE
+                    || a.getAssignedTo() == null
+                    || !returner.equals(a.getAssignedTo().getUserId())) fail("RECOVERY_CHANGED");
         }
-        return get(id);
-    }
-    @Transactional
-    public RecoveryResponse cancelRemaining(Long id,WorkflowProgressModels.Action action) {
-        var tx=transaction(id,true);progress.requireVersion(tx,action.expectedVersion());
-        if(tx.getStatus()!=TransactionStatus.PENDING&&tx.getStatus()!=TransactionStatus.PARTIAL)fail("DOCUMENT_LOCKED");
-        access.requireCreator(tx,true);
-        if(action.reason()==null||action.reason().isBlank())throw new AppException(HttpStatus.BAD_REQUEST,"VALIDATION_REQUIRED","VALIDATION_REQUIRED");
-        var all=readGroups(tx);var selected=progress.requireSelection(all,action.groupIds(),"PENDING");
-        var now=Instant.now();
-        for(var group:selected) {
-            for(var assetId:group.assetIds()) if(categoryOf(asset(assetId))!=AssetCategory.LICENSE)
-                jdbc.update("DELETE FROM recovery_asset_reservations WHERE asset_id=? AND transaction_id=?",assetId,id);
-            for(var allocationId:group.allocationIds()) jdbc.update("DELETE FROM recovery_allocation_reservations WHERE allocation_id=? AND transaction_id=?",allocationId,id);
+        for (var allocationId : allocationIds) {
+            var a = allocations.findById(allocationId).orElseThrow();
+            if (a.getStatus() != LicenseAllocationStatus.ACTIVE
+                    || a.getUser() == null
+                    || !returner.equals(a.getUser().getUserId())) fail("RECOVERY_CHANGED");
         }
-        var changed=all.stream().map(g->selected.contains(g)?new Group(g.groupId(),"CANCELLED",g.assetIds(),g.allocationIds(),action.reason(),now,null):g).toList();
-        progress.save(id,changed);releaseUnusedAssets(id,changed);progress.advance(tx);
-        if(changed.stream().noneMatch(g->"PENDING".equals(g.status()))) {
+        var batch = finish(req, tx, selected);
+        var previous = jdbc.queryForList(
+                "SELECT result::text FROM recovery_workflows WHERE transaction_id=? AND result IS NOT NULL",
+                String.class,
+                id);
+        var lines = mergeLines(
+                previous.isEmpty()
+                        ? List.of()
+                        : decode(previous.getFirst(), RecoveryResponse.class).lines(),
+                batch.lines());
+        var now = Instant.now();
+        var changed = all.stream()
+                .map(g -> selected.contains(g)
+                        ? new Group(g.groupId(), "COMPLETED", g.assetIds(), g.allocationIds(), null, now, null)
+                        : g)
+                .toList();
+        progress.save(id, changed);
+        releaseUnusedAssets(id, changed);
+        progress.advance(tx);
+        tx.setProcessedBy(actor());
+        tx.setProcessedAt(now);
+        boolean pending = changed.stream().anyMatch(g -> "PENDING".equals(g.status()));
+        tx.setStatus(pending ? TransactionStatus.PARTIAL : TransactionStatus.COMPLETED);
+        if (!pending) {
+            tx.setCompletedAt(now);
             release(id);
-            boolean completed=changed.stream().anyMatch(g->"COMPLETED".equals(g.status()));
-            tx.setStatus(completed?TransactionStatus.COMPLETED:TransactionStatus.CANCELLED);if(completed)tx.setCompletedAt(now);
         }
         transactions.saveAndFlush(tx);
-        var log=new AuditLogEntity();log.setEntityType("TRANSACTION");log.setEntityId(id);log.setTransaction(tx);log.setAction("RECOVERY_REMAINDER_CANCELLED");log.setActor(actor());log.setNewData(Map.of("groupIds",action.groupIds(),"reason",action.reason(),"at",now.toString()));auditLogs.save(log);
-        if(tx.getStatus()==TransactionStatus.COMPLETED) {
-            var result=jdbc.queryForList("SELECT result::text FROM recovery_workflows WHERE transaction_id=? AND result IS NOT NULL",String.class,id);
-            if(!result.isEmpty()) {
-                var prior=decode(result.getFirst(),RecoveryResponse.class);
-                var finalResult=new RecoveryResponse(id,tx.getTransactionCode(),tx.getCompletedAt(),prior.returnerUserId(),prior.returnerName(),prior.returnerEmail(),prior.receivingLocationId(),prior.receivingLocationName(),prior.recoveryDate(),prior.reason(),prior.fingerprint(),prior.lines());
-                jdbc.update("UPDATE recovery_workflows SET result=?::jsonb WHERE transaction_id=?",encode(finalResult),id);
-            }
-            var response=get(id);jdbc.update("INSERT INTO transaction_publication_snapshots(transaction_id,snapshot) VALUES (?,?::jsonb)",id,encode(response));
-            publications.afterCommit(id,()->publications.onCompleted(id,response));return response;
+        var combined = new RecoveryResponse(
+                id,
+                tx.getTransactionCode(),
+                tx.getCompletedAt(),
+                batch.returnerUserId(),
+                batch.returnerName(),
+                batch.returnerEmail(),
+                batch.receivingLocationId(),
+                batch.receivingLocationName(),
+                batch.recoveryDate(),
+                batch.reason(),
+                batch.fingerprint(),
+                lines);
+        jdbc.update("UPDATE recovery_workflows SET result=?::jsonb WHERE transaction_id=?", encode(combined), id);
+        if (!pending) {
+            var result = get(id);
+            jdbc.update(
+                    "INSERT INTO transaction_publication_snapshots(transaction_id,snapshot) VALUES (?,?::jsonb)",
+                    id,
+                    encode(result));
+            publications.afterCommit(id, () -> publications.onCompleted(id, result));
+            return result;
         }
         return get(id);
     }
+
+    @Transactional
+    public RecoveryResponse cancelRemaining(Long id, WorkflowProgressModels.Action action) {
+        var tx = transaction(id, true);
+        progress.requireVersion(tx, action.expectedVersion());
+        if (tx.getStatus() != TransactionStatus.PENDING && tx.getStatus() != TransactionStatus.PARTIAL)
+            fail("DOCUMENT_LOCKED");
+        access.requireCreator(tx, true);
+        if (action.reason() == null || action.reason().isBlank())
+            throw new AppException(HttpStatus.BAD_REQUEST, "VALIDATION_REQUIRED", "VALIDATION_REQUIRED");
+        var all = readGroups(tx);
+        var selected = progress.requireSelection(all, action.groupIds(), "PENDING");
+        var now = Instant.now();
+        for (var group : selected) {
+            for (var assetId : group.assetIds())
+                if (categoryOf(asset(assetId)) != AssetCategory.LICENSE)
+                    jdbc.update(
+                            "DELETE FROM recovery_asset_reservations WHERE asset_id=? AND transaction_id=?",
+                            assetId,
+                            id);
+            for (var allocationId : group.allocationIds())
+                jdbc.update(
+                        "DELETE FROM recovery_allocation_reservations WHERE allocation_id=? AND transaction_id=?",
+                        allocationId,
+                        id);
+        }
+        var changed = all.stream()
+                .map(g -> selected.contains(g)
+                        ? new Group(
+                                g.groupId(), "CANCELLED", g.assetIds(), g.allocationIds(), action.reason(), now, null)
+                        : g)
+                .toList();
+        progress.save(id, changed);
+        releaseUnusedAssets(id, changed);
+        progress.advance(tx);
+        if (changed.stream().noneMatch(g -> "PENDING".equals(g.status()))) {
+            release(id);
+            boolean completed = changed.stream().anyMatch(g -> "COMPLETED".equals(g.status()));
+            tx.setStatus(completed ? TransactionStatus.COMPLETED : TransactionStatus.CANCELLED);
+            if (completed) tx.setCompletedAt(now);
+        }
+        transactions.saveAndFlush(tx);
+        var log = new AuditLogEntity();
+        log.setEntityType("TRANSACTION");
+        log.setEntityId(id);
+        log.setTransaction(tx);
+        log.setAction("RECOVERY_REMAINDER_CANCELLED");
+        log.setActor(actor());
+        log.setNewData(Map.of("groupIds", action.groupIds(), "reason", action.reason(), "at", now.toString()));
+        auditLogs.save(log);
+        if (tx.getStatus() == TransactionStatus.COMPLETED) {
+            var result = jdbc.queryForList(
+                    "SELECT result::text FROM recovery_workflows WHERE transaction_id=? AND result IS NOT NULL",
+                    String.class,
+                    id);
+            if (!result.isEmpty()) {
+                var prior = decode(result.getFirst(), RecoveryResponse.class);
+                var finalResult = new RecoveryResponse(
+                        id,
+                        tx.getTransactionCode(),
+                        tx.getCompletedAt(),
+                        prior.returnerUserId(),
+                        prior.returnerName(),
+                        prior.returnerEmail(),
+                        prior.receivingLocationId(),
+                        prior.receivingLocationName(),
+                        prior.recoveryDate(),
+                        prior.reason(),
+                        prior.fingerprint(),
+                        prior.lines());
+                jdbc.update(
+                        "UPDATE recovery_workflows SET result=?::jsonb WHERE transaction_id=?",
+                        encode(finalResult),
+                        id);
+            }
+            var response = get(id);
+            jdbc.update(
+                    "INSERT INTO transaction_publication_snapshots(transaction_id,snapshot) VALUES (?,?::jsonb)",
+                    id,
+                    encode(response));
+            publications.afterCommit(id, () -> publications.onCompleted(id, response));
+            return response;
+        }
+        return get(id);
+    }
+
     // ========================================================================
     // COMPLETE
     // ========================================================================
 
     @Transactional
     public RecoveryResponse complete(RecoveryRequest request) {
-        var draft=create(request); submit(draft.transactionId()); return confirm(draft.transactionId());
+        var draft = create(request);
+        submit(draft.transactionId());
+        return confirm(draft.transactionId());
     }
-    private RecoveryResponse finish(RecoveryRequest request, TransactionEntity tx,List<Group> selected) {
-        if (request.assetIds().isEmpty() && (request.allocationIds() == null || request.allocationIds().isEmpty())) fail("EMPTY_TRANSACTION");
-        List<Long> idList = selected.stream().flatMap(g->g.assetIds().stream()).distinct().toList();
+
+    private RecoveryResponse finish(RecoveryRequest request, TransactionEntity tx, List<Group> selected) {
+        if (request.assetIds().isEmpty()
+                && (request.allocationIds() == null || request.allocationIds().isEmpty())) fail("EMPTY_TRANSACTION");
+        List<Long> idList =
+                selected.stream().flatMap(g -> g.assetIds().stream()).distinct().toList();
         if (new HashSet<>(request.assetIds()).size() != request.assetIds().size()) fail("RECOVERY_DUPLICATE");
 
         var returner = users.findById(request.returnerUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        var location = locations.findById(request.receivingLocationId())
+        var location = locations
+                .findById(request.receivingLocationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Location not found"));
         if (!Boolean.TRUE.equals(location.getIsActive())) fail("RECOVERY_LOCATION_INACTIVE");
 
-        var previewAllocations = selected.stream().flatMap(g->g.allocationIds().stream()).collect(Collectors.toSet());
+        var previewAllocations =
+                selected.stream().flatMap(g -> g.allocationIds().stream()).collect(Collectors.toSet());
         String computedFingerprint = request.expectedFingerprint();
 
         var inStockStatus = statuses.findByCode(AssetStatus.IN_STOCK)
                 .orElseThrow(() -> new ResourceNotFoundException("IN_STOCK status not found"));
 
-        var actor = users.findByPrincipal(currentUser()).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
+        var actor = users.findByPrincipal(currentUser())
+                .orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
 
         var detail = recoveryDetails.findById(tx.getTransactionId()).orElseGet(TransactionRecoveryDetailEntity::new);
         detail.setTransaction(tx);
@@ -679,42 +1264,88 @@ public class RecoveryService {
         for (Long id : idList) {
             var chosen = asset(id);
             if (categoryOf(chosen) != AssetCategory.LICENSE) physicalIds.add(id);
-            if (categoryOf(chosen) == AssetCategory.DEVICE) for (var rel : relationships.findByParentAssetAssetId(id)) {
-                var child = rel.getChildAsset();
-                if (rel.getRelationshipType() == RelationshipType.COMPONENT_OF) {
-                    if(!idList.contains(child.getAssetId()))fail("RECOVERY_CHANGED");
-                    physicalIds.add(child.getAssetId()); originalParents.put(child.getAssetId(), id);
+            if (categoryOf(chosen) == AssetCategory.DEVICE)
+                for (var rel : relationships.findByParentAssetAssetId(id)) {
+                    var child = rel.getChildAsset();
+                    if (rel.getRelationshipType() == RelationshipType.COMPONENT_OF) {
+                        if (!idList.contains(child.getAssetId())) fail("RECOVERY_CHANGED");
+                        physicalIds.add(child.getAssetId());
+                        originalParents.put(child.getAssetId(), id);
+                    }
+                    if (rel.getRelationshipType() == RelationshipType.INSTALLED_ON
+                            && rel.getAllocation() != null
+                            && LicenseCodes.OEM.equals(licenseCode(rel.getChildAsset())))
+                        if (previewAllocations.contains(rel.getAllocation().getAllocationId()))
+                            workAllocations.put(rel.getAllocation().getAllocationId(), rel.getAllocation());
+                        else fail("RECOVERY_CHANGED");
                 }
-                if (rel.getRelationshipType() == RelationshipType.INSTALLED_ON && rel.getAllocation() != null && LicenseCodes.OEM.equals(licenseCode(rel.getChildAsset())))
-                    if(previewAllocations.contains(rel.getAllocation().getAllocationId()))workAllocations.put(rel.getAllocation().getAllocationId(), rel.getAllocation());
-                    else fail("RECOVERY_CHANGED");
-            }
         }
         for (Long allocationId : previewAllocations)
-            workAllocations.put(allocationId, allocations.findById(allocationId).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND")));
-        for (var allocation : workAllocations.values()) packageIds.add(allocation.getLicense().getAssetId());
+            workAllocations.put(
+                    allocationId,
+                    allocations
+                            .findById(allocationId)
+                            .orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND")));
+        for (var allocation : workAllocations.values())
+            packageIds.add(allocation.getLicense().getAssetId());
         for (Long id : physicalIds) {
             beforeAssets.put(id, assetAudit.snapshot(asset(id)));
-            if (categoryOf(asset(id)) == AssetCategory.COMPONENT) relationships.findByChildAssetAssetId(id).stream()
-                    .filter(rel -> rel.getRelationshipType() == RelationshipType.COMPONENT_OF).findFirst()
-                    .ifPresent(rel -> originalParents.put(id, rel.getParentAsset().getAssetId()));
+            if (categoryOf(asset(id)) == AssetCategory.COMPONENT)
+                relationships.findByChildAssetAssetId(id).stream()
+                        .filter(rel -> rel.getRelationshipType() == RelationshipType.COMPONENT_OF)
+                        .findFirst()
+                        .ifPresent(rel ->
+                                originalParents.put(id, rel.getParentAsset().getAssetId()));
         }
         for (Long id : packageIds) beforeAssets.put(id, assetAudit.snapshot(asset(id)));
 
         for (Long id : physicalIds) {
             var recovered = asset(id);
-            recovered.setStatus(inStockStatus); recovered.setAssignedTo(null); recovered.setLocation(location); assets.save(recovered);
-            var action = request.componentActions() == null ? null : request.componentActions().get(id);
+            recovered.setStatus(inStockStatus);
+            recovered.setAssignedTo(null);
+            recovered.setLocation(location);
+            assets.save(recovered);
+            var action = request.componentActions() == null
+                    ? null
+                    : request.componentActions().get(id);
             if (action != null) {
-                for (var rel : relationships.findByChildAssetAssetId(id)) if (rel.getRelationshipType() == RelationshipType.COMPONENT_OF) {
-                    var linkBefore = new LinkedHashMap<String, Object>(); linkBefore.put("relationshipId", rel.getRelationshipId()); linkBefore.put("type", rel.getRelationshipType().name()); linkBefore.put("parentAssetId", rel.getParentAsset().getAssetId()); linkBefore.put("componentAssetId", id);
-                    var linkAfter = new LinkedHashMap<String, Object>(); linkAfter.put("relationshipId", rel.getRelationshipId()); linkAfter.put("type", rel.getRelationshipType().name()); linkAfter.put("parentAssetId", "DETACH".equals(action.componentAction()) ? null : rel.getParentAsset().getAssetId()); linkAfter.put("componentAssetId", id);
-                    var linkAudit = new AuditLogEntity(); linkAudit.setEntityType("ASSET"); linkAudit.setEntityId(id); linkAudit.setTransaction(tx); linkAudit.setAction(action.componentAction()); linkAudit.setActor(actor); linkAudit.setOldData(linkBefore); linkAudit.setNewData(linkAfter); auditLogs.save(linkAudit);
-                    if ("DETACH".equals(action.componentAction())) relationships.delete(rel);
-                }
+                for (var rel : relationships.findByChildAssetAssetId(id))
+                    if (rel.getRelationshipType() == RelationshipType.COMPONENT_OF) {
+                        var linkBefore = new LinkedHashMap<String, Object>();
+                        linkBefore.put("relationshipId", rel.getRelationshipId());
+                        linkBefore.put("type", rel.getRelationshipType().name());
+                        linkBefore.put("parentAssetId", rel.getParentAsset().getAssetId());
+                        linkBefore.put("componentAssetId", id);
+                        var linkAfter = new LinkedHashMap<String, Object>();
+                        linkAfter.put("relationshipId", rel.getRelationshipId());
+                        linkAfter.put("type", rel.getRelationshipType().name());
+                        linkAfter.put(
+                                "parentAssetId",
+                                "DETACH".equals(action.componentAction())
+                                        ? null
+                                        : rel.getParentAsset().getAssetId());
+                        linkAfter.put("componentAssetId", id);
+                        var linkAudit = new AuditLogEntity();
+                        linkAudit.setEntityType("ASSET");
+                        linkAudit.setEntityId(id);
+                        linkAudit.setTransaction(tx);
+                        linkAudit.setAction(action.componentAction());
+                        linkAudit.setActor(actor);
+                        linkAudit.setOldData(linkBefore);
+                        linkAudit.setNewData(linkAfter);
+                        auditLogs.save(linkAudit);
+                        if ("DETACH".equals(action.componentAction())) relationships.delete(rel);
+                    }
             }
-            var audit = new AuditLogEntity(); audit.setEntityType("ASSET"); audit.setEntityId(id); audit.setTransaction(tx); audit.setAction("RECOVERED"); audit.setActor(actor);
-            audit.setOldData(beforeAssets.get(id)); audit.setNewData(assetAudit.snapshot(recovered)); auditLogs.save(audit);
+            var audit = new AuditLogEntity();
+            audit.setEntityType("ASSET");
+            audit.setEntityId(id);
+            audit.setTransaction(tx);
+            audit.setAction("RECOVERED");
+            audit.setActor(actor);
+            audit.setOldData(beforeAssets.get(id));
+            audit.setNewData(assetAudit.snapshot(recovered));
+            auditLogs.save(audit);
         }
 
         var resultsByPackage = new TreeMap<Long, List<RecoveryResponse.AllocationResult>>();
@@ -722,49 +1353,137 @@ public class RecoveryService {
         for (var allocation : workAllocations.values()) {
             var license = allocation.getLicense();
             var before = new LinkedHashMap<String, Object>();
-            before.put("allocationId", allocation.getAllocationId()); before.put("userId", allocation.getUser() == null ? null : allocation.getUser().getUserId());
-            before.put("deviceId", allocation.getDevice() == null ? null : allocation.getDevice().getAssetId()); before.put("seats", allocation.getSeatCount()); before.put("status", allocation.getStatus().name());
-            String assignment = licenseCode(license); Long relationshipId = relationships.findByAllocationAllocationId(allocation.getAllocationId()).map(AssetRelationshipEntity::getRelationshipId).orElse(null);
+            before.put("allocationId", allocation.getAllocationId());
+            before.put(
+                    "userId",
+                    allocation.getUser() == null ? null : allocation.getUser().getUserId());
+            before.put(
+                    "deviceId",
+                    allocation.getDevice() == null
+                            ? null
+                            : allocation.getDevice().getAssetId());
+            before.put("seats", allocation.getSeatCount());
+            before.put("status", allocation.getStatus().name());
+            String assignment = licenseCode(license);
+            Long relationshipId = relationships
+                    .findByAllocationAllocationId(allocation.getAllocationId())
+                    .map(AssetRelationshipEntity::getRelationshipId)
+                    .orElse(null);
             before.put("relationshipId", relationshipId);
             String action;
             if (LicenseCodes.OEM.equals(assignment)) {
-                allocation.setUser(null); allocation.setStatus(LicenseAllocationStatus.RESERVED); action = "RESERVED";
+                allocation.setUser(null);
+                allocation.setStatus(LicenseAllocationStatus.RESERVED);
+                action = "RESERVED";
             } else {
                 var relation = relationships.findByAllocationAllocationId(allocation.getAllocationId());
                 relation.ifPresent(rel -> {
-                    var linkBefore = new LinkedHashMap<String, Object>(); linkBefore.put("relationshipId", rel.getRelationshipId()); linkBefore.put("parentAssetId", rel.getParentAsset().getAssetId()); linkBefore.put("childAssetId", rel.getChildAsset().getAssetId()); linkBefore.put("allocationId", allocation.getAllocationId());
-                    var linkAfter = new LinkedHashMap<String, Object>(); linkAfter.put("relationshipId", rel.getRelationshipId()); linkAfter.put("parentAssetId", null); linkAfter.put("childAssetId", rel.getChildAsset().getAssetId()); linkAfter.put("allocationId", allocation.getAllocationId());
-                    var linkAudit = new AuditLogEntity(); linkAudit.setEntityType("ASSET"); linkAudit.setEntityId(license.getAssetId()); linkAudit.setTransaction(tx); linkAudit.setAction("UNLINK"); linkAudit.setActor(actor); linkAudit.setOldData(linkBefore); linkAudit.setNewData(linkAfter); auditLogs.save(linkAudit);
+                    var linkBefore = new LinkedHashMap<String, Object>();
+                    linkBefore.put("relationshipId", rel.getRelationshipId());
+                    linkBefore.put("parentAssetId", rel.getParentAsset().getAssetId());
+                    linkBefore.put("childAssetId", rel.getChildAsset().getAssetId());
+                    linkBefore.put("allocationId", allocation.getAllocationId());
+                    var linkAfter = new LinkedHashMap<String, Object>();
+                    linkAfter.put("relationshipId", rel.getRelationshipId());
+                    linkAfter.put("parentAssetId", null);
+                    linkAfter.put("childAssetId", rel.getChildAsset().getAssetId());
+                    linkAfter.put("allocationId", allocation.getAllocationId());
+                    var linkAudit = new AuditLogEntity();
+                    linkAudit.setEntityType("ASSET");
+                    linkAudit.setEntityId(license.getAssetId());
+                    linkAudit.setTransaction(tx);
+                    linkAudit.setAction("UNLINK");
+                    linkAudit.setActor(actor);
+                    linkAudit.setOldData(linkBefore);
+                    linkAudit.setNewData(linkAfter);
+                    auditLogs.save(linkAudit);
                     relationships.delete(rel);
                 });
-                boolean release = request.perUserActions() != null && Boolean.TRUE.equals(request.perUserActions().get(allocation.getAllocationId()));
+                boolean release = request.perUserActions() != null
+                        && Boolean.TRUE.equals(request.perUserActions().get(allocation.getAllocationId()));
                 allocation.setDevice(null);
-                if (release) { allocation.setStatus(LicenseAllocationStatus.RELEASED); allocation.setReleasedAt(Instant.now()); allocation.setRecoveryTransactionId(tx.getTransactionId()); action = "RELEASED"; }
-                else action = "UNLINKED";
+                if (release) {
+                    allocation.setStatus(LicenseAllocationStatus.RELEASED);
+                    allocation.setReleasedAt(Instant.now());
+                    allocation.setRecoveryTransactionId(tx.getTransactionId());
+                    action = "RELEASED";
+                } else action = "UNLINKED";
             }
             allocations.save(allocation);
             var after = new LinkedHashMap<String, Object>();
-            after.put("allocationId", allocation.getAllocationId()); after.put("userId", allocation.getUser() == null ? null : allocation.getUser().getUserId());
-            after.put("deviceId", allocation.getDevice() == null ? null : allocation.getDevice().getAssetId()); after.put("relationshipId", LicenseCodes.OEM.equals(assignment) ? relationshipId : null); after.put("seats", allocation.getSeatCount()); after.put("status", allocation.getStatus().name());
-            var audit = new AuditLogEntity(); audit.setEntityType("ASSET"); audit.setEntityId(license.getAssetId()); audit.setTransaction(tx); audit.setAction(action); audit.setActor(actor); audit.setOldData(before); audit.setNewData(after); auditLogs.save(audit);
-            resultsByPackage.computeIfAbsent(license.getAssetId(), ignored -> new ArrayList<>()).add(new RecoveryResponse.AllocationResult(allocation.getAllocationId(), allocation.getSeatCount(), action, assignment));
-            var decision = new LinkedHashMap<String, Object>(); decision.put("action", action); decision.put("before", before); decision.put("after", after);
-            decisionsByPackage.computeIfAbsent(license.getAssetId(), ignored -> new ArrayList<>()).add(decision);
+            after.put("allocationId", allocation.getAllocationId());
+            after.put(
+                    "userId",
+                    allocation.getUser() == null ? null : allocation.getUser().getUserId());
+            after.put(
+                    "deviceId",
+                    allocation.getDevice() == null
+                            ? null
+                            : allocation.getDevice().getAssetId());
+            after.put("relationshipId", LicenseCodes.OEM.equals(assignment) ? relationshipId : null);
+            after.put("seats", allocation.getSeatCount());
+            after.put("status", allocation.getStatus().name());
+            var audit = new AuditLogEntity();
+            audit.setEntityType("ASSET");
+            audit.setEntityId(license.getAssetId());
+            audit.setTransaction(tx);
+            audit.setAction(action);
+            audit.setActor(actor);
+            audit.setOldData(before);
+            audit.setNewData(after);
+            auditLogs.save(audit);
+            resultsByPackage
+                    .computeIfAbsent(license.getAssetId(), ignored -> new ArrayList<>())
+                    .add(new RecoveryResponse.AllocationResult(
+                            allocation.getAllocationId(), allocation.getSeatCount(), action, assignment));
+            var decision = new LinkedHashMap<String, Object>();
+            decision.put("action", action);
+            decision.put("before", before);
+            decision.put("after", after);
+            decisionsByPackage
+                    .computeIfAbsent(license.getAssetId(), ignored -> new ArrayList<>())
+                    .add(decision);
         }
         allocations.flush();
 
         List<RecoveryResponse.RecoveryLine> lines = new ArrayList<>();
         for (Long id : physicalIds) {
             var recovered = asset(id);
-            var details = new LinkedHashMap<>(beforeAssets.get(id)); details.put("actorName", actor.getFullName()); details.put("actorUserId", actor.getUserId());
-            if (request.componentActions() != null && request.componentActions().containsKey(id)) details.put("componentAction", request.componentActions().get(id).componentAction());
-            lines.add(new RecoveryResponse.RecoveryLine(id, recovered.getAssetTag(), recovered.getName(), categoryCode(recovered), originalParents.get(id), 0, List.of(), details));
+            var details = new LinkedHashMap<>(beforeAssets.get(id));
+            details.put("actorName", actor.getFullName());
+            details.put("actorUserId", actor.getUserId());
+            if (request.componentActions() != null && request.componentActions().containsKey(id))
+                details.put(
+                        "componentAction", request.componentActions().get(id).componentAction());
+            lines.add(new RecoveryResponse.RecoveryLine(
+                    id,
+                    recovered.getAssetTag(),
+                    recovered.getName(),
+                    categoryCode(recovered),
+                    originalParents.get(id),
+                    0,
+                    List.of(),
+                    details));
         }
         for (Long id : packageIds) {
             var license = asset(id);
-            var allocationResults = resultsByPackage.getOrDefault(id, List.of()); var details = new LinkedHashMap<>(beforeAssets.get(id)); details.put("actorName", actor.getFullName()); details.put("actorUserId", actor.getUserId()); details.put("allocationDecisions", decisionsByPackage.getOrDefault(id, List.of()));
-            lines.add(new RecoveryResponse.RecoveryLine(id, license.getAssetTag(), license.getName(), categoryCode(license), null,
-                    allocationResults.stream().filter(result -> !"UNLINKED".equals(result.action())).mapToInt(RecoveryResponse.AllocationResult::seats).sum(), allocationResults, details));
+            var allocationResults = resultsByPackage.getOrDefault(id, List.of());
+            var details = new LinkedHashMap<>(beforeAssets.get(id));
+            details.put("actorName", actor.getFullName());
+            details.put("actorUserId", actor.getUserId());
+            details.put("allocationDecisions", decisionsByPackage.getOrDefault(id, List.of()));
+            lines.add(new RecoveryResponse.RecoveryLine(
+                    id,
+                    license.getAssetTag(),
+                    license.getName(),
+                    categoryCode(license),
+                    null,
+                    allocationResults.stream()
+                            .filter(result -> !"UNLINKED".equals(result.action()))
+                            .mapToInt(RecoveryResponse.AllocationResult::seats)
+                            .sum(),
+                    allocationResults,
+                    details));
         }
 
         var txAudit = new AuditLogEntity();
@@ -777,16 +1496,22 @@ public class RecoveryService {
                 "returnerUserId", returner.getUserId(),
                 "locationId", location.getLocationId(),
                 "recoveryDate", request.recoveryDate().toString(),
-                "assetIds", idList
-        ));
+                "assetIds", idList));
         auditLogs.save(txAudit);
 
         var response = new RecoveryResponse(
-                tx.getTransactionId(), tx.getTransactionCode(), tx.getCompletedAt(),
-                returner.getUserId(), returner.getFullName(), returner.getEmail(),
-                location.getLocationId(), location.getName(),
-                request.recoveryDate(), request.reason(),
-                computedFingerprint, lines);
+                tx.getTransactionId(),
+                tx.getTransactionCode(),
+                tx.getCompletedAt(),
+                returner.getUserId(),
+                returner.getFullName(),
+                returner.getEmail(),
+                location.getLocationId(),
+                location.getName(),
+                request.recoveryDate(),
+                request.reason(),
+                computedFingerprint,
+                lines);
         return response;
     }
 
@@ -795,62 +1520,171 @@ public class RecoveryService {
     // ========================================================================
 
     private record Link(Long id, Long parent, Long child, Long allocation, String type) {}
+
     private record Prepared(SmartCheckResponse response, List<Long> lockedIds, List<Link> links) {}
+
     private List<Link> links(Collection<Long> ids) {
         var result = new TreeMap<Long, Link>();
-        for (Long id : ids) jdbc.query("SELECT relationship_id,parent_asset_id,child_asset_id,allocation_id,relationship_type FROM asset_relationships WHERE parent_asset_id=? OR child_asset_id=? ORDER BY relationship_id",
-                (rs, n) -> new Link(rs.getLong(1), rs.getLong(2), rs.getLong(3), (Long) rs.getObject(4), rs.getString(5)), id, id).forEach(link -> result.put(link.id(), link));
+        for (Long id : ids)
+            jdbc.query(
+                            "SELECT relationship_id,parent_asset_id,child_asset_id,allocation_id,relationship_type FROM asset_relationships WHERE parent_asset_id=? OR child_asset_id=? ORDER BY relationship_id",
+                            (rs, n) -> new Link(
+                                    rs.getLong(1),
+                                    rs.getLong(2),
+                                    rs.getLong(3),
+                                    (Long) rs.getObject(4),
+                                    rs.getString(5)),
+                            id,
+                            id)
+                    .forEach(link -> result.put(link.id(), link));
         return new ArrayList<>(result.values());
     }
 
     private boolean physicalValid(AssetEntity asset, Long returnerId) {
-        return asset.getStatus().getCode() == AssetStatus.IN_USE && asset.getAssignedTo() != null
-                && returnerId.equals(asset.getAssignedTo().getUserId()) && !assets.hasPendingHandover(asset.getAssetId()) && !assets.hasPendingRecovery(asset.getAssetId());
+        return asset.getStatus().getCode() == AssetStatus.IN_USE
+                && asset.getAssignedTo() != null
+                && returnerId.equals(asset.getAssignedTo().getUserId())
+                && !assets.hasPendingHandover(asset.getAssetId())
+                && !assets.hasPendingRecovery(asset.getAssetId());
     }
+
     private boolean validPerUser(LicenseAllocationEntity allocation, Long returnerId) {
-        if (allocation.getStatus() != LicenseAllocationStatus.ACTIVE || allocation.getUser() == null
-                || !returnerId.equals(allocation.getUser().getUserId()) || !LicenseCodes.PER_USER.equals(licenseCode(allocation.getLicense()))) return false;
-        if (Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM recovery_allocation_reservations WHERE allocation_id=?)",Boolean.class,allocation.getAllocationId()))) return false;
-        var relation = relationships.findByAllocationAllocationId(allocation.getAllocationId()).orElse(null);
+        if (allocation.getStatus() != LicenseAllocationStatus.ACTIVE
+                || allocation.getUser() == null
+                || !returnerId.equals(allocation.getUser().getUserId())
+                || !LicenseCodes.PER_USER.equals(licenseCode(allocation.getLicense()))) return false;
+        if (Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT EXISTS(SELECT 1 FROM recovery_allocation_reservations WHERE allocation_id=?)",
+                Boolean.class,
+                allocation.getAllocationId()))) return false;
+        var relation = relationships
+                .findByAllocationAllocationId(allocation.getAllocationId())
+                .orElse(null);
         if (allocation.getDevice() == null) return relation == null;
-        return physicalValid(allocation.getDevice(), returnerId) && relation != null && relation.getRelationshipType() == RelationshipType.INSTALLED_ON
-                && relation.getParentAsset().getAssetId().equals(allocation.getDevice().getAssetId()) && relation.getChildAsset().getAssetId().equals(allocation.getLicense().getAssetId());
+        return physicalValid(allocation.getDevice(), returnerId)
+                && relation != null
+                && relation.getRelationshipType() == RelationshipType.INSTALLED_ON
+                && relation.getParentAsset()
+                        .getAssetId()
+                        .equals(allocation.getDevice().getAssetId())
+                && relation.getChildAsset()
+                        .getAssetId()
+                        .equals(allocation.getLicense().getAssetId());
     }
+
     private SmartCheckResponse.BlockedAsset blocked(AssetEntity asset, Long returnerId) {
-        return new SmartCheckResponse.BlockedAsset(asset.getAssetId(), asset.getAssetTag(), asset.getName(), categoryCode(asset), messages.getMessage("RECOVERY_DEVICE_INVALID"));
+        return new SmartCheckResponse.BlockedAsset(
+                asset.getAssetId(),
+                asset.getAssetTag(),
+                asset.getName(),
+                categoryCode(asset),
+                messages.getMessage("RECOVERY_DEVICE_INVALID"));
     }
+
     private SmartCheckResponse.ComponentDecision componentDecision(AssetEntity component, boolean standalone) {
-        if (standalone) return new SmartCheckResponse.ComponentDecision(component.getAssetId(), component.getAssetTag(), component.getName(), List.of(
-                new SmartCheckResponse.DecisionOption("DETACH", messages.getMessage("RECOVERY_DETACH"), messages.getMessage("RECOVERY_DETACH_DESCRIPTION"))), "DETACH");
-        return new SmartCheckResponse.ComponentDecision(component.getAssetId(), component.getAssetTag(), component.getName(), List.of(
-                new SmartCheckResponse.DecisionOption("KEEP_ATTACHED", messages.getMessage("RECOVERY_KEEP"), messages.getMessage("RECOVERY_KEEP_DESCRIPTION")),
-                new SmartCheckResponse.DecisionOption("DETACH", messages.getMessage("RECOVERY_DETACH"), messages.getMessage("RECOVERY_DETACH_DESCRIPTION"))), "KEEP_ATTACHED");
+        if (standalone)
+            return new SmartCheckResponse.ComponentDecision(
+                    component.getAssetId(),
+                    component.getAssetTag(),
+                    component.getName(),
+                    List.of(new SmartCheckResponse.DecisionOption(
+                            "DETACH",
+                            messages.getMessage("RECOVERY_DETACH"),
+                            messages.getMessage("RECOVERY_DETACH_DESCRIPTION"))),
+                    "DETACH");
+        return new SmartCheckResponse.ComponentDecision(
+                component.getAssetId(),
+                component.getAssetTag(),
+                component.getName(),
+                List.of(
+                        new SmartCheckResponse.DecisionOption(
+                                "KEEP_ATTACHED",
+                                messages.getMessage("RECOVERY_KEEP"),
+                                messages.getMessage("RECOVERY_KEEP_DESCRIPTION")),
+                        new SmartCheckResponse.DecisionOption(
+                                "DETACH",
+                                messages.getMessage("RECOVERY_DETACH"),
+                                messages.getMessage("RECOVERY_DETACH_DESCRIPTION"))),
+                "KEEP_ATTACHED");
     }
 
     private Long parentId(Long assetId) {
         return relationships.findByChildAssetAssetId(assetId).stream()
                 .filter(r -> r.getRelationshipType() == RelationshipType.COMPONENT_OF)
-                .map(r -> r.getParentAsset().getAssetId()).findFirst().orElse(null);
+                .map(r -> r.getParentAsset().getAssetId())
+                .findFirst()
+                .orElse(null);
     }
 
-    private String buildFingerprint(List<SmartCheckResponse.RequiredAsset> required,
-                                   List<SmartCheckResponse.OptionalAsset> optional,
-                                   List<SmartCheckResponse.BlockedAsset> blocked,
-                                   List<SmartCheckResponse.ComponentDecision> decisions, SmartCheckRequest request) {
+    private String buildFingerprint(
+            List<SmartCheckResponse.RequiredAsset> required,
+            List<SmartCheckResponse.OptionalAsset> optional,
+            List<SmartCheckResponse.BlockedAsset> blocked,
+            List<SmartCheckResponse.ComponentDecision> decisions,
+            SmartCheckRequest request) {
         try {
-            var ids = new TreeSet<Long>(); ids.addAll(request.assetIds());
-            required.forEach(item -> ids.add(item.assetId())); optional.forEach(item -> ids.add(item.assetId()));
-            var data = new StringBuilder("returner=").append(request.returnerUserId()).append("|assets=").append(new TreeSet<>(request.assetIds()))
-                    .append("|allocations=").append(request.allocationIds() == null ? List.of() : new TreeSet<>(request.allocationIds()));
-            for (Long id : ids) { var a = asset(id); data.append("|a:").append(id).append(':').append(a.getVersion()).append(':').append(a.getStatus().getCode()).append(':')
-                    .append(a.getAssignedTo() == null ? null : a.getAssignedTo().getUserId()).append(':').append(a.getType().getTypeId()); }
-            var allocationIds = new TreeSet<Long>(); if (request.allocationIds() != null) allocationIds.addAll(request.allocationIds()); optional.forEach(item -> allocationIds.add(item.allocationId()));
-            for (var link : links(ids)) { data.append("|r:").append(link.id()).append(':').append(link.parent()).append(':').append(link.child()).append(':').append(link.allocation()).append(':').append(link.type()); if (link.allocation() != null) allocationIds.add(link.allocation()); }
-            for (Long id : allocationIds) { var a = allocations.findById(id).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND")); data.append("|l:").append(id).append(':').append(a.getLicense().getAssetId()).append(':').append(a.getStatus()).append(':')
-                    .append(a.getDevice() == null ? null : a.getDevice().getAssetId()).append(':').append(a.getUser() == null ? null : a.getUser().getUserId()).append(':').append(a.getSeatCount()).append(':').append(a.getReleasedAt()); }
+            var ids = new TreeSet<Long>();
+            ids.addAll(request.assetIds());
+            required.forEach(item -> ids.add(item.assetId()));
+            optional.forEach(item -> ids.add(item.assetId()));
+            var data = new StringBuilder("returner=")
+                    .append(request.returnerUserId())
+                    .append("|assets=")
+                    .append(new TreeSet<>(request.assetIds()))
+                    .append("|allocations=")
+                    .append(request.allocationIds() == null ? List.of() : new TreeSet<>(request.allocationIds()));
+            for (Long id : ids) {
+                var a = asset(id);
+                data.append("|a:")
+                        .append(id)
+                        .append(':')
+                        .append(a.getVersion())
+                        .append(':')
+                        .append(a.getStatus().getCode())
+                        .append(':')
+                        .append(
+                                a.getAssignedTo() == null
+                                        ? null
+                                        : a.getAssignedTo().getUserId())
+                        .append(':')
+                        .append(a.getType().getTypeId());
+            }
+            var allocationIds = new TreeSet<Long>();
+            if (request.allocationIds() != null) allocationIds.addAll(request.allocationIds());
+            optional.forEach(item -> allocationIds.add(item.allocationId()));
+            for (var link : links(ids)) {
+                data.append("|r:")
+                        .append(link.id())
+                        .append(':')
+                        .append(link.parent())
+                        .append(':')
+                        .append(link.child())
+                        .append(':')
+                        .append(link.allocation())
+                        .append(':')
+                        .append(link.type());
+                if (link.allocation() != null) allocationIds.add(link.allocation());
+            }
+            for (Long id : allocationIds) {
+                var a = allocations.findById(id).orElseThrow(() -> new ResourceNotFoundException("RESOURCE_NOT_FOUND"));
+                data.append("|l:")
+                        .append(id)
+                        .append(':')
+                        .append(a.getLicense().getAssetId())
+                        .append(':')
+                        .append(a.getStatus())
+                        .append(':')
+                        .append(a.getDevice() == null ? null : a.getDevice().getAssetId())
+                        .append(':')
+                        .append(a.getUser() == null ? null : a.getUser().getUserId())
+                        .append(':')
+                        .append(a.getSeatCount())
+                        .append(':')
+                        .append(a.getReleasedAt());
+            }
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(md.digest(data.toString().getBytes(StandardCharsets.UTF_8)));
-        } catch (java.security.NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
     }

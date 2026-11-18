@@ -1,10 +1,11 @@
 package com.company.itam.workflow.core.repository;
 
-import com.company.itam.workflow.core.entity.TransactionAssetEntity;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.company.itam.workflow.core.entity.TransactionAssetEntity;
 
 @Repository
 public interface TransactionAssetRepository extends JpaRepository<TransactionAssetEntity, Long> {

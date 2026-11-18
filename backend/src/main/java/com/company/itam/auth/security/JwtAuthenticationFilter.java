@@ -1,13 +1,14 @@
 package com.company.itam.auth.security;
 
-import com.company.itam.common.enums.AccountStatus;
-import com.company.itam.role.entity.RoleEntity;
-import com.company.itam.user.entity.UserEntity;
-import com.company.itam.user.repository.UserRepository;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
@@ -19,20 +20,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
+import com.company.itam.role.entity.RoleEntity;
+import com.company.itam.user.entity.UserEntity;
+import com.company.itam.user.repository.UserRepository;
 
-/**
- * Filter {@code OncePerRequestFilter} xử lý JWT Bearer token trên mỗi request.
- *
- * <p>Đọc header {@code Authorization: Bearer <token>}, xác thực qua
- * {@link JwtTokenProvider} rồi thiết lập {@link org.springframework.security.core.Authentication}
- * vào {@link SecurityContextHolder} cho request hiện tại.</p>
- *
- * <p>Nếu token không hợp lệ hoặc user không tồn tại thì bỏ qua (để filter chain xử lý
- * {@code AuthenticationEntryPoint} sau).</p>
- */
+/** Invalid tokens leave the request unauthenticated for the entry point to handle. */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -51,20 +43,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+            @NonNull FilterChain filterChain)
+            throws ServletException, IOException {
         String token = extractBearerToken(request);
 
         if (token != null && jwtTokenProvider.validateToken(token)) {
             try {
                 String email = jwtTokenProvider.extractEmail(token);
-                if (email != null && email.startsWith("user:") && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    // Dùng query có JOIN FETCH để nạp role ngay trong transaction, tránh lazy-init.
+                if (email != null
+                        && email.startsWith("user:")
+                        && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    // The repository loads the role before its transaction closes.
                     Optional<UserEntity> userOpt = userRepository.findByPrincipal(email);
                     if (userOpt.isPresent()) {
                         UserEntity user = userOpt.get();
-                        // Tài khoản đã khóa thì không cấp quyền truy cập
-                        if (!user.canLogin() || user.getAccessVersion() != jwtTokenProvider.extractAccessVersion(token)) {
+                        if (!user.canLogin()
+                                || user.getAccessVersion() != jwtTokenProvider.extractAccessVersion(token)) {
                             log.debug("Từ chối cấp quyền cho tài khoản bị khóa: {}", email);
                             filterChain.doFilter(request, response);
                             return;
@@ -78,15 +72,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             filterChain.doFilter(request, response);
                             return;
                         }
-                        UsernamePasswordAuthenticationToken authentication =
-                                new UsernamePasswordAuthenticationToken(
-                                        email,
-                                        null,
-                                        List.of(new SimpleGrantedAuthority(roleCode))
-                                );
-                        authentication.setDetails(
-                                new WebAuthenticationDetailsSource().buildDetails(request)
-                        );
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                email, null, List.of(new SimpleGrantedAuthority(roleCode)));
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                     }
                 }

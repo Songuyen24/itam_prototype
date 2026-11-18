@@ -1,7 +1,8 @@
 package com.company.itam.location.entity;
 
-import jakarta.persistence.*;
 import java.time.Instant;
+
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "locations")

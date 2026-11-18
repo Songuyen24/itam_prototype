@@ -1,9 +1,5 @@
 package com.company.itam.catalog.controller;
 
-import com.company.itam.catalog.dto.AssetStatusResponse;
-import com.company.itam.catalog.service.CatalogService;
-import com.company.itam.common.pagination.PageResponse;
-import com.company.itam.common.response.ApiResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -11,6 +7,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import com.company.itam.catalog.dto.AssetStatusResponse;
+import com.company.itam.catalog.service.CatalogService;
+import com.company.itam.common.pagination.PageResponse;
+import com.company.itam.common.response.ApiResponse;
 
 @RestController
 @RequestMapping("/v1/asset-statuses")
@@ -38,10 +39,10 @@ public class AssetStatusController {
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
-    @RequestMapping(path = {"", "/{id}", "/{id}/active"},
+    @RequestMapping(
+            path = {"", "/{id}", "/{id}/active"},
             method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH})
     public ResponseEntity<Void> rejectStatusChanges() {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
-
 }

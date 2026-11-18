@@ -12,7 +12,8 @@ public class DepartmentResponse {
 
     public DepartmentResponse() {}
 
-    public DepartmentResponse(Long departmentId, String code, String name, Boolean isActive, Instant createdAt, Instant updatedAt) {
+    public DepartmentResponse(
+            Long departmentId, String code, String name, Boolean isActive, Instant createdAt, Instant updatedAt) {
         this.departmentId = departmentId;
         this.code = code;
         this.name = name;

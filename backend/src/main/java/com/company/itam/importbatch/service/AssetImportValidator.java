@@ -1,11 +1,27 @@
 package com.company.itam.importbatch.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
+import java.util.*;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
+
+import com.company.itam.asset.dto.request.CreateHardwareAssetRequest;
+import com.company.itam.asset.dto.request.LicenseDetailsRequest;
 import com.company.itam.asset.repository.AssetHardwareDetailsRepository;
 import com.company.itam.asset.repository.AssetRepository;
 import com.company.itam.catalog.entity.*;
 import com.company.itam.catalog.repository.*;
+import com.company.itam.common.enums.AssetCategory;
 import com.company.itam.common.enums.AssetStatus;
 import com.company.itam.common.enums.ValidationStatus;
+import com.company.itam.common.exception.AppException;
+import com.company.itam.common.util.MessageHelper;
 import com.company.itam.department.entity.DepartmentEntity;
 import com.company.itam.department.repository.DepartmentRepository;
 import com.company.itam.importbatch.dto.response.ImportRowDetailResponse;
@@ -14,19 +30,14 @@ import com.company.itam.location.entity.LocationEntity;
 import com.company.itam.location.repository.LocationRepository;
 import com.company.itam.supplier.entity.SupplierEntity;
 import com.company.itam.supplier.repository.SupplierRepository;
-import org.springframework.stereotype.Component;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
 
 @Component
 public class AssetImportValidator {
 
-    @org.springframework.beans.factory.annotation.Autowired
-    private org.springframework.jdbc.core.JdbcTemplate jdbc;
-    private final com.company.itam.common.util.MessageHelper messages;
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    private final MessageHelper messages;
     private final AssetRepository assetRepository;
     private final AssetHardwareDetailsRepository assetHardwareDetailsRepository;
     private final AssetTypeRepository assetTypeRepository;
@@ -46,7 +57,8 @@ public class AssetImportValidator {
             ModelRepository modelRepository,
             DepartmentRepository departmentRepository,
             LocationRepository locationRepository,
-            SupplierRepository supplierRepository, com.company.itam.common.util.MessageHelper messages) {
+            SupplierRepository supplierRepository,
+            MessageHelper messages) {
         this.messages = messages;
         this.assetRepository = assetRepository;
         this.assetHardwareDetailsRepository = assetHardwareDetailsRepository;
@@ -60,12 +72,15 @@ public class AssetImportValidator {
     }
 
     public List<ImportRowDetailResponse> validateRows(List<Map<String, Object>> rawRows) {
-        if (rawRows == null || rawRows.size() > ExcelHelperService.MAX_ROWS) throw new com.company.itam.common.exception.AppException(
-                org.springframework.http.HttpStatus.BAD_REQUEST,"EXCEEDS_MAX_ROWS","Too many rows");
+        if (rawRows == null || rawRows.size() > ExcelHelperService.MAX_ROWS)
+            throw new AppException(HttpStatus.BAD_REQUEST, "EXCEEDS_MAX_ROWS", "Too many rows");
         Set<Integer> rowNumbers = new HashSet<>();
-        for (Map<String,Object> row : rawRows) {
-            if (row == null || !(row.get("rowNumber") instanceof Integer number) || number < 2 || !rowNumbers.add(number))
-                throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.BAD_REQUEST,"VALIDATION_ERROR","Invalid row number");
+        for (Map<String, Object> row : rawRows) {
+            if (row == null
+                    || !(row.get("rowNumber") instanceof Integer number)
+                    || number < 2
+                    || !rowNumbers.add(number))
+                throw new AppException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid row number");
         }
         // Preload reference catalogs to in-memory lookup cache
         CatalogCache cache = new CatalogCache(
@@ -75,8 +90,7 @@ public class AssetImportValidator {
                 modelRepository.findAll(),
                 departmentRepository.findAll(),
                 locationRepository.findAll(),
-                supplierRepository.findAll()
-        );
+                supplierRepository.findAll());
 
         // Track seen keys in the current batch to detect internal file duplicates
         Map<String, Integer> seenAssetTags = new HashMap<>(); // tag -> first rowNumber
@@ -118,17 +132,18 @@ public class AssetImportValidator {
             String assetTag = normalize(row.get("assetTag"));
             if (assetTag != null) {
                 if (assetTag.length() > 100) {
-                    errors.add(rowError(rowNumber, "assetTag", "MAX_LENGTH", "Mã tài sản không được vượt quá 100 ký tự"));
+                    errors.add(
+                            rowError(rowNumber, "assetTag", "MAX_LENGTH", "Mã tài sản không được vượt quá 100 ký tự"));
                 }
                 // Check internal duplicate
                 if (internalDuplicateTags.contains(assetTag.toLowerCase(Locale.ROOT))) {
-                    errors.add(rowError(rowNumber, "assetTag", "DUPLICATE",
-                            "Mã tài sản trùng lặp với dòng khác trong cùng file"));
+                    errors.add(rowError(
+                            rowNumber, "assetTag", "DUPLICATE", "Mã tài sản trùng lặp với dòng khác trong cùng file"));
                 }
                 // Check database duplicate
                 if (assetRepository.existsByAssetTagIgnoreCase(assetTag)) {
-                    errors.add(rowError(rowNumber, "assetTag", "DUPLICATE",
-                            "Mã tài sản đã tồn tại trong hệ thống: " + assetTag));
+                    errors.add(rowError(
+                            rowNumber, "assetTag", "DUPLICATE", "Mã tài sản đã tồn tại trong hệ thống: " + assetTag));
                 }
             }
 
@@ -144,16 +159,23 @@ public class AssetImportValidator {
             String serial = normalize(row.get("serialNumber"));
             if (serial != null) {
                 if (serial.length() > 255) {
-                    errors.add(rowError(rowNumber, "serialNumber", "MAX_LENGTH", "Số Serial không được vượt quá 255 ký tự"));
+                    errors.add(rowError(
+                            rowNumber, "serialNumber", "MAX_LENGTH", "Số Serial không được vượt quá 255 ký tự"));
                 }
                 // Check internal duplicate
                 if (internalDuplicateSerials.contains(serial.toLowerCase(Locale.ROOT))) {
-                    errors.add(rowError(rowNumber, "serialNumber", "DUPLICATE",
+                    errors.add(rowError(
+                            rowNumber,
+                            "serialNumber",
+                            "DUPLICATE",
                             "Số Serial trùng lặp với dòng khác trong cùng file"));
                 }
                 // Check database duplicate
                 if (assetHardwareDetailsRepository.existsBySerialNumberIgnoreCase(serial)) {
-                    errors.add(rowError(rowNumber, "serialNumber", "DUPLICATE",
+                    errors.add(rowError(
+                            rowNumber,
+                            "serialNumber",
+                            "DUPLICATE",
                             "Số Serial Number đã tồn tại trong hệ thống: " + serial));
                 }
             }
@@ -165,7 +187,10 @@ public class AssetImportValidator {
             } else {
                 AssetTypeEntity typeEntity = cache.findType(typeVal);
                 if (typeEntity == null || !Boolean.TRUE.equals(typeEntity.getIsActive())) {
-                    errors.add(rowError(rowNumber, "type", "INVALID_REFERENCE",
+                    errors.add(rowError(
+                            rowNumber,
+                            "type",
+                            "INVALID_REFERENCE",
                             "Loại tài sản không tồn tại trong danh mục: " + typeVal));
                 }
             }
@@ -173,52 +198,64 @@ public class AssetImportValidator {
             // 5. Validate Model
             String modelVal = normalize(row.get("model"));
             if (modelVal != null && cache.findModel(modelVal) == null) {
-                errors.add(rowError(rowNumber, "model", "INVALID_REFERENCE",
-                        "Model không tồn tại trong danh mục: " + modelVal));
+                errors.add(rowError(
+                        rowNumber, "model", "INVALID_REFERENCE", "Model không tồn tại trong danh mục: " + modelVal));
             }
 
-            if (modelVal!=null && typeVal!=null && cache.findModel(modelVal)!=null && cache.findType(typeVal)!=null
-                    && cache.findModel(modelVal).getType()!=null
-                    && !Objects.equals(cache.findModel(modelVal).getType().getTypeId(),cache.findType(typeVal).getTypeId())) {
-                errors.add(rowError(rowNumber,"model","INVALID_REFERENCE","Model does not match asset type"));
+            if (modelVal != null
+                    && typeVal != null
+                    && cache.findModel(modelVal) != null
+                    && cache.findType(typeVal) != null
+                    && cache.findModel(modelVal).getType() != null
+                    && !Objects.equals(
+                            cache.findModel(modelVal).getType().getTypeId(),
+                            cache.findType(typeVal).getTypeId())) {
+                errors.add(rowError(rowNumber, "model", "INVALID_REFERENCE", "Model does not match asset type"));
             }
             // 6. Validate Condition
             String conditionVal = normalize(row.get("condition"));
             if (conditionVal != null && cache.findCondition(conditionVal) == null) {
-                errors.add(rowError(rowNumber, "condition", "INVALID_REFERENCE",
+                errors.add(rowError(
+                        rowNumber,
+                        "condition",
+                        "INVALID_REFERENCE",
                         "Tình trạng tài sản không tồn tại: " + conditionVal));
             }
 
             // 7. Validate Status
             String statusVal = normalize(row.get("status"));
             if (statusVal != null && cache.findStatus(statusVal) == null) {
-                errors.add(rowError(rowNumber, "status", "INVALID_REFERENCE",
-                        "Trạng thái tài sản không hợp lệ: " + statusVal));
+                errors.add(rowError(
+                        rowNumber, "status", "INVALID_REFERENCE", "Trạng thái tài sản không hợp lệ: " + statusVal));
             }
 
-            if (statusVal != null && cache.findStatus(statusVal) != null
-                    && cache.findStatus(statusVal).getCode()!=AssetStatus.IN_STOCK) {
-                errors.add(rowError(rowNumber,"status","INVALID_REFERENCE","Use opening inventory status; receiving and assignment require their workflow"));
+            if (statusVal != null
+                    && cache.findStatus(statusVal) != null
+                    && cache.findStatus(statusVal).getCode() != AssetStatus.IN_STOCK) {
+                errors.add(rowError(
+                        rowNumber,
+                        "status",
+                        "INVALID_REFERENCE",
+                        "Use opening inventory status; receiving and assignment require their workflow"));
             }
             // 8. Validate Department
             String deptVal = normalize(row.get("department"));
             if (deptVal != null && cache.findDepartment(deptVal) == null) {
-                errors.add(rowError(rowNumber, "department", "INVALID_REFERENCE",
-                        "Phòng ban không tồn tại: " + deptVal));
+                errors.add(
+                        rowError(rowNumber, "department", "INVALID_REFERENCE", "Phòng ban không tồn tại: " + deptVal));
             }
 
             // 9. Validate Location
             String locVal = normalize(row.get("location"));
             if (locVal != null && cache.findLocation(locVal) == null) {
-                errors.add(rowError(rowNumber, "location", "INVALID_REFERENCE",
-                        "Vị trí không tồn tại: " + locVal));
+                errors.add(rowError(rowNumber, "location", "INVALID_REFERENCE", "Vị trí không tồn tại: " + locVal));
             }
 
             // 10. Validate Supplier
             String suppVal = normalize(row.get("supplier"));
             if (suppVal != null && cache.findSupplier(suppVal) == null) {
-                errors.add(rowError(rowNumber, "supplier", "INVALID_REFERENCE",
-                        "Nhà cung cấp không tồn tại: " + suppVal));
+                errors.add(
+                        rowError(rowNumber, "supplier", "INVALID_REFERENCE", "Nhà cung cấp không tồn tại: " + suppVal));
             }
 
             validateMaxLength(errors, rowNumber, "poNumber", row.get("poNumber"), 100);
@@ -235,47 +272,88 @@ public class AssetImportValidator {
                     if (cost.compareTo(BigDecimal.ZERO) < 0) {
                         errors.add(rowError(rowNumber, "purchaseCost", "INVALID_VALUE", "Giá mua không được âm"));
                     } else if (cost.precision() - cost.scale() > 16 || cost.scale() > 2) {
-                        errors.add(rowError(rowNumber, "purchaseCost", "INVALID_FORMAT", "Giá mua tối đa 16 chữ số phần nguyên và 2 chữ số thập phân"));
+                        errors.add(rowError(
+                                rowNumber,
+                                "purchaseCost",
+                                "INVALID_FORMAT",
+                                "Giá mua tối đa 16 chữ số phần nguyên và 2 chữ số thập phân"));
                     }
                 } catch (Exception e) {
-                    errors.add(rowError(rowNumber, "purchaseCost", "INVALID_FORMAT", "Giá mua không đúng định dạng số"));
+                    errors.add(
+                            rowError(rowNumber, "purchaseCost", "INVALID_FORMAT", "Giá mua không đúng định dạng số"));
                 }
             }
 
             // 12. Validate Purchase Date
             String purchaseDateStr = normalize(row.get("purchaseDate"));
             if (purchaseDateStr != null && parseDate(purchaseDateStr) == null) {
-                errors.add(rowError(rowNumber, "purchaseDate", "INVALID_FORMAT",
+                errors.add(rowError(
+                        rowNumber,
+                        "purchaseDate",
+                        "INVALID_FORMAT",
                         "Ngày mua không đúng định dạng (YYYY-MM-DD hoặc DD/MM/YYYY)"));
             }
 
             // 13. Validate Warranty Expiration
             String warrantyStr = normalize(row.get("warrantyExpiration"));
             if (warrantyStr != null && parseDate(warrantyStr) == null) {
-                errors.add(rowError(rowNumber, "warrantyExpiration", "INVALID_FORMAT",
+                errors.add(rowError(
+                        rowNumber,
+                        "warrantyExpiration",
+                        "INVALID_FORMAT",
                         "Hạn bảo hành không đúng định dạng (YYYY-MM-DD hoặc DD/MM/YYYY)"));
             }
 
             var type = typeVal == null ? null : cache.findType(typeVal);
-            boolean license = type != null && type.getCategory() != null
-                    && type.getCategory().getCode() == com.company.itam.common.enums.AssetCategory.LICENSE;
+            boolean license = type != null
+                    && type.getCategory() != null
+                    && type.getCategory().getCode() == AssetCategory.LICENSE;
             if (license) {
-                for (String field : List.of("model", "serialNumber", "condition", "warrantyExpiration", "actualCpu", "actualRam", "actualStorage", "actualGraphicsCard"))
-                    if (normalize(row.get(field)) != null) errors.add(rowError(rowNumber, field, "LICENSE_HARDWARE_FIELDS", "Hardware fields are not allowed for licenses"));
+                for (String field : List.of(
+                        "model",
+                        "serialNumber",
+                        "condition",
+                        "warrantyExpiration",
+                        "actualCpu",
+                        "actualRam",
+                        "actualStorage",
+                        "actualGraphicsCard"))
+                    if (normalize(row.get(field)) != null)
+                        errors.add(rowError(
+                                rowNumber,
+                                field,
+                                "LICENSE_HARDWARE_FIELDS",
+                                "Hardware fields are not allowed for licenses"));
                 for (String field : List.of("software", "licenseAssignment", "licenseTerm"))
                     if (licenseReference(field, normalize(row.get(field))) == null)
-                        errors.add(rowError(rowNumber, field, "INVALID_REFERENCE", "Active license reference required"));
+                        errors.add(
+                                rowError(rowNumber, field, "INVALID_REFERENCE", "Active license reference required"));
                 try {
-                    if (new BigDecimal(Objects.toString(row.get("seatCount"), "")).intValueExact() < 1) throw new IllegalArgumentException();
-                } catch (RuntimeException ex) { errors.add(rowError(rowNumber, "seatCount", "INVALID_VALUE", "Seat count must be a positive integer")); }
+                    if (new BigDecimal(Objects.toString(row.get("seatCount"), "")).intValueExact() < 1)
+                        throw new IllegalArgumentException();
+                } catch (RuntimeException ex) {
+                    errors.add(
+                            rowError(rowNumber, "seatCount", "INVALID_VALUE", "Seat count must be a positive integer"));
+                }
                 String expiry = normalize(row.get("licenseExpiry"));
                 Long termId = licenseReference("licenseTerm", normalize(row.get("licenseTerm")));
-                boolean subscription = termId != null && "SUBSCRIPTION".equals(jdbc.queryForObject("SELECT code FROM license_term_types WHERE license_term_type_id=?", String.class, termId));
+                boolean subscription = termId != null
+                        && "SUBSCRIPTION"
+                                .equals(jdbc.queryForObject(
+                                        "SELECT code FROM license_term_types WHERE license_term_type_id=?",
+                                        String.class,
+                                        termId));
                 if ((subscription && expiry == null) || (expiry != null && parseDate(expiry) == null))
-                    errors.add(rowError(rowNumber, "licenseExpiry", "INVALID_FORMAT", "A valid expiry date is required for subscriptions"));
+                    errors.add(rowError(
+                            rowNumber,
+                            "licenseExpiry",
+                            "INVALID_FORMAT",
+                            "A valid expiry date is required for subscriptions"));
             } else {
-                for (String field : List.of("software", "licenseAssignment", "licenseTerm", "seatCount", "licenseExpiry"))
-                    if (normalize(row.get(field)) != null) errors.add(rowError(rowNumber, field, "LICENSE_ONLY", "This field only applies to licenses"));
+                for (String field :
+                        List.of("software", "licenseAssignment", "licenseTerm", "seatCount", "licenseExpiry"))
+                    if (normalize(row.get(field)) != null)
+                        errors.add(rowError(rowNumber, field, "LICENSE_ONLY", "This field only applies to licenses"));
             }
             // Determine status
             ValidationStatus status;
@@ -299,43 +377,71 @@ public class AssetImportValidator {
 
     private Long licenseReference(String field, String value) {
         if (value == null || jdbc == null) return null;
-        String table = switch (field) { case "software" -> "software_catalog"; case "licenseAssignment" -> "license_assignment_types"; default -> "license_term_types"; };
-        String id = switch (field) { case "software" -> "software_catalog_id"; case "licenseAssignment" -> "license_assignment_type_id"; default -> "license_term_type_id"; };
-        String match = field.equals("software") ? "lower(name)=lower(?)" : "(lower(name)=lower(?) OR lower(code)=lower(?))";
+        String table =
+                switch (field) {
+                    case "software" -> "software_catalog";
+                    case "licenseAssignment" -> "license_assignment_types";
+                    default -> "license_term_types";
+                };
+        String id =
+                switch (field) {
+                    case "software" -> "software_catalog_id";
+                    case "licenseAssignment" -> "license_assignment_type_id";
+                    default -> "license_term_type_id";
+                };
+        String match =
+                field.equals("software") ? "lower(name)=lower(?)" : "(lower(name)=lower(?) OR lower(code)=lower(?))";
         var ids = field.equals("software")
-                ? jdbc.queryForList("SELECT " + id + " FROM " + table + " WHERE is_active AND " + match, Long.class, value)
-                : jdbc.queryForList("SELECT " + id + " FROM " + table + " WHERE is_active AND " + match, Long.class, value, value);
+                ? jdbc.queryForList(
+                        "SELECT " + id + " FROM " + table + " WHERE is_active AND " + match, Long.class, value)
+                : jdbc.queryForList(
+                        "SELECT " + id + " FROM " + table + " WHERE is_active AND " + match, Long.class, value, value);
         return ids.size() == 1 ? ids.getFirst() : null;
     }
 
-    public com.company.itam.asset.dto.request.CreateHardwareAssetRequest toRequest(Map<String, Object> data, CatalogCache cache) {
-        var r = new com.company.itam.asset.dto.request.CreateHardwareAssetRequest();
-        r.setName(normalize(data.get("name"))); r.setAssetTag(normalize(data.get("assetTag")));
-        var type = cache.findType(normalize(data.get("type"))); r.setTypeId(type.getTypeId());
-        String value = normalize(data.get("model")); if (value != null) r.setModelId(cache.findModel(value).getModelId());
-        value = normalize(data.get("condition")); if (value != null) r.setConditionId(cache.findCondition(value).getConditionId());
-        value = normalize(data.get("department")); if (value != null) r.setDepartmentId(cache.findDepartment(value).getDepartmentId());
-        value = normalize(data.get("location")); if (value != null) r.setLocationId(cache.findLocation(value).getLocationId());
-        value = normalize(data.get("supplier")); if (value != null) r.setSupplierId(cache.findSupplier(value).getSupplierId());
-        r.setSerialNumber(normalize(data.get("serialNumber"))); r.setPoNumber(normalize(data.get("poNumber")));
-        r.setPurchaseCost(parseBigDecimal(data.get("purchaseCost"))); r.setPurchaseDate(parseDate(normalize(data.get("purchaseDate"))));
+    public CreateHardwareAssetRequest toRequest(Map<String, Object> data, CatalogCache cache) {
+        var r = new CreateHardwareAssetRequest();
+        r.setName(normalize(data.get("name")));
+        r.setAssetTag(normalize(data.get("assetTag")));
+        var type = cache.findType(normalize(data.get("type")));
+        r.setTypeId(type.getTypeId());
+        String value = normalize(data.get("model"));
+        if (value != null) r.setModelId(cache.findModel(value).getModelId());
+        value = normalize(data.get("condition"));
+        if (value != null) r.setConditionId(cache.findCondition(value).getConditionId());
+        value = normalize(data.get("department"));
+        if (value != null) r.setDepartmentId(cache.findDepartment(value).getDepartmentId());
+        value = normalize(data.get("location"));
+        if (value != null) r.setLocationId(cache.findLocation(value).getLocationId());
+        value = normalize(data.get("supplier"));
+        if (value != null) r.setSupplierId(cache.findSupplier(value).getSupplierId());
+        r.setSerialNumber(normalize(data.get("serialNumber")));
+        r.setPoNumber(normalize(data.get("poNumber")));
+        r.setPurchaseCost(parseBigDecimal(data.get("purchaseCost")));
+        r.setPurchaseDate(parseDate(normalize(data.get("purchaseDate"))));
         r.setWarrantyExpiration(parseDate(normalize(data.get("warrantyExpiration"))));
-        r.setActualCpu(normalize(data.get("actualCpu"))); r.setActualRam(normalize(data.get("actualRam")));
-        r.setActualStorage(normalize(data.get("actualStorage"))); r.setActualGraphicsCard(normalize(data.get("actualGraphicsCard")));
-        if (type.getCategory() != null && type.getCategory().getCode() == com.company.itam.common.enums.AssetCategory.LICENSE)
-            r.setLicense(new com.company.itam.asset.dto.request.LicenseDetailsRequest(
-                    licenseReference("software", normalize(data.get("software"))), licenseReference("licenseAssignment", normalize(data.get("licenseAssignment"))),
-                    licenseReference("licenseTerm", normalize(data.get("licenseTerm"))), new BigDecimal(data.get("seatCount").toString()).intValueExact(), null,
+        r.setActualCpu(normalize(data.get("actualCpu")));
+        r.setActualRam(normalize(data.get("actualRam")));
+        r.setActualStorage(normalize(data.get("actualStorage")));
+        r.setActualGraphicsCard(normalize(data.get("actualGraphicsCard")));
+        if (type.getCategory() != null && type.getCategory().getCode() == AssetCategory.LICENSE)
+            r.setLicense(new LicenseDetailsRequest(
+                    licenseReference("software", normalize(data.get("software"))),
+                    licenseReference("licenseAssignment", normalize(data.get("licenseAssignment"))),
+                    licenseReference("licenseTerm", normalize(data.get("licenseTerm"))),
+                    new BigDecimal(data.get("seatCount").toString()).intValueExact(),
+                    null,
                     parseDate(normalize(data.get("licenseExpiry")))));
         return r;
     }
 
     private ImportRowErrorResponse rowError(Integer row, String field, String code, String fallback) {
-        return new ImportRowErrorResponse(row, field, code,
-                messages.getMessageWithDefault("import.row." + field + "." + code, fallback));
+        return new ImportRowErrorResponse(
+                row, field, code, messages.getMessageWithDefault("import.row." + field + "." + code, fallback));
     }
 
-    private void validateMaxLength(List<ImportRowErrorResponse> errors, Integer rowNumber, String field, Object value, int max) {
+    private void validateMaxLength(
+            List<ImportRowErrorResponse> errors, Integer rowNumber, String field, Object value, int max) {
         String normalized = normalize(value);
         if (normalized != null && normalized.length() > max) {
             errors.add(rowError(rowNumber, field, "MAX_LENGTH", field + " không được vượt quá " + max + " ký tự"));
@@ -369,12 +475,11 @@ public class AssetImportValidator {
                 DateTimeFormatter.ofPattern("dd/MM/uuuu"),
                 DateTimeFormatter.ofPattern("d/M/uuuu"),
                 DateTimeFormatter.ofPattern("dd-MM/uuuu"),
-                DateTimeFormatter.ofPattern("uuuu/MM/dd")
-        );
+                DateTimeFormatter.ofPattern("uuuu/MM/dd"));
 
         for (DateTimeFormatter fmt : formatters) {
             try {
-                return LocalDate.parse(clean, fmt.withResolverStyle(java.time.format.ResolverStyle.STRICT));
+                return LocalDate.parse(clean, fmt.withResolverStyle(ResolverStyle.STRICT));
             } catch (Exception ignored) {
             }
         }
@@ -405,12 +510,14 @@ public class AssetImportValidator {
                 if (t.getName() != null) typeByCodeOrName.put(t.getName().toLowerCase(Locale.ROOT), t);
             }
             for (AssetStatusEntity s : statuses) {
-                if (s.getCode() != null) statusByCodeOrName.put(s.getCode().name().toLowerCase(Locale.ROOT), s);
+                if (s.getCode() != null)
+                    statusByCodeOrName.put(s.getCode().name().toLowerCase(Locale.ROOT), s);
                 if (s.getName() != null) statusByCodeOrName.put(s.getName().toLowerCase(Locale.ROOT), s);
             }
             for (AssetConditionEntity c : conditions) {
                 if (!Boolean.TRUE.equals(c.getIsActive())) continue;
-                if (c.getCode() != null) conditionByCodeOrName.put(c.getCode().name().toLowerCase(Locale.ROOT), c);
+                if (c.getCode() != null)
+                    conditionByCodeOrName.put(c.getCode().name().toLowerCase(Locale.ROOT), c);
                 if (c.getName() != null) conditionByCodeOrName.put(c.getName().toLowerCase(Locale.ROOT), c);
             }
             for (ModelEntity m : models) {

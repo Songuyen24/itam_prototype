@@ -1,8 +1,8 @@
 package com.company.itam.role.entity;
 
-import com.company.itam.common.enums.Role;
 import jakarta.persistence.*;
-import java.time.Instant;
+
+import com.company.itam.common.enums.Role;
 
 @Entity
 @Table(name = "roles")

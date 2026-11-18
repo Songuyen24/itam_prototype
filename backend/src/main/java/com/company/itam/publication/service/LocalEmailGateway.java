@@ -21,7 +21,10 @@ public class LocalEmailGateway implements EmailGateway {
         send(recipient, subject, content);
         if (attachment == null) return;
         byte[] bytes = attachment.content();
-        log.info("Simulated attachment {} ({} bytes) from {}", attachment.fileName(), bytes.length,
+        log.info(
+                "Simulated attachment {} ({} bytes) from {}",
+                attachment.fileName(),
+                bytes.length,
                 attachment.storagePath());
     }
 }

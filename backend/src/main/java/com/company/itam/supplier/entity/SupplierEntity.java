@@ -1,9 +1,10 @@
 package com.company.itam.supplier.entity;
 
-import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "suppliers")

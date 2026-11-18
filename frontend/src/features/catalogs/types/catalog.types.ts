@@ -130,14 +130,14 @@ export interface LicenseTermType {
 }
 
 export type CatalogTabKey =
-  | 'departments'
-  | 'locations'
-  | 'suppliers'
-  | 'categories'
-  | 'types'
-  | 'statuses'
-  | 'conditions'
-  | 'models'
-  | 'software'
-  | 'license-assignments'
-  | 'license-terms';
+  | "departments"
+  | "locations"
+  | "suppliers"
+  | "categories"
+  | "types"
+  | "statuses"
+  | "conditions"
+  | "models"
+  | "software"
+  | "license-assignments"
+  | "license-terms";

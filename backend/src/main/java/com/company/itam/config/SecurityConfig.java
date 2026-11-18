@@ -1,8 +1,7 @@
 package com.company.itam.config;
 
-import com.company.itam.auth.security.JwtAccessDeniedHandler;
-import com.company.itam.auth.security.JwtAuthenticationEntryPoint;
-import com.company.itam.auth.security.JwtAuthenticationFilter;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,7 +21,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
+import com.company.itam.auth.security.JwtAccessDeniedHandler;
+import com.company.itam.auth.security.JwtAuthenticationEntryPoint;
+import com.company.itam.auth.security.JwtAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -34,61 +35,99 @@ public class SecurityConfig {
             HttpSecurity http,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             JwtAuthenticationEntryPoint authenticationEntryPoint,
-            JwtAccessDeniedHandler accessDeniedHandler
-    ) throws Exception {
-        http
-            .cors(Customizer.withDefaults())
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .formLogin(AbstractHttpConfigurer::disable)
-            .httpBasic(AbstractHttpConfigurer::disable)
-            .exceptionHandling(ex -> ex
-                    .authenticationEntryPoint(authenticationEntryPoint)
-                    .accessDeniedHandler(accessDeniedHandler)
-            )
-            .authorizeHttpRequests(auth -> auth
-                    // Public endpoints: đăng nhập và Swagger/OpenAPI nếu có.
-                    .requestMatchers("/v1/auth/login", "/api/v1/auth/login").permitAll()
-                    .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                    .requestMatchers("/v1/auth/me", "/api/v1/auth/me",
-                            "/v1/auth/logout", "/api/v1/auth/logout", "/v1/auth/password", "/api/v1/auth/password").authenticated()
-                    .requestMatchers(HttpMethod.GET, "/v1/import-drafts/*/content", "/v1/import-drafts/*/revisions", "/v1/import-drafts/*/events", "/v1/import-drafts/reference-data")
-                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
-                    .requestMatchers(HttpMethod.POST, "/v1/import-drafts/*/approve", "/v1/import-drafts/*/reject").hasAnyAuthority("ADMIN", "IT_STAFF")
-                    .requestMatchers("/v1/import-drafts/**").hasAnyAuthority("ADMIN", "PUR_STAFF")
-                    .requestMatchers("/v1/transactions/*/adjustments/**", "/api/v1/transactions/*/adjustments/**")
-                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
-                    // Document services also enforce transaction scope and report ownership.
-                    .requestMatchers(HttpMethod.GET, "/v1/documents/*/download", "/api/v1/documents/*/download")
-                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
-                    .requestMatchers(HttpMethod.GET, "/v1/documents/*/preview", "/api/v1/documents/*/preview")
-                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
-                    .requestMatchers(HttpMethod.GET, "/v1/transactions/*/publication", "/api/v1/transactions/*/publication",
-                            "/v1/transactions/*/email-logs", "/api/v1/transactions/*/email-logs")
-                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
-                    .requestMatchers(HttpMethod.GET, "/v1/transactions/*/pdf", "/api/v1/transactions/*/pdf")
-                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
-                    .requestMatchers(HttpMethod.GET, "/v1/documents", "/api/v1/documents",
-                            "/v1/documents/*", "/api/v1/documents/*", "/v1/transactions", "/api/v1/transactions",
-                            "/v1/transactions/*", "/api/v1/transactions/*")
-                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
-                    .requestMatchers(HttpMethod.POST, "/v1/documents", "/api/v1/documents")
-                            .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
-                    .requestMatchers(HttpMethod.DELETE, "/v1/documents/*", "/api/v1/documents/*")
-                            .hasAnyAuthority("ADMIN", "PUR_STAFF")
-                    // Detail access also requires the ownership check in AssetService.
-                    .requestMatchers(HttpMethod.GET, "/v1/users/me/assets", "/api/v1/users/me/assets",
-                            "/v1/assets/*", "/api/v1/assets/*")
-                            .hasAnyAuthority("ADMIN", "IT_STAFF", "USER")
-                    .requestMatchers(HttpMethod.GET, "/v1/users", "/v1/users/*", "/v1/users/*/holdings",
-                            "/api/v1/users", "/api/v1/users/*", "/api/v1/users/*/holdings").hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
-                    .requestMatchers("/v1/reports/**", "/api/v1/reports/**").hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
-                    .requestMatchers("/v1/audit-logs", "/api/v1/audit-logs").hasAuthority("ADMIN")
-                    .requestMatchers("/v1/accounts/**", "/api/v1/accounts/**").hasAuthority("ADMIN")
-                    .requestMatchers("/v1/**", "/api/v1/**").hasAnyAuthority("ADMIN", "IT_STAFF")
-                    .anyRequest().permitAll()
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            JwtAccessDeniedHandler accessDeniedHandler)
+            throws Exception {
+        http.cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .exceptionHandling(ex ->
+                        ex.authenticationEntryPoint(authenticationEntryPoint).accessDeniedHandler(accessDeniedHandler))
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/v1/auth/login", "/api/v1/auth/login")
+                        .permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/info")
+                        .permitAll()
+                        .requestMatchers(
+                                "/v1/auth/me",
+                                "/api/v1/auth/me",
+                                "/v1/auth/logout",
+                                "/api/v1/auth/logout",
+                                "/v1/auth/password",
+                                "/api/v1/auth/password")
+                        .authenticated()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/v1/import-drafts/*/content",
+                                "/v1/import-drafts/*/revisions",
+                                "/v1/import-drafts/*/events",
+                                "/v1/import-drafts/reference-data")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                        .requestMatchers(HttpMethod.POST, "/v1/import-drafts/*/approve", "/v1/import-drafts/*/reject")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF")
+                        .requestMatchers("/v1/import-drafts/**")
+                        .hasAnyAuthority("ADMIN", "PUR_STAFF")
+                        .requestMatchers("/v1/transactions/*/adjustments/**", "/api/v1/transactions/*/adjustments/**")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                        // Document services also enforce transaction scope and
+                        // report ownership.
+                        .requestMatchers(HttpMethod.GET, "/v1/documents/*/download", "/api/v1/documents/*/download")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                        .requestMatchers(HttpMethod.GET, "/v1/documents/*/preview", "/api/v1/documents/*/preview")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/v1/transactions/*/publication",
+                                "/api/v1/transactions/*/publication",
+                                "/v1/transactions/*/email-logs",
+                                "/api/v1/transactions/*/email-logs")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                        .requestMatchers(HttpMethod.GET, "/v1/transactions/*/pdf", "/api/v1/transactions/*/pdf")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/v1/documents",
+                                "/api/v1/documents",
+                                "/v1/documents/*",
+                                "/api/v1/documents/*",
+                                "/v1/transactions",
+                                "/api/v1/transactions",
+                                "/v1/transactions/*",
+                                "/api/v1/transactions/*")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                        .requestMatchers(HttpMethod.POST, "/v1/documents", "/api/v1/documents")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                        .requestMatchers(HttpMethod.DELETE, "/v1/documents/*", "/api/v1/documents/*")
+                        .hasAnyAuthority("ADMIN", "PUR_STAFF")
+                        // Detail access also requires the ownership check in
+                        // AssetService.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/v1/users/me/assets",
+                                "/api/v1/users/me/assets",
+                                "/v1/assets/*",
+                                "/api/v1/assets/*")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "USER")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/v1/users",
+                                "/v1/users/*",
+                                "/v1/users/*/holdings",
+                                "/api/v1/users",
+                                "/api/v1/users/*",
+                                "/api/v1/users/*/holdings")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                        .requestMatchers("/v1/reports/**", "/api/v1/reports/**")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF", "PUR_STAFF")
+                        .requestMatchers("/v1/audit-logs", "/api/v1/audit-logs")
+                        .hasAuthority("ADMIN")
+                        .requestMatchers("/v1/accounts/**", "/api/v1/accounts/**")
+                        .hasAuthority("ADMIN")
+                        .requestMatchers("/v1/**", "/api/v1/**")
+                        .hasAnyAuthority("ADMIN", "IT_STAFF")
+                        .anyRequest()
+                        .permitAll())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -106,10 +145,6 @@ public class SecurityConfig {
         return source;
     }
 
-    /**
-     * BCrypt password encoder với strength 12 cho prototype.
-     * Các tài khoản seed trong V8 được hash bằng cùng strength để verify thành công.
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);

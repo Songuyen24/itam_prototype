@@ -1,7 +1,9 @@
 package com.company.itam.common.exception;
 
-import com.company.itam.common.response.ErrorResponse;
-import com.company.itam.common.util.MessageHelper;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -10,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -17,8 +20,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.company.itam.common.response.ErrorResponse;
+import com.company.itam.common.util.MessageHelper;
+import com.company.itam.importbatch.service.ImportValidationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -30,10 +34,18 @@ public class GlobalExceptionHandler {
         this.messageHelper = messageHelper;
     }
 
-    @ExceptionHandler(com.company.itam.importbatch.service.ImportValidationException.class)
-    public ResponseEntity<?> handleImportValidation(com.company.itam.importbatch.service.ImportValidationException ex) {
-        return ResponseEntity.badRequest().body(java.util.Map.of("success", false, "code", ex.getCode(),
-                "message", messageHelper.getMessage(ex.getCode()), "rows", ex.getRows()));
+    @ExceptionHandler(ImportValidationException.class)
+    public ResponseEntity<?> handleImportValidation(ImportValidationException ex) {
+        return ResponseEntity.badRequest()
+                .body(Map.of(
+                        "success",
+                        false,
+                        "code",
+                        ex.getCode(),
+                        "message",
+                        messageHelper.getMessage(ex.getCode()),
+                        "rows",
+                        ex.getRows()));
     }
 
     @ExceptionHandler(AppException.class)
@@ -59,18 +71,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
         log.warn("Data integrity constraint rejected the write");
-        String rootMsg = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        String rootMsg =
+                ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
         if (rootMsg != null && rootMsg.contains("is still referenced")) {
-            String localizedMsg = messageHelper.getMessageWithDefault("CATALOG_IN_USE", "Danh mục đang được sử dụng trong hệ thống, không thể xóa");
+            String localizedMsg = messageHelper.getMessageWithDefault(
+                    "CATALOG_IN_USE", "Danh mục đang được sử dụng trong hệ thống, không thể xóa");
             ErrorResponse error = new ErrorResponse(localizedMsg, "CATALOG_IN_USE");
             return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
         }
         if (rootMsg != null && (rootMsg.contains("unique") || rootMsg.contains("duplicate key"))) {
-            String localizedMsg = messageHelper.getMessageWithDefault("DUPLICATE_CODE", "Dữ liệu đã tồn tại trong hệ thống");
+            String localizedMsg =
+                    messageHelper.getMessageWithDefault("DUPLICATE_CODE", "Dữ liệu đã tồn tại trong hệ thống");
             ErrorResponse error = new ErrorResponse(localizedMsg, "DUPLICATE_CODE");
             return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
         }
-        String localizedMsg = messageHelper.getMessageWithDefault("DATA_INTEGRITY_ERROR", "Ràng buộc toàn vẹn dữ liệu bị vi phạm");
+        String localizedMsg =
+                messageHelper.getMessageWithDefault("DATA_INTEGRITY_ERROR", "Ràng buộc toàn vẹn dữ liệu bị vi phạm");
         ErrorResponse error = new ErrorResponse(localizedMsg, "DATA_INTEGRITY_ERROR");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
@@ -78,7 +94,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
         log.warn("Access denied: {}", ex.getMessage());
-        String localizedMsg = messageHelper.getMessageWithDefault("ACCESS_DENIED", "Bạn không có quyền thực hiện thao tác này");
+        String localizedMsg =
+                messageHelper.getMessageWithDefault("ACCESS_DENIED", "Bạn không có quyền thực hiện thao tác này");
         ErrorResponse error = new ErrorResponse(localizedMsg, "ACCESS_DENIED");
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
@@ -98,9 +115,12 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(messageHelper.getMessage(code), code));
     }
 
-    @ExceptionHandler({MissingServletRequestParameterException.class, MissingServletRequestPartException.class,
-            org.springframework.web.bind.MissingRequestHeaderException.class,
-            MethodArgumentTypeMismatchException.class})
+    @ExceptionHandler({
+        MissingServletRequestParameterException.class,
+        MissingServletRequestPartException.class,
+        MissingRequestHeaderException.class,
+        MethodArgumentTypeMismatchException.class
+    })
     public ResponseEntity<ErrorResponse> handleRequestBindingException(Exception ex) {
         String code = "VALIDATION_ERROR";
         return ResponseEntity.badRequest().body(new ErrorResponse(messageHelper.getMessage(code), code));
@@ -109,7 +129,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
         log.error("Unexpected error occurred: ", ex);
-        String localizedMsg = messageHelper.getMessageWithDefault("INTERNAL_SERVER_ERROR", "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.");
+        String localizedMsg = messageHelper.getMessageWithDefault(
+                "INTERNAL_SERVER_ERROR", "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.");
         ErrorResponse error = new ErrorResponse(localizedMsg, "INTERNAL_SERVER_ERROR");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }

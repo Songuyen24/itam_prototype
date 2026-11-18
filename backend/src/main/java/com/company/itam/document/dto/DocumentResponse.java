@@ -1,9 +1,9 @@
 package com.company.itam.document.dto;
 
+import java.time.Instant;
+
 import com.company.itam.common.enums.DocumentType;
 import com.company.itam.document.entity.DocumentEntity;
-
-import java.time.Instant;
 
 public record DocumentResponse(
         Long documentId,

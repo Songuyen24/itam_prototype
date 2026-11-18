@@ -1,25 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { assetApi } from '@/features/assets/api/assetApi';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { assetApi } from "@/features/assets/api/assetApi";
 
-describe('Asset API & Hardware Asset Management', () => {
+describe("Asset API & Hardware Asset Management", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
-  it('assetApi.getAssets calls endpoint with filter query parameters', async () => {
+  it("assetApi.getAssets calls endpoint with filter query parameters", async () => {
     const mockResponse = {
       success: true,
       data: {
         content: [
           {
             assetId: 1,
-            assetTag: 'AST-001',
-            name: 'Laptop Lenovo T14',
-            serialNumber: 'SN-12345',
-            effectiveCpu: 'Intel Core i5',
-            statusCode: 'IN_STOCK',
-            statusName: 'In Stock',
+            assetTag: "AST-001",
+            name: "Laptop Lenovo T14",
+            serialNumber: "SN-12345",
+            effectiveCpu: "Intel Core i5",
+            statusCode: "IN_STOCK",
+            statusName: "In Stock",
           },
         ],
         pageNumber: 0,
@@ -37,10 +37,10 @@ describe('Asset API & Hardware Asset Management', () => {
       json: async () => mockResponse,
     } as unknown as Response);
 
-    vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal("fetch", mockFetch);
 
     const result = await assetApi.getAssets({
-      keyword: 'Lenovo',
+      keyword: "Lenovo",
       statusId: 1,
       page: 0,
       size: 20,
@@ -48,21 +48,23 @@ describe('Asset API & Hardware Asset Management', () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/v1/assets?page=0&size=20&keyword=Lenovo&statusId=1'),
-      expect.anything()
+      expect.stringContaining(
+        "/v1/assets?page=0&size=20&keyword=Lenovo&statusId=1",
+      ),
+      expect.anything(),
     );
-    expect(result.data.content[0].assetTag).toBe('AST-001');
+    expect(result.data.content[0].assetTag).toBe("AST-001");
   });
 
-  it('assetApi.createAsset sends POST request with payload', async () => {
+  it("assetApi.createAsset sends POST request with payload", async () => {
     const payload = {
-      creationPurpose: 'BASELINE' as const,
-      assetTag: 'AST-NEW-01',
-      name: 'Dell Latitude 5440',
+      creationPurpose: "BASELINE" as const,
+      assetTag: "AST-NEW-01",
+      name: "Dell Latitude 5440",
       typeId: 1,
       modelId: 5,
-      serialNumber: 'SN-DELL-99',
-      actualRam: '32GB',
+      serialNumber: "SN-DELL-99",
+      actualRam: "32GB",
     };
 
     const mockResponse = {
@@ -70,11 +72,11 @@ describe('Asset API & Hardware Asset Management', () => {
       data: {
         assetId: 10,
         ...payload,
-        effectiveRam: '32GB',
+        effectiveRam: "32GB",
         hardwareConfig: {
-          defaultRam: '16GB',
-          actualRam: '32GB',
-          effectiveRam: '32GB',
+          defaultRam: "16GB",
+          actualRam: "32GB",
+          effectiveRam: "32GB",
         },
       },
     };
@@ -84,47 +86,56 @@ describe('Asset API & Hardware Asset Management', () => {
       json: async () => mockResponse,
     } as unknown as Response);
 
-    vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal("fetch", mockFetch);
 
     const result = await assetApi.createAsset(payload);
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/v1/assets'),
+      expect.stringContaining("/v1/assets"),
       expect.objectContaining({
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(payload),
-      })
+      }),
     );
     expect(result.data.assetId).toBe(10);
-    expect(result.data.effectiveRam).toBe('32GB');
+    expect(result.data.effectiveRam).toBe("32GB");
   });
 
-  it('getMyAssets uses the session endpoint and never forwards client-supplied identity', async () => {
+  it("getMyAssets uses the session endpoint and never forwards client-supplied identity", async () => {
     const data = { content: [], totalPages: 0, totalElements: 0 };
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, data }),
     } as unknown as Response);
-    vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal("fetch", mockFetch);
 
-    const clientParams = { keyword: 'Laptop', page: 1, size: 20, assignedTo: 99, userId: 99, role: 'ADMIN' };
+    const clientParams = {
+      keyword: "Laptop",
+      page: 1,
+      size: 20,
+      assignedTo: 99,
+      userId: 99,
+      role: "ADMIN",
+    };
     const result = await assetApi.getMyAssets(clientParams);
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/v1\/users\/me\/assets\?page=1&size=20&keyword=Laptop$/),
-      expect.anything()
+      expect.stringMatching(
+        /\/v1\/users\/me\/assets\?page=1&size=20&keyword=Laptop$/,
+      ),
+      expect.anything(),
     );
     expect(result.data).toEqual(data);
   });
 
-  it('assetApi.validateUniqueness posts tag and serial and parses result', async () => {
+  it("assetApi.validateUniqueness posts tag and serial and parses result", async () => {
     const mockResponse = {
       success: true,
       data: {
         assetTagAvailable: true,
-        assetTagMessage: 'Mã tài sản hợp lệ',
+        assetTagMessage: "Mã tài sản hợp lệ",
         serialNumberAvailable: false,
-        serialNumberMessage: 'Số serial number đã tồn tại',
+        serialNumberMessage: "Số serial number đã tồn tại",
       },
     };
 
@@ -133,11 +144,11 @@ describe('Asset API & Hardware Asset Management', () => {
       json: async () => mockResponse,
     } as unknown as Response);
 
-    vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal("fetch", mockFetch);
 
     const result = await assetApi.validateUniqueness({
-      assetTag: 'TAG-VALID',
-      serialNumber: 'SN-DUPLICATE',
+      assetTag: "TAG-VALID",
+      serialNumber: "SN-DUPLICATE",
     });
 
     expect(result.data.assetTagAvailable).toBe(true);

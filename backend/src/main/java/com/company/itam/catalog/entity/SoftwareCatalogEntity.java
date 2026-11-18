@@ -1,8 +1,8 @@
 package com.company.itam.catalog.entity;
 
-import jakarta.persistence.*;
-import java.io.Serializable;
 import java.time.Instant;
+
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "software_catalog")
@@ -85,8 +85,19 @@ public class SoftwareCatalogEntity {
         this.isActive = isActive;
     }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

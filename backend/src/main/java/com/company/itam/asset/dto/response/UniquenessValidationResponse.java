@@ -1,6 +1,7 @@
 package com.company.itam.asset.dto.response;
 
 public class UniquenessValidationResponse {
+
     private boolean assetTagAvailable;
     private String assetTagMessage;
     private boolean serialNumberAvailable;
@@ -8,7 +9,11 @@ public class UniquenessValidationResponse {
 
     public UniquenessValidationResponse() {}
 
-    public UniquenessValidationResponse(boolean assetTagAvailable, String assetTagMessage, boolean serialNumberAvailable, String serialNumberMessage) {
+    public UniquenessValidationResponse(
+            boolean assetTagAvailable,
+            String assetTagMessage,
+            boolean serialNumberAvailable,
+            String serialNumberMessage) {
         this.assetTagAvailable = assetTagAvailable;
         this.assetTagMessage = assetTagMessage;
         this.serialNumberAvailable = serialNumberAvailable;

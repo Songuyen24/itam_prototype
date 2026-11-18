@@ -7,7 +7,10 @@
   "resetFilters": "Reset filters",
   "allStatuses": "All statuses",
   "createdRange": "Created date range",
-  "assetTag": "Asset tag", "assetName": "Asset name", "category": "Category", "deviceTag": "Device tag",
+  "assetTag": "Asset tag",
+  "assetName": "Asset name",
+  "category": "Category",
+  "deviceTag": "Device tag",
   "heldOnly": "Current holders",
   "allEmployees": "All employees",
   "searchHolders": "Search employee code, name or email",
@@ -29,12 +32,25 @@
   "cancelRemainingReason": "Reason for cancelling selected items",
   "groupReason": "Reason",
   "changed": "This handover changed. Latest details have been loaded. Review them before retrying.",
-  "groupStatus": { "PENDING": "Pending", "APPROVED": "Approved", "COMPLETED": "Completed", "REJECTED": "Rejected", "CANCELLED": "Cancelled" },
+  "groupStatus": {
+    "PENDING": "Pending",
+    "APPROVED": "Approved",
+    "COMPLETED": "Completed",
+    "REJECTED": "Rejected",
+    "CANCELLED": "Cancelled"
+  },
   "overrideReason": "Reason for acting on behalf of the creator",
   "draftConfirmTitle": "Review draft",
   "draftConfirmHint": "Review the recipient, assets, components and license seats before saving the draft.",
   "saveDraft": "Save draft",
-  "status": { "DRAFT": "Draft", "PENDING": "Awaiting handover", "PARTIAL": "Partially completed", "COMPLETED": "Completed", "CANCELLED": "Cancelled", "REJECTED": "Rejected" },
+  "status": {
+    "DRAFT": "Draft",
+    "PENDING": "Awaiting handover",
+    "PARTIAL": "Partially completed",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled",
+    "REJECTED": "Rejected"
+  },
   "list": "Handover history",
   "hint": "Select assets in stock and one recipient. Attached components and reserved OEM seats will be included in the preview.",
   "searchAssets": "Search asset tag or name",
@@ -84,5 +100,15 @@
     "GraphicsCard": "Graphics"
   },
   "employeeCode": "Employee code",
-  "name": "Full name", "email": "Email", "devices": "Devices", "components": "Components", "licenseSeats": "License seats", "action": "Action", "view": "View", "code": "Receipt code", "statusLabel": "Status", "createdAt": "Created at", "requester": "Requester"
+  "name": "Full name",
+  "email": "Email",
+  "devices": "Devices",
+  "components": "Components",
+  "licenseSeats": "License seats",
+  "action": "Action",
+  "view": "View",
+  "code": "Receipt code",
+  "statusLabel": "Status",
+  "createdAt": "Created at",
+  "requester": "Requester"
 }

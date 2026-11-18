@@ -1,21 +1,20 @@
 package com.company.itam.importbatch.service;
 
-import com.company.itam.common.exception.AppException;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.*;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.company.itam.common.exception.AppException;
 
 @Service
 public class ExcelHelperService {
@@ -24,55 +23,86 @@ public class ExcelHelperService {
     public static final int MAX_ROWS = 1000;
 
     public static final String[] HEADERS = {
-            "Mã tài sản (tự sinh nếu trống)",
-            "Tên tài sản (*)",
-            "Loại tài sản (*)",
-            "Model",
-            "Số Serial",
-            "Trạng thái",
-            "Tình trạng",
-            "Phòng ban",
-            "Vị trí",
-            "Nhà cung cấp",
-            "Số PO / Hóa đơn",
-            "Ngày mua",
-            "Giá mua",
-            "Hạn bảo hành",
-            "Actual CPU",
-            "Actual RAM",
-            "Actual Storage",
-            "Actual GPU", "Phần mềm", "Kiểu cấp phép", "Thời hạn license", "Số suất", "Ngày hết hạn license"
+        "Mã tài sản (tự sinh nếu trống)",
+        "Tên tài sản (*)",
+        "Loại tài sản (*)",
+        "Model",
+        "Số Serial",
+        "Trạng thái",
+        "Tình trạng",
+        "Phòng ban",
+        "Vị trí",
+        "Nhà cung cấp",
+        "Số PO / Hóa đơn",
+        "Ngày mua",
+        "Giá mua",
+        "Hạn bảo hành",
+        "Actual CPU",
+        "Actual RAM",
+        "Actual Storage",
+        "Actual GPU",
+        "Phần mềm",
+        "Kiểu cấp phép",
+        "Thời hạn license",
+        "Số suất",
+        "Ngày hết hạn license"
     };
 
     public static final String[] EN_HEADERS = {
-        "Asset tag (generated if blank)", "Asset name (*)", "Asset type (*)", "Model", "Serial number",
-        "Status", "Condition", "Department", "Location", "Supplier", "PO / Invoice", "Purchase date",
-        "Purchase cost", "Warranty expiration", "Actual CPU", "Actual RAM", "Actual Storage", "Actual GPU", "Software", "License assignment", "License term", "Seat count", "License expiry"
+        "Asset tag (generated if blank)",
+        "Asset name (*)",
+        "Asset type (*)",
+        "Model",
+        "Serial number",
+        "Status",
+        "Condition",
+        "Department",
+        "Location",
+        "Supplier",
+        "PO / Invoice",
+        "Purchase date",
+        "Purchase cost",
+        "Warranty expiration",
+        "Actual CPU",
+        "Actual RAM",
+        "Actual Storage",
+        "Actual GPU",
+        "Software",
+        "License assignment",
+        "License term",
+        "Seat count",
+        "License expiry"
     };
 
     public static final String[] FIELD_KEYS = {
-            "assetTag",
-            "name",
-            "type",
-            "model",
-            "serialNumber",
-            "status",
-            "condition",
-            "department",
-            "location",
-            "supplier",
-            "poNumber",
-            "purchaseDate",
-            "purchaseCost",
-            "warrantyExpiration",
-            "actualCpu",
-            "actualRam",
-            "actualStorage",
-            "actualGraphicsCard", "software", "licenseAssignment", "licenseTerm", "seatCount", "licenseExpiry"
+        "assetTag",
+        "name",
+        "type",
+        "model",
+        "serialNumber",
+        "status",
+        "condition",
+        "department",
+        "location",
+        "supplier",
+        "poNumber",
+        "purchaseDate",
+        "purchaseCost",
+        "warrantyExpiration",
+        "actualCpu",
+        "actualRam",
+        "actualStorage",
+        "actualGraphicsCard",
+        "software",
+        "licenseAssignment",
+        "licenseTerm",
+        "seatCount",
+        "licenseExpiry"
     };
 
     public byte[] generateTemplate() {
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        try (Workbook workbook = new XSSFWorkbook();
+                ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Import Assets");
 
             // Header style
@@ -90,7 +120,8 @@ public class ExcelHelperService {
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < HEADERS.length; i++) {
                 Cell cell = headerRow.createCell(i);
-                cell.setCellValue(org.springframework.context.i18n.LocaleContextHolder.getLocale().getLanguage().equals("en") ? EN_HEADERS[i] : HEADERS[i]);
+                cell.setCellValue(
+                        LocaleContextHolder.getLocale().getLanguage().equals("en") ? EN_HEADERS[i] : HEADERS[i]);
                 cell.setCellStyle(headerStyle);
             }
 
@@ -104,24 +135,24 @@ public class ExcelHelperService {
             // Sample row 1
             Row sampleRow1 = sheet.createRow(1);
             String[] sampleData1 = {
-                    "AST-NB-001",
-                    "Laptop Dell Latitude 5420",
-                    "LAPTOP",
-                    "Latitude 5420",
-                    "SN-DELL-5420-01",
-                    "IN_STOCK",
-                    "NEW",
-                    "Phòng CNTT",
-                    "Kho Tầng 2",
-                    "Công ty Dell VN",
-                    "PO-2026-001",
-                    "2026-01-15",
-                    "24500000",
-                    "2029-01-15",
-                    "Intel Core i7-1185G7",
-                    "16GB DDR4",
-                    "512GB NVMe SSD",
-                    "Intel Iris Xe"
+                "AST-NB-001",
+                "Laptop Dell Latitude 5420",
+                "LAPTOP",
+                "Latitude 5420",
+                "SN-DELL-5420-01",
+                "IN_STOCK",
+                "NEW",
+                "Phòng CNTT",
+                "Kho Tầng 2",
+                "Công ty Dell VN",
+                "PO-2026-001",
+                "2026-01-15",
+                "24500000",
+                "2029-01-15",
+                "Intel Core i7-1185G7",
+                "16GB DDR4",
+                "512GB NVMe SSD",
+                "Intel Iris Xe"
             };
             for (int i = 0; i < sampleData1.length; i++) {
                 Cell cell = sampleRow1.createCell(i);
@@ -132,24 +163,24 @@ public class ExcelHelperService {
             // Sample row 2
             Row sampleRow2 = sheet.createRow(2);
             String[] sampleData2 = {
-                    "AST-PC-002",
-                    "PC HP ProDesk 400 G7",
-                    "DESKTOP",
-                    "ProDesk 400 G7",
-                    "SN-HP-400-02",
-                    "IN_STOCK",
-                    "GOOD",
-                    "Phòng Kế toán",
-                    "Tầng 3",
-                    "FPT Synnex",
-                    "PO-2026-002",
-                    "2026-02-10",
-                    "18200000",
-                    "2028-02-10",
-                    "Intel Core i5-10500",
-                    "8GB DDR4",
-                    "256GB SSD",
-                    "Integrated"
+                "AST-PC-002",
+                "PC HP ProDesk 400 G7",
+                "DESKTOP",
+                "ProDesk 400 G7",
+                "SN-HP-400-02",
+                "IN_STOCK",
+                "GOOD",
+                "Phòng Kế toán",
+                "Tầng 3",
+                "FPT Synnex",
+                "PO-2026-002",
+                "2026-02-10",
+                "18200000",
+                "2028-02-10",
+                "Intel Core i5-10500",
+                "8GB DDR4",
+                "256GB SSD",
+                "Integrated"
             };
             for (int i = 0; i < sampleData2.length; i++) {
                 Cell cell = sampleRow2.createCell(i);
@@ -165,7 +196,10 @@ public class ExcelHelperService {
             workbook.write(out);
             return out.toByteArray();
         } catch (IOException e) {
-            throw new AppException(HttpStatus.INTERNAL_SERVER_ERROR, "TEMPLATE_GENERATION_FAILED", "Không thể tạo file template Excel");
+            throw new AppException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "TEMPLATE_GENERATION_FAILED",
+                    "Không thể tạo file template Excel");
         }
     }
 
@@ -176,20 +210,27 @@ public class ExcelHelperService {
         DataFormatter dataFormatter = new DataFormatter();
 
         try (InputStream inputStream = file.getInputStream();
-             Workbook workbook = WorkbookFactory.create(inputStream)) {
+                Workbook workbook = WorkbookFactory.create(inputStream)) {
 
             Sheet sheet = workbook.getSheetAt(0);
             if (sheet == null) {
-                throw new AppException(HttpStatus.BAD_REQUEST, "EMPTY_EXCEL_FILE", "File Excel không có trang tính nào");
+                throw new AppException(
+                        HttpStatus.BAD_REQUEST, "EMPTY_EXCEL_FILE", "File Excel không có trang tính nào");
             }
 
             Row header = sheet.getRow(0);
-            if (header == null || header.getLastCellNum() < 3) throw new AppException(HttpStatus.BAD_REQUEST,"INVALID_EXCEL_HEADERS","Invalid columns");
-            for (int c=0;c<Math.min(header.getLastCellNum(),HEADERS.length);c++) {
+            if (header == null || header.getLastCellNum() < 3)
+                throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_EXCEL_HEADERS", "Invalid columns");
+            for (int c = 0; c < Math.min(header.getLastCellNum(), HEADERS.length); c++) {
                 String label = dataFormatter.formatCellValue(header.getCell(c)).trim();
-                if (!label.equalsIgnoreCase(HEADERS[c]) && !label.equalsIgnoreCase(EN_HEADERS[c])
-                        && !label.equalsIgnoreCase(FIELD_KEYS[c]) && !(c==0 && label.equals("Mã tài sản (*)")))
-                    throw new AppException(HttpStatus.BAD_REQUEST,"INVALID_EXCEL_HEADERS","Unexpected column at position " + (c+1));
+                if (!label.equalsIgnoreCase(HEADERS[c])
+                        && !label.equalsIgnoreCase(EN_HEADERS[c])
+                        && !label.equalsIgnoreCase(FIELD_KEYS[c])
+                        && !(c == 0 && label.equals("Mã tài sản (*)")))
+                    throw new AppException(
+                            HttpStatus.BAD_REQUEST,
+                            "INVALID_EXCEL_HEADERS",
+                            "Unexpected column at position " + (c + 1));
             }
             int lastRowNum = sheet.getLastRowNum();
             if (lastRowNum < 1) {
@@ -197,8 +238,11 @@ public class ExcelHelperService {
             }
 
             if (lastRowNum > MAX_ROWS) {
-                throw new AppException(HttpStatus.BAD_REQUEST, "EXCEEDS_MAX_ROWS",
-                        "File Excel chứa " + lastRowNum + " dòng, vượt quá giới hạn cho phép tối đa " + MAX_ROWS + " dòng");
+                throw new AppException(
+                        HttpStatus.BAD_REQUEST,
+                        "EXCEEDS_MAX_ROWS",
+                        "File Excel chứa " + lastRowNum + " dòng, vượt quá giới hạn cho phép tối đa " + MAX_ROWS
+                                + " dòng");
             }
 
             for (int r = 1; r <= lastRowNum; r++) {
@@ -221,12 +265,16 @@ public class ExcelHelperService {
             }
 
             if (rows.isEmpty()) {
-                throw new AppException(HttpStatus.BAD_REQUEST, "EMPTY_DATA", "File Excel không chứa dữ liệu hợp lệ nào sau tiêu đề");
+                throw new AppException(
+                        HttpStatus.BAD_REQUEST, "EMPTY_DATA", "File Excel không chứa dữ liệu hợp lệ nào sau tiêu đề");
             }
 
             return rows;
         } catch (IOException e) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_EXCEL_FORMAT", "Không thể đọc định dạng file Excel: " + e.getMessage());
+            throw new AppException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_EXCEL_FORMAT",
+                    "Không thể đọc định dạng file Excel: " + e.getMessage());
         }
     }
 
@@ -240,8 +288,13 @@ public class ExcelHelperService {
         }
 
         String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || (!originalFilename.toLowerCase().endsWith(".xlsx") && !originalFilename.toLowerCase().endsWith(".xls"))) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_FILE_TYPE", "Chỉ chấp nhận định dạng file Excel (.xlsx hoặc .xls)");
+        if (originalFilename == null
+                || (!originalFilename.toLowerCase().endsWith(".xlsx")
+                        && !originalFilename.toLowerCase().endsWith(".xls"))) {
+            throw new AppException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_FILE_TYPE",
+                    "Chỉ chấp nhận định dạng file Excel (.xlsx hoặc .xls)");
         }
     }
 
@@ -271,7 +324,10 @@ public class ExcelHelperService {
                 if (DateUtil.isCellDateFormatted(cell)) {
                     Date date = cell.getDateCellValue();
                     if (date != null) {
-                        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().toString();
+                        return date.toInstant()
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate()
+                                .toString();
                     }
                     return null;
                 } else {

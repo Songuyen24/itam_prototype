@@ -2,7 +2,9 @@
   "title": "Thu hồi tài sản",
   "tabForm": "Tạo phiếu thu hồi",
   "tabHistory": "Lịch sử thu hồi",
-  "creator": "Người lập", "createdAt": "Ngày tạo", "createdRange": "Khoảng ngày tạo",
+  "creator": "Người lập",
+  "createdAt": "Ngày tạo",
+  "createdRange": "Khoảng ngày tạo",
   "noHistory": "Chưa có phiếu thu hồi nào",
   "colCode": "Mã phiếu",
   "colReturner": "Người trả",
@@ -10,7 +12,9 @@
   "colLocation": "Vị trí nhận",
   "colAssets": "Số tài sản",
   "hint": "Lập phiếu thu hồi cho một người trả; kiểm tra quan hệ tài sản trước khi gửi chờ nhận.",
-  "stepReturner": "Người trả và vị trí nhận", "stepAssets": "Tài sản đề xuất và lựa chọn", "stepDetails": "Ngày và lý do",
+  "stepReturner": "Người trả và vị trí nhận",
+  "stepAssets": "Tài sản đề xuất và lựa chọn",
+  "stepDetails": "Ngày và lý do",
   "searchAssets": "Tìm kiếm người trả",
   "searchLocations": "Tìm kiếm vị trí nhận",
   "selectDevices": "Chọn thiết bị thu hồi",
@@ -76,23 +80,35 @@
   "loadFailed": "Không thể tải dữ liệu.",
   "retry": "Thử lại",
   "allocation": "Lượt cấp phát #{{id}}",
-  "requiredComponents": "Linh kiện phải thu hồi"
-  ,"searchHistory": "Tìm phiếu thu hồi"
-  ,"filterStatus": "Trạng thái"
-  ,"allStatuses": "Tất cả"
-  ,"resetFilters": "Đặt lại"
-  ,"details": "Chi tiết"
-  ,"edit": "Sửa nháp"
-  ,"submit": "Gửi chờ nhận"
-  ,"withdraw": "Rút về nháp"
-  ,"cancel": "Hủy phiếu"
-  ,"cancelConfirm": "Xác nhận hủy phiếu thu hồi?"
-  ,"confirmPhysical": "Xác nhận đã nhận tài sản"
-  ,"confirmPhysicalHint": "Chọn các tài sản đã nhận thực tế."
-  ,"cancelRemaining": "Hủy mục đã chọn"
-  ,"cancelRemainingReason": "Lý do hủy các mục đã chọn"
-  ,"groupReason": "Lý do"
-  ,"changed": "Phiếu thu hồi đã thay đổi. Đã tải chi tiết mới nhất; hãy kiểm tra trước khi thử lại."
-  ,"groupStatus": { "PENDING": "Chờ xử lý", "APPROVED": "Đã duyệt", "COMPLETED": "Hoàn tất", "REJECTED": "Đã từ chối", "CANCELLED": "Đã hủy" }
-  ,"status": { "DRAFT": "Nháp", "PENDING": "Chờ xử lý", "PARTIAL": "Hoàn tất một phần", "COMPLETED": "Hoàn tất", "CANCELLED": "Đã hủy" }
+  "requiredComponents": "Linh kiện phải thu hồi",
+  "searchHistory": "Tìm phiếu thu hồi",
+  "filterStatus": "Trạng thái",
+  "allStatuses": "Tất cả",
+  "resetFilters": "Đặt lại",
+  "details": "Chi tiết",
+  "edit": "Sửa nháp",
+  "submit": "Gửi chờ nhận",
+  "withdraw": "Rút về nháp",
+  "cancel": "Hủy phiếu",
+  "cancelConfirm": "Xác nhận hủy phiếu thu hồi?",
+  "confirmPhysical": "Xác nhận đã nhận tài sản",
+  "confirmPhysicalHint": "Chọn các tài sản đã nhận thực tế.",
+  "cancelRemaining": "Hủy mục đã chọn",
+  "cancelRemainingReason": "Lý do hủy các mục đã chọn",
+  "groupReason": "Lý do",
+  "changed": "Phiếu thu hồi đã thay đổi. Đã tải chi tiết mới nhất; hãy kiểm tra trước khi thử lại.",
+  "groupStatus": {
+    "PENDING": "Chờ xử lý",
+    "APPROVED": "Đã duyệt",
+    "COMPLETED": "Hoàn tất",
+    "REJECTED": "Đã từ chối",
+    "CANCELLED": "Đã hủy"
+  },
+  "status": {
+    "DRAFT": "Nháp",
+    "PENDING": "Chờ xử lý",
+    "PARTIAL": "Hoàn tất một phần",
+    "COMPLETED": "Hoàn tất",
+    "CANCELLED": "Đã hủy"
+  }
 }

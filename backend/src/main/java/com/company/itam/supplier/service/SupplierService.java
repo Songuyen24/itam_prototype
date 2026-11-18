@@ -1,5 +1,13 @@
 package com.company.itam.supplier.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.company.itam.asset.repository.AssetRepository;
 import com.company.itam.common.exception.CatalogInUseException;
 import com.company.itam.common.exception.DuplicateResourceException;
@@ -13,13 +21,6 @@ import com.company.itam.supplier.entity.SupplierContactEntity;
 import com.company.itam.supplier.entity.SupplierEntity;
 import com.company.itam.supplier.repository.SupplierContactRepository;
 import com.company.itam.supplier.repository.SupplierRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class SupplierService {
@@ -28,9 +29,10 @@ public class SupplierService {
     private final SupplierContactRepository supplierContactRepository;
     private final AssetRepository assetRepository;
 
-    public SupplierService(SupplierRepository supplierRepository,
-                           SupplierContactRepository supplierContactRepository,
-                           AssetRepository assetRepository) {
+    public SupplierService(
+            SupplierRepository supplierRepository,
+            SupplierContactRepository supplierContactRepository,
+            AssetRepository assetRepository) {
         this.supplierRepository = supplierRepository;
         this.supplierContactRepository = supplierContactRepository;
         this.assetRepository = assetRepository;
@@ -53,7 +55,8 @@ public class SupplierService {
 
     @Transactional(readOnly = true)
     public SupplierResponse getSupplierById(Long id) {
-        SupplierEntity entity = supplierRepository.findByIdWithContacts(id)
+        SupplierEntity entity = supplierRepository
+                .findByIdWithContacts(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà cung cấp với ID: " + id));
         return toResponse(entity);
     }
@@ -79,7 +82,8 @@ public class SupplierService {
 
     @Transactional
     public SupplierResponse updateSupplier(Long id, SupplierRequest request) {
-        SupplierEntity entity = supplierRepository.findById(id)
+        SupplierEntity entity = supplierRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà cung cấp với ID: " + id));
 
         if (!entity.getCode().equalsIgnoreCase(request.getCode().trim())
@@ -103,7 +107,8 @@ public class SupplierService {
 
     @Transactional
     public void deleteSupplier(Long id) {
-        SupplierEntity entity = supplierRepository.findById(id)
+        SupplierEntity entity = supplierRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà cung cấp với ID: " + id));
 
         if (assetRepository.existsBySupplierSupplierId(id)) {
@@ -115,7 +120,8 @@ public class SupplierService {
 
     @Transactional
     public SupplierResponse toggleActive(Long id, Boolean active) {
-        SupplierEntity entity = supplierRepository.findById(id)
+        SupplierEntity entity = supplierRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà cung cấp với ID: " + id));
         entity.setIsActive(active != null ? active : !Boolean.TRUE.equals(entity.getIsActive()));
         return toResponse(supplierRepository.save(entity));
@@ -133,7 +139,8 @@ public class SupplierService {
 
     @Transactional
     public SupplierContactResponse addContact(Long supplierId, SupplierContactRequest request) {
-        SupplierEntity supplier = supplierRepository.findById(supplierId)
+        SupplierEntity supplier = supplierRepository
+                .findById(supplierId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà cung cấp với ID: " + supplierId));
 
         SupplierContactEntity contact = new SupplierContactEntity();
@@ -149,7 +156,8 @@ public class SupplierService {
 
     @Transactional
     public SupplierContactResponse updateContact(Long contactId, SupplierContactRequest request) {
-        SupplierContactEntity contact = supplierContactRepository.findById(contactId)
+        SupplierContactEntity contact = supplierContactRepository
+                .findById(contactId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người liên hệ với ID: " + contactId));
 
         contact.setName(request.getName().trim());
@@ -162,7 +170,8 @@ public class SupplierService {
 
     @Transactional
     public void deleteContact(Long contactId) {
-        SupplierContactEntity contact = supplierContactRepository.findById(contactId)
+        SupplierContactEntity contact = supplierContactRepository
+                .findById(contactId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người liên hệ với ID: " + contactId));
         supplierContactRepository.delete(contact);
     }
@@ -180,7 +189,8 @@ public class SupplierService {
         resp.setCreatedAt(entity.getCreatedAt());
         resp.setUpdatedAt(entity.getUpdatedAt());
         if (entity.getContacts() != null) {
-            resp.setContacts(entity.getContacts().stream().map(this::toContactResponse).collect(Collectors.toList()));
+            resp.setContacts(
+                    entity.getContacts().stream().map(this::toContactResponse).collect(Collectors.toList()));
         }
         return resp;
     }
@@ -192,7 +202,6 @@ public class SupplierService {
                 contact.getName(),
                 contact.getPosition(),
                 contact.getPhone(),
-                contact.getEmail()
-        );
+                contact.getEmail());
     }
 }

@@ -1,7 +1,6 @@
 package com.company.itam.catalog.entity;
 
 import jakarta.persistence.*;
-import java.io.Serializable;
 
 @Entity
 @Table(name = "asset_types")

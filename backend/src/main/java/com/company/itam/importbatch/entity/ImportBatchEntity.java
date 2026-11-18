@@ -1,11 +1,14 @@
 package com.company.itam.importbatch.entity;
 
-import com.company.itam.common.enums.ImportBatchStatus;
-import com.company.itam.user.entity.UserEntity;
-import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
+import jakarta.persistence.*;
+
+import com.company.itam.common.enums.ImportBatchStatus;
+import com.company.itam.user.entity.UserEntity;
 
 @Entity
 @Table(name = "import_batches")
@@ -20,17 +23,37 @@ public class ImportBatchEntity {
     private String fileName;
 
     @Column(name = "request_id", unique = true)
-    private java.util.UUID requestId;
-    public java.util.UUID getRequestId() { return requestId; }
-    public void setRequestId(java.util.UUID value) { requestId = value; }
+    private UUID requestId;
+
+    public UUID getRequestId() {
+        return requestId;
+    }
+
+    public void setRequestId(UUID value) {
+        requestId = value;
+    }
+
     @Column(name = "retry_batch_id")
     private Long retryBatchId;
+
     @Column(name = "receiving_id")
     private Long receivingId;
-    public Long getRetryBatchId() { return retryBatchId; }
-    public void setRetryBatchId(Long value) { retryBatchId = value; }
-    public Long getReceivingId() { return receivingId; }
-    public void setReceivingId(Long value) { receivingId = value; }
+
+    public Long getRetryBatchId() {
+        return retryBatchId;
+    }
+
+    public void setRetryBatchId(Long value) {
+        retryBatchId = value;
+    }
+
+    public Long getReceivingId() {
+        return receivingId;
+    }
+
+    public void setReceivingId(Long value) {
+        receivingId = value;
+    }
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
@@ -45,7 +68,7 @@ public class ImportBatchEntity {
     @Column(name = "invalid_rows")
     private Integer invalidRows = 0;
 
-    // Cột này không có trong V4 ban đầu, được bổ sung bởi V6__align_itam_core_schema.sql
+    // Added by V6__align_itam_core_schema.sql after the initial V4 schema.
     // (ALTER TABLE import_batches ADD COLUMN duplicate_rows INTEGER NOT NULL DEFAULT 0)
     @Column(name = "duplicate_rows", nullable = false)
     private Integer duplicateRows = 0;
@@ -123,8 +146,13 @@ public class ImportBatchEntity {
         this.invalidRows = invalidRows;
     }
 
-    public Integer getDuplicateRows() { return duplicateRows; }
-    public void setDuplicateRows(Integer duplicateRows) { this.duplicateRows = duplicateRows; }
+    public Integer getDuplicateRows() {
+        return duplicateRows;
+    }
+
+    public void setDuplicateRows(Integer duplicateRows) {
+        this.duplicateRows = duplicateRows;
+    }
 
     public Integer getImportedRows() {
         return importedRows;

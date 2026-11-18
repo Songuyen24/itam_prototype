@@ -1,5 +1,10 @@
 package com.company.itam.department.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.company.itam.asset.repository.AssetRepository;
 import com.company.itam.common.exception.CatalogInUseException;
 import com.company.itam.common.exception.DuplicateResourceException;
@@ -10,10 +15,6 @@ import com.company.itam.department.dto.DepartmentResponse;
 import com.company.itam.department.entity.DepartmentEntity;
 import com.company.itam.department.repository.DepartmentRepository;
 import com.company.itam.user.repository.UserRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DepartmentService {
@@ -22,9 +23,8 @@ public class DepartmentService {
     private final UserRepository userRepository;
     private final AssetRepository assetRepository;
 
-    public DepartmentService(DepartmentRepository departmentRepository,
-                             UserRepository userRepository,
-                             AssetRepository assetRepository) {
+    public DepartmentService(
+            DepartmentRepository departmentRepository, UserRepository userRepository, AssetRepository assetRepository) {
         this.departmentRepository = departmentRepository;
         this.userRepository = userRepository;
         this.assetRepository = assetRepository;
@@ -47,7 +47,8 @@ public class DepartmentService {
 
     @Transactional(readOnly = true)
     public DepartmentResponse getDepartmentById(Long id) {
-        DepartmentEntity entity = departmentRepository.findById(id)
+        DepartmentEntity entity = departmentRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng ban với ID: " + id));
         return toResponse(entity);
     }
@@ -69,7 +70,8 @@ public class DepartmentService {
 
     @Transactional
     public DepartmentResponse updateDepartment(Long id, DepartmentRequest request) {
-        DepartmentEntity entity = departmentRepository.findById(id)
+        DepartmentEntity entity = departmentRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng ban với ID: " + id));
 
         if (!entity.getCode().equalsIgnoreCase(request.getCode().trim())
@@ -89,7 +91,8 @@ public class DepartmentService {
 
     @Transactional
     public void deleteDepartment(Long id) {
-        DepartmentEntity entity = departmentRepository.findById(id)
+        DepartmentEntity entity = departmentRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng ban với ID: " + id));
 
         if (userRepository.existsByDepartmentDepartmentId(id)) {
@@ -104,7 +107,8 @@ public class DepartmentService {
 
     @Transactional
     public DepartmentResponse toggleActive(Long id, Boolean active) {
-        DepartmentEntity entity = departmentRepository.findById(id)
+        DepartmentEntity entity = departmentRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng ban với ID: " + id));
         entity.setIsActive(active != null ? active : !Boolean.TRUE.equals(entity.getIsActive()));
         return toResponse(departmentRepository.save(entity));
@@ -117,7 +121,6 @@ public class DepartmentService {
                 entity.getName(),
                 entity.getIsActive(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
+                entity.getUpdatedAt());
     }
 }

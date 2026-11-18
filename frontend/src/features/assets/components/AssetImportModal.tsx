@@ -1,18 +1,22 @@
-import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
-import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
-import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
-import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
-import React, { useState, useRef, useEffect } from 'react';
-import './asset-workflow.css';
-import { useTranslation } from 'react-i18next';
-import { importApi } from '../api/importApi';
-import { receivingApi } from '@/features/receiving/api/receivingApi';
-import { ImportBatch, ImportPreviewData, ValidationStatus } from '../types/import.types';
-import { importPayload } from './importPayload';
-import { ApiError } from '@/shared/api/httpClient';
+import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
+import React, { useState, useRef, useEffect } from "react";
+import "./asset-workflow.css";
+import { useTranslation } from "react-i18next";
+import { importApi } from "../api/importApi";
+import { receivingApi } from "@/features/receiving/api/receivingApi";
+import {
+  ImportBatch,
+  ImportPreviewData,
+  ValidationStatus,
+} from "../types/import.types";
+import { importPayload } from "./importPayload";
+import { ApiError } from "@/shared/api/httpClient";
 
 interface AssetImportModalProps {
   isOpen: boolean;
@@ -27,14 +31,20 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   onImportSuccess,
   receiving,
 }) => {
-  const { t } = useTranslation(['imports', 'common']);
-  const [step, setStep] = useState<'upload' | 'preview' | 'completed'>('upload');
+  const { t } = useTranslation(["imports", "common"]);
+  const [step, setStep] = useState<"upload" | "preview" | "completed">(
+    "upload",
+  );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [previewData, setPreviewData] = useState<ImportPreviewData | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'VALID' | 'ERROR'>('ALL');
+  const [previewData, setPreviewData] = useState<ImportPreviewData | null>(
+    null,
+  );
+  const [activeFilter, setActiveFilter] = useState<"ALL" | "VALID" | "ERROR">(
+    "ALL",
+  );
   const [importedCount, setImportedCount] = useState<number>(0);
   const [result, setResult] = useState<ImportBatch | null>(null);
   const [retryBatchId, setRetryBatchId] = useState<number | undefined>();
@@ -44,7 +54,31 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   const [resultPage, setResultPage] = useState(0);
   const [editingRow, setEditingRow] = useState<number>();
   const [needsValidation, setNeedsValidation] = useState(false);
-  const fields = ['assetTag','name','type','model','serialNumber','status','condition','department','location','supplier','poNumber','purchaseDate','purchaseCost','warrantyExpiration','actualCpu','actualRam','actualStorage','actualGraphicsCard','software','licenseAssignment','licenseTerm','seatCount','licenseExpiry'];
+  const fields = [
+    "assetTag",
+    "name",
+    "type",
+    "model",
+    "serialNumber",
+    "status",
+    "condition",
+    "department",
+    "location",
+    "supplier",
+    "poNumber",
+    "purchaseDate",
+    "purchaseCost",
+    "warrantyExpiration",
+    "actualCpu",
+    "actualRam",
+    "actualStorage",
+    "actualGraphicsCard",
+    "software",
+    "licenseAssignment",
+    "licenseTerm",
+    "seatCount",
+    "licenseExpiry",
+  ];
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,23 +88,48 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   receivingBusy.current = isUploading || isImporting;
   const isReceiving = !!receiving;
   useEffect(() => {
-    if (!isOpen || !isReceiving || typeof document === 'undefined') return;
+    if (!isOpen || !isReceiving || typeof document === "undefined") return;
     const previous = document.activeElement as HTMLElement | null;
     receivingRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault(); event.stopImmediatePropagation();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
         if (!receivingBusy.current) receivingClose.current();
       }
-      if (event.key !== 'Tab') return;
-      const controls = [...(receivingRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary') ?? [])].filter(element => element.getClientRects().length > 0);
-      if (!controls.length) { event.preventDefault(); return; }
-      const first = controls[0], last = controls[controls.length - 1];
-      if (event.shiftKey && (document.activeElement === first || document.activeElement === receivingRef.current)) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && (document.activeElement === last || document.activeElement === receivingRef.current)) { event.preventDefault(); first.focus(); }
+      if (event.key !== "Tab") return;
+      const controls = [
+        ...(receivingRef.current?.querySelectorAll<HTMLElement>(
+          "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary",
+        ) ?? []),
+      ].filter((element) => element.getClientRects().length > 0);
+      if (!controls.length) {
+        event.preventDefault();
+        return;
+      }
+      const first = controls[0],
+        last = controls[controls.length - 1];
+      if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          document.activeElement === receivingRef.current)
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          document.activeElement === receivingRef.current)
+      ) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    document.addEventListener('keydown', onKeyDown);
-    return () => { document.removeEventListener('keydown', onKeyDown); previous?.focus(); };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previous?.focus();
+    };
   }, [isOpen, isReceiving]);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   useEffect(() => {
@@ -79,18 +138,21 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     if (!dialog) return;
     const previous = document.activeElement as HTMLElement | null;
     dialog?.showModal();
-    return () => { dialog?.close(); previous?.focus(); };
+    return () => {
+      dialog?.close();
+      previous?.focus();
+    };
   }, [isOpen, receiving]);
   if (!isOpen) return null;
 
   const handleReset = () => {
-    setStep('upload');
+    setStep("upload");
     setSelectedFile(null);
     setIsUploading(false);
     setIsImporting(false);
     setErrorMessage(null);
     setPreviewData(null);
-    setActiveFilter('ALL');
+    setActiveFilter("ALL");
     setImportedCount(0);
     setResult(null);
     setRetryBatchId(undefined);
@@ -114,7 +176,12 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       if (!/\.(xlsx?|pdf)$/i.test(file.name)) {
-        setErrorMessage(t('imports:errors.invalidFormat', 'Vui lòng chọn file định dạng Excel (.xlsx hoặc .xls)'));
+        setErrorMessage(
+          t(
+            "imports:errors.invalidFormat",
+            "Vui lòng chọn file định dạng Excel (.xlsx hoặc .xls)",
+          ),
+        );
         return;
       }
       setSelectedFile(file);
@@ -128,15 +195,22 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
 
   const handleDownloadTemplate = async () => {
     try {
-      await (receiving ? receivingApi.downloadTemplate() : importApi.downloadTemplate());
+      await (receiving
+        ? receivingApi.downloadTemplate()
+        : importApi.downloadTemplate());
     } catch (err: any) {
-      setErrorMessage(err.message || t('imports:errors.downloadFailed', 'Không thể tải file template mẫu'));
+      setErrorMessage(
+        err.message ||
+          t("imports:errors.downloadFailed", "Không thể tải file template mẫu"),
+      );
     }
   };
 
   const handleUploadAndPreview = async () => {
     if (!selectedFile) {
-      setErrorMessage(t('imports:errors.fileRequired', 'Vui lòng chọn một file Excel trước'));
+      setErrorMessage(
+        t("imports:errors.fileRequired", "Vui lòng chọn một file Excel trước"),
+      );
       return;
     }
 
@@ -144,17 +218,19 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     setErrorMessage(null);
 
     try {
-      const res = await (receiving ? receivingApi.previewExcel(selectedFile) : importApi.preview(selectedFile));
+      const res = await (receiving
+        ? receivingApi.previewExcel(selectedFile)
+        : importApi.preview(selectedFile));
       if (res.success && res.data) {
         setPreviewData(res.data);
         setNeedsValidation(false);
         setEditingRow(undefined);
-        setStep('preview');
+        setStep("preview");
       } else {
-        setErrorMessage(res.message || t('imports:errors.previewFailed'));
+        setErrorMessage(res.message || t("imports:errors.previewFailed"));
       }
     } catch (err: any) {
-      setErrorMessage(err.message || t('imports:errors.previewFailed'));
+      setErrorMessage(err.message || t("imports:errors.previewFailed"));
     } finally {
       setIsUploading(false);
     }
@@ -165,17 +241,30 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     setIsUploading(true);
     setErrorMessage(null);
     try {
-      const res = await (receiving ? receivingApi.validate(importPayload(previewData)) : importApi.validate(importPayload(previewData)));
-      if (res.data) {setPreviewData(res.data);setNeedsValidation(false);setEditingRow(undefined);}
-    } catch (err) {setErrorMessage(err instanceof Error ? err.message : t('imports:errors.previewFailed'));}
-    finally {setIsUploading(false);}
+      const res = await (receiving
+        ? receivingApi.validate(importPayload(previewData))
+        : importApi.validate(importPayload(previewData)));
+      if (res.data) {
+        setPreviewData(res.data);
+        setNeedsValidation(false);
+        setEditingRow(undefined);
+      }
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : t("imports:errors.previewFailed"),
+      );
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleConfirmImport = async () => {
     if (!previewData || needsValidation || isUploading) return;
 
     if (previewData.validRows === 0) {
-      setErrorMessage(t('imports:errors.noValidRows', 'Không có dòng hợp lệ nào để import'));
+      setErrorMessage(
+        t("imports:errors.noValidRows", "Không có dòng hợp lệ nào để import"),
+      );
       return;
     }
 
@@ -183,30 +272,56 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
     setErrorMessage(null);
 
     try {
-      const payload = {...importPayload(previewData, retryBatchId), requestId: requestId ?? crypto.randomUUID()};
+      const payload = {
+        ...importPayload(previewData, retryBatchId),
+        requestId: requestId ?? crypto.randomUUID(),
+      };
       const res = receiving
-        ? await receivingApi.confirmExcel(receiving.id, receivingVersion ?? receiving.version, payload)
+        ? await receivingApi.confirmExcel(
+            receiving.id,
+            receivingVersion ?? receiving.version,
+            payload,
+          )
         : await importApi.confirm(payload);
 
       if (res.success && res.data) {
-        const batch = receiving ? 'batch' in res.data ? res.data.batch : null : res.data as ImportBatch;
-        if (!batch) throw new Error(t('imports:errors.importFailed'));
+        const batch = receiving
+          ? "batch" in res.data
+            ? res.data.batch
+            : null
+          : (res.data as ImportBatch);
+        if (!batch) throw new Error(t("imports:errors.importFailed"));
         setImportedCount(batch.importedRows);
         setResult(batch);
         setResultPage(0);
         setRetryBatchId(batch.importBatchId);
-        if (receiving && 'transaction' in res.data) setReceivingVersion(res.data.transaction.expectedVersion);
-        setStep('completed');
+        if (receiving && "transaction" in res.data)
+          setReceivingVersion(res.data.transaction.expectedVersion);
+        setStep("completed");
         onImportSuccess(batch.importedRows);
       } else {
-        setErrorMessage(res.message || t('imports:errors.importFailed'));
+        setErrorMessage(res.message || t("imports:errors.importFailed"));
       }
     } catch (err: any) {
-      setErrorMessage(err.message || t('imports:errors.importFailed'));
-      if (err instanceof ApiError && err.code === 'NO_VALID_ROWS' && Array.isArray(err.rows) && previewData) {
-        const rows = err.rows as ImportPreviewData['rows'];
-        setPreviewData({...previewData,rows,validRows:0,invalidRows:rows.filter(row=>row.validationStatus==='INVALID').length,duplicateRows:rows.filter(row=>row.validationStatus==='DUPLICATE').length});
-        setActiveFilter('ALL');
+      setErrorMessage(err.message || t("imports:errors.importFailed"));
+      if (
+        err instanceof ApiError &&
+        err.code === "NO_VALID_ROWS" &&
+        Array.isArray(err.rows) &&
+        previewData
+      ) {
+        const rows = err.rows as ImportPreviewData["rows"];
+        setPreviewData({
+          ...previewData,
+          rows,
+          validRows: 0,
+          invalidRows: rows.filter((row) => row.validationStatus === "INVALID")
+            .length,
+          duplicateRows: rows.filter(
+            (row) => row.validationStatus === "DUPLICATE",
+          ).length,
+        });
+        setActiveFilter("ALL");
         setPreviewPage(0);
       }
     } finally {
@@ -215,127 +330,162 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
   };
 
   const filteredRows = (previewData?.rows || []).filter((row) => {
-    if (activeFilter === 'VALID') return row.validationStatus === 'VALID';
-    if (activeFilter === 'ERROR') return row.validationStatus === 'INVALID' || row.validationStatus === 'DUPLICATE';
+    if (activeFilter === "VALID") return row.validationStatus === "VALID";
+    if (activeFilter === "ERROR")
+      return (
+        row.validationStatus === "INVALID" ||
+        row.validationStatus === "DUPLICATE"
+      );
     return true;
   });
 
   const renderStatusBadge = (status: ValidationStatus) => {
     switch (status) {
-      case 'VALID':
+      case "VALID":
         return (
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            backgroundColor: '#dcfce7',
-            color: '#15803d',
-            padding: '2px 8px',
-            borderRadius: '9999px',
-            fontSize: '11px',
-            fontWeight: 600,
-          }}>
-            <CheckOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.VALID', 'Hợp lệ')}
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              backgroundColor: "#dcfce7",
+              color: "#15803d",
+              padding: "2px 8px",
+              borderRadius: "9999px",
+              fontSize: "11px",
+              fontWeight: 600,
+            }}
+          >
+            <CheckOutlinedIcon fontSize="small" aria-hidden="true" />{" "}
+            {t("imports:statusBadges.VALID", "Hợp lệ")}
           </span>
         );
-      case 'DUPLICATE':
+      case "DUPLICATE":
         return (
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            backgroundColor: '#fef3c7',
-            color: '#b45309',
-            padding: '2px 8px',
-            borderRadius: '9999px',
-            fontSize: '11px',
-            fontWeight: 600,
-          }}>
-            <WarningAmberOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.DUPLICATE', 'Trùng lặp')}
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              backgroundColor: "#fef3c7",
+              color: "#b45309",
+              padding: "2px 8px",
+              borderRadius: "9999px",
+              fontSize: "11px",
+              fontWeight: 600,
+            }}
+          >
+            <WarningAmberOutlinedIcon fontSize="small" aria-hidden="true" />{" "}
+            {t("imports:statusBadges.DUPLICATE", "Trùng lặp")}
           </span>
         );
-      case 'INVALID':
+      case "INVALID":
       default:
         return (
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            backgroundColor: '#fee2e2',
-            color: '#b91c1c',
-            padding: '2px 8px',
-            borderRadius: '9999px',
-            fontSize: '11px',
-            fontWeight: 600,
-          }}>
-            <CloseOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.INVALID', 'Lỗi')}
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              backgroundColor: "#fee2e2",
+              color: "#b91c1c",
+              padding: "2px 8px",
+              borderRadius: "9999px",
+              fontSize: "11px",
+              fontWeight: 600,
+            }}
+          >
+            <CloseOutlinedIcon fontSize="small" aria-hidden="true" />{" "}
+            {t("imports:statusBadges.INVALID", "Lỗi")}
           </span>
         );
     }
   };
 
-  const Container = receiving ? 'div' : 'dialog';
+  const Container = receiving ? "div" : "dialog";
   return (
     <Container
-      ref={(node: HTMLDialogElement | HTMLDivElement | null) => { if (!receiving) dialogRef.current = node as HTMLDialogElement | null; else receivingRef.current = node as HTMLDivElement | null; }}
+      ref={(node: HTMLDialogElement | HTMLDivElement | null) => {
+        if (!receiving) dialogRef.current = node as HTMLDialogElement | null;
+        else receivingRef.current = node as HTMLDivElement | null;
+      }}
       className={receiving ? "receiving-import-dialog" : "asset-import-dialog"}
-      role={receiving ? 'dialog' : undefined}
+      role={receiving ? "dialog" : undefined}
       aria-modal={receiving ? true : undefined}
       aria-busy={receiving ? isUploading || isImporting : undefined}
       tabIndex={receiving ? -1 : undefined}
-      aria-label={t(receiving ? 'imports:receivingTitle' : 'imports:title')}
-      onCancel={event => { event.preventDefault(); handleClose(); }}
+      aria-label={t(receiving ? "imports:receivingTitle" : "imports:title")}
+      onCancel={(event) => {
+        event.preventDefault();
+        handleClose();
+      }}
       style={{
-        position: 'fixed',
+        position: "fixed",
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: receiving ? undefined : 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        backgroundColor: "rgba(15, 23, 42, 0.65)",
+        backdropFilter: receiving ? undefined : "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         zIndex: 9999,
-        padding: '20px',
+        padding: "20px",
       }}
     >
       <div
         className={receiving ? "card" : "card asset-import-content"}
         style={{
-          width: '100%',
-          maxWidth: receiving ? (step === 'preview' ? '1160px' : '960px') : (step === 'preview' ? '1100px' : '650px'),
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          overflow: 'hidden',
-          transition: 'max-width 0.2s ease',
+          width: "100%",
+          maxWidth: receiving
+            ? step === "preview"
+              ? "1160px"
+              : "960px"
+            : step === "preview"
+              ? "1100px"
+              : "650px",
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff",
+          borderRadius: "12px",
+          boxShadow:
+            "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+          overflow: "hidden",
+          transition: "max-width 0.2s ease",
         }}
       >
         {/* Modal Header */}
         <div
           style={{
-            padding: '16px 24px',
-            borderBottom: '1px solid #e2e8f0',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backgroundColor: '#f8fafc',
+            padding: "16px 24px",
+            borderBottom: "1px solid #e2e8f0",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            backgroundColor: "#f8fafc",
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                {receiving ? t('imports:receivingTitle') : t('imports:title')}
+              <h2
+                style={{
+                  fontSize: "18px",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  margin: 0,
+                }}
+              >
+                {receiving ? t("imports:receivingTitle") : t("imports:title")}
               </h2>
-              <div style={{ fontSize: '12px', color: '#64748b' }}>
-                {step === 'upload' && t('imports:steps.upload', '1. Chọn file Excel')}
-                {step === 'preview' && t('imports:steps.preview', '2. Xem trước & Kiểm tra')}
-                {step === 'completed' && t('imports:steps.completed', '3. Kết quả Import')}
+              <div style={{ fontSize: "12px", color: "#64748b" }}>
+                {step === "upload" &&
+                  t("imports:steps.upload", "1. Chọn file Excel")}
+                {step === "preview" &&
+                  t("imports:steps.preview", "2. Xem trước & Kiểm tra")}
+                {step === "completed" &&
+                  t("imports:steps.completed", "3. Kết quả Import")}
               </div>
             </div>
           </div>
@@ -344,67 +494,100 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
             type="button"
             onClick={handleClose}
             disabled={isUploading || isImporting}
-            aria-label={t('common:buttons.close')}
+            aria-label={t("common:buttons.close")}
             style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '20px',
-              cursor: 'pointer',
-              color: '#64748b',
-              padding: '4px 8px',
-              borderRadius: '4px',
+              background: "none",
+              border: "none",
+              fontSize: "20px",
+              cursor: "pointer",
+              color: "#64748b",
+              padding: "4px 8px",
+              borderRadius: "4px",
             }}
           >
             <CloseOutlinedIcon fontSize="small" aria-hidden="true" />
           </button>
         </div>
 
-        <p style={{ padding: '0 24px' }}>{t(receiving ? 'imports:receivingHint' : 'imports:openingInventory')}</p>
-        <p style={{ padding: '0 24px', fontSize: 13 }}>{t('imports:ocr.hint')}</p>
+        <p style={{ padding: "0 24px" }}>
+          {t(receiving ? "imports:receivingHint" : "imports:openingInventory")}
+        </p>
+        <p style={{ padding: "0 24px", fontSize: 13 }}>
+          {t("imports:ocr.hint")}
+        </p>
         {/* Error Alert if any */}
         {errorMessage && (
-          <div role="alert"
+          <div
+            role="alert"
             style={{
-              margin: '16px 24px 0 24px',
-              padding: '12px 16px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '8px',
-              color: '#b91c1c',
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
+              margin: "16px 24px 0 24px",
+              padding: "12px 16px",
+              backgroundColor: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: "8px",
+              color: "#b91c1c",
+              fontSize: "13px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
             }}
           >
-            {!receiving && <WarningAmberOutlinedIcon fontSize="small" aria-hidden="true" />}
+            {!receiving && (
+              <WarningAmberOutlinedIcon fontSize="small" aria-hidden="true" />
+            )}
             <span>{errorMessage}</span>
           </div>
         )}
 
         {/* Modal Body */}
-        <div className={receiving ? "receiving-import-body" : "asset-import-body"} style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+        <div
+          className={receiving ? "receiving-import-body" : "asset-import-body"}
+          style={{ padding: "24px", overflowY: "auto", flex: 1 }}
+        >
           {/* STEP 1: UPLOAD */}
-          {step === 'upload' && (
-            <div className={receiving ? "receiving-upload-layout" : "asset-upload-layout"} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {step === "upload" && (
+            <div
+              className={
+                receiving ? "receiving-upload-layout" : "asset-upload-layout"
+              }
+              style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+            >
               {/* Template download card */}
               <div
                 style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '16px',
-                  backgroundColor: '#f0fdf4',
-                  border: '1px solid #bbf7d0',
-                  borderRadius: '8px',
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "16px",
+                  backgroundColor: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "8px",
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 600, color: '#166534', fontSize: '14px' }}>
-                    {t('imports:upload.downloadTemplate', 'Tải file Excel mẫu chuẩn')}
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      color: "#166534",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {t(
+                      "imports:upload.downloadTemplate",
+                      "Tải file Excel mẫu chuẩn",
+                    )}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#15803d', marginTop: '2px' }}>
-                    {t('imports:upload.downloadHelp', 'File mẫu đã có sẵn cấu trúc cột và hướng dẫn định dạng')}
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#15803d",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {t(
+                      "imports:upload.downloadHelp",
+                      "File mẫu đã có sẵn cấu trúc cột và hướng dẫn định dạng",
+                    )}
                   </div>
                 </div>
                 <button
@@ -412,35 +595,58 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   className="btn btn-secondary"
                   onClick={handleDownloadTemplate}
                   style={{
-                    backgroundColor: '#ffffff',
-                    borderColor: '#86efac',
-                    color: '#166534',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
+                    backgroundColor: "#ffffff",
+                    borderColor: "#86efac",
+                    color: "#166534",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
                     fontWeight: 600,
                   }}
                 >
-                  {!receiving && <DescriptionOutlinedIcon fontSize="small" aria-hidden="true" />}
-                  <span>{t('imports:upload.downloadTemplate', 'Tải file mẫu (.xlsx)')}</span>
+                  {!receiving && (
+                    <DescriptionOutlinedIcon
+                      fontSize="small"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span>
+                    {t(
+                      "imports:upload.downloadTemplate",
+                      "Tải file mẫu (.xlsx)",
+                    )}
+                  </span>
                 </button>
               </div>
 
-              <label className="form-label">{t('imports:upload.retryBatchId')}
-                <input className="form-input" type="number" min="1" step="1" value={retryBatchId ?? ''} onChange={e=>setRetryBatchId(e.target.value ? Number(e.target.value) : undefined)} placeholder={t('imports:upload.retryBatchPlaceholder')}/>
+              <label className="form-label">
+                {t("imports:upload.retryBatchId")}
+                <input
+                  className="form-input"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={retryBatchId ?? ""}
+                  onChange={(e) =>
+                    setRetryBatchId(
+                      e.target.value ? Number(e.target.value) : undefined,
+                    )
+                  }
+                  placeholder={t("imports:upload.retryBatchPlaceholder")}
+                />
               </label>
-              {retryBatchId && <p>{t('imports:upload.keepRowOrder')}</p>}
+              {retryBatchId && <p>{t("imports:upload.keepRowOrder")}</p>}
               {/* Upload Dropzone */}
               <div
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  border: '2px dashed #cbd5e1',
-                  borderRadius: '12px',
-                  padding: '36px 20px',
-                  textAlign: 'center',
-                  backgroundColor: selectedFile ? '#f8fafc' : '#fcfcfd',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
+                  border: "2px dashed #cbd5e1",
+                  borderRadius: "12px",
+                  padding: "36px 20px",
+                  textAlign: "center",
+                  backgroundColor: selectedFile ? "#f8fafc" : "#fcfcfd",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
                 }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -455,7 +661,12 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                       setPreviewData(null);
                       setErrorMessage(null);
                     } else {
-                      setErrorMessage(t('imports:errors.invalidFormat', 'Chỉ hỗ trợ file Excel (.xlsx, .xls)'));
+                      setErrorMessage(
+                        t(
+                          "imports:errors.invalidFormat",
+                          "Chỉ hỗ trợ file Excel (.xlsx, .xls)",
+                        ),
+                      );
                     }
                   }
                 }}
@@ -466,201 +677,432 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   ref={fileInputRef}
                   onChange={handleFileChange}
                   accept=".xlsx,.xls,.pdf"
-                  style={{ display: 'none' }}
+                  style={{ display: "none" }}
                 />
 
-                {!receiving && <div style={{ marginBottom: '12px' }}><AssessmentOutlinedIcon sx={{ fontSize: 42 }} aria-hidden="true" /></div>}
+                {!receiving && (
+                  <div style={{ marginBottom: "12px" }}>
+                    <AssessmentOutlinedIcon
+                      sx={{ fontSize: 42 }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                )}
 
                 {selectedFile ? (
                   <div>
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '15px' }}>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        color: "#0f172a",
+                        fontSize: "15px",
+                      }}
+                    >
                       {selectedFile.name}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                      {(selectedFile.size / 1024).toFixed(1)} KB — {t('imports:preview.btnBack', 'Nhấp để chọn file khác')}
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#64748b",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {(selectedFile.size / 1024).toFixed(1)} KB —{" "}
+                      {t("imports:preview.btnBack", "Nhấp để chọn file khác")}
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <div style={{ fontWeight: 600, color: '#334155', fontSize: '14px' }}>
-                      {t('imports:upload.dragDrop', 'Kéo thả file Excel vào đây hoặc')} {t('imports:upload.browseFile', 'Chọn file từ máy tính')}
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        color: "#334155",
+                        fontSize: "14px",
+                      }}
+                    >
+                      {t(
+                        "imports:upload.dragDrop",
+                        "Kéo thả file Excel vào đây hoặc",
+                      )}{" "}
+                      {t("imports:upload.browseFile", "Chọn file từ máy tính")}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-                      {t('imports:upload.supports', 'Định dạng hỗ trợ: .xlsx, .xls (Tối đa 10MB, tối đa 1,000 dòng)')}
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#94a3b8",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {t(
+                        "imports:upload.supports",
+                        "Định dạng hỗ trợ: .xlsx, .xls (Tối đa 10MB, tối đa 1,000 dòng)",
+                      )}
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Guide notes */}
-              <div style={{ fontSize: '12px', color: '#64748b', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px' }}>
-                <div style={{ fontWeight: 600, marginBottom: '4px', color: '#475569' }}>{t('imports:guide.title', 'Quy tắc nhập liệu / Import Rules:')}</div>
-                <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <li>{t('imports:guide.required', 'Cột Tên tài sản và Loại tài sản là bắt buộc; Mã tài sản có thể để trống và sẽ được tự sinh khi xác nhận.')}</li>
-                  <li>{t('imports:guide.unique', 'Mã tài sản và Số Serial phải duy nhất, không trùng trong file hoặc cơ sở dữ liệu.')}</li>
-                  {!receiving && <li>{t('imports:guide.status')}</li>}
-                  <li>{t('imports:guide.license')}</li>
-                  <li>{t('imports:guide.preview', 'Preview không ghi vào database cho đến khi bạn xác nhận.')}</li>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#64748b",
+                  backgroundColor: "#f8fafc",
+                  padding: "12px",
+                  borderRadius: "6px",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: 600,
+                    marginBottom: "4px",
+                    color: "#475569",
+                  }}
+                >
+                  {t(
+                    "imports:guide.title",
+                    "Quy tắc nhập liệu / Import Rules:",
+                  )}
+                </div>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: "18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px",
+                  }}
+                >
+                  <li>
+                    {t(
+                      "imports:guide.required",
+                      "Cột Tên tài sản và Loại tài sản là bắt buộc; Mã tài sản có thể để trống và sẽ được tự sinh khi xác nhận.",
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      "imports:guide.unique",
+                      "Mã tài sản và Số Serial phải duy nhất, không trùng trong file hoặc cơ sở dữ liệu.",
+                    )}
+                  </li>
+                  {!receiving && <li>{t("imports:guide.status")}</li>}
+                  <li>{t("imports:guide.license")}</li>
+                  <li>
+                    {t(
+                      "imports:guide.preview",
+                      "Preview không ghi vào database cho đến khi bạn xác nhận.",
+                    )}
+                  </li>
                 </ul>
               </div>
             </div>
           )}
 
           {/* STEP 2: PREVIEW */}
-          {step === 'preview' && previewData && (
-            <div className={receiving ? 'receiving-import-preview' : undefined} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {needsValidation && <p role="status">{t('imports:ocr.changed')}</p>}
-              <button type="button" className="btn btn-secondary" disabled={isUploading || isImporting} onClick={handleValidate}>{t('imports:ocr.validate')}</button>
-              {editingRow !== undefined && (() => {
-                const row = previewData.rows.find(item => item.rowNumber === editingRow);
-                if (!row) return null;
-                return <fieldset className={receiving ? 'receiving-import-edit' : undefined} disabled={isUploading || isImporting} style={{minWidth:0,border:'1px solid #cbd5e1',borderRadius:8,padding:12}}>
-                  <legend>{t('imports:ocr.editRow',{row:editingRow})}</legend>
-                  {row.rawData.sourceText && <p style={{overflowWrap:'anywhere'}}>{t('imports:ocr.source',{page:row.rawData.sourcePage})}: {row.rawData.sourceText}</p>}
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
-                    {fields.map(field => <label key={field}>{t(`imports:fields.${field}`)}<input className="form-input" value={String(row.rawData[field] ?? '')} maxLength={500} onChange={event => {
-                      const value=event.target.value;
-                      setPreviewData({...previewData,rows:previewData.rows.map(item=>item.rowNumber===editingRow?{...item,rawData:{...item.rawData,[field]:value}}:item)});
-                      setNeedsValidation(true);setRequestId(crypto.randomUUID());
-                    }}/></label>)}
-                  </div>
-                </fieldset>;
-              })()}
+          {step === "preview" && previewData && (
+            <div
+              className={receiving ? "receiving-import-preview" : undefined}
+              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+            >
+              {needsValidation && (
+                <p role="status">{t("imports:ocr.changed")}</p>
+              )}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={isUploading || isImporting}
+                onClick={handleValidate}
+              >
+                {t("imports:ocr.validate")}
+              </button>
+              {editingRow !== undefined &&
+                (() => {
+                  const row = previewData.rows.find(
+                    (item) => item.rowNumber === editingRow,
+                  );
+                  if (!row) return null;
+                  return (
+                    <fieldset
+                      className={
+                        receiving ? "receiving-import-edit" : undefined
+                      }
+                      disabled={isUploading || isImporting}
+                      style={{
+                        minWidth: 0,
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 8,
+                        padding: 12,
+                      }}
+                    >
+                      <legend>
+                        {t("imports:ocr.editRow", { row: editingRow })}
+                      </legend>
+                      {row.rawData.sourceText && (
+                        <p style={{ overflowWrap: "anywhere" }}>
+                          {t("imports:ocr.source", {
+                            page: row.rawData.sourcePage,
+                          })}
+                          : {row.rawData.sourceText}
+                        </p>
+                      )}
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit,minmax(220px,1fr))",
+                          gap: 12,
+                        }}
+                      >
+                        {fields.map((field) => (
+                          <label key={field}>
+                            {t(`imports:fields.${field}`)}
+                            <input
+                              className="form-input"
+                              value={String(row.rawData[field] ?? "")}
+                              maxLength={500}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                setPreviewData({
+                                  ...previewData,
+                                  rows: previewData.rows.map((item) =>
+                                    item.rowNumber === editingRow
+                                      ? {
+                                          ...item,
+                                          rawData: {
+                                            ...item.rawData,
+                                            [field]: value,
+                                          },
+                                        }
+                                      : item,
+                                  ),
+                                });
+                                setNeedsValidation(true);
+                                setRequestId(crypto.randomUUID());
+                              }}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  );
+                })()}
               {/* Metric Summary Cards */}
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: '12px',
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: "12px",
                 }}
               >
                 <div
                   style={{
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    borderLeft: '4px solid #3b82f6',
-                    backgroundColor: '#f8fafc',
+                    padding: "12px 16px",
+                    borderRadius: "8px",
+                    borderLeft: "4px solid #3b82f6",
+                    backgroundColor: "#f8fafc",
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>{t('imports:preview.totalRows', 'TỔNG SỐ DÒNG')}</div>
-                  <div style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a' }}>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: "#64748b",
+                    }}
+                  >
+                    {t("imports:preview.totalRows", "TỔNG SỐ DÒNG")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "22px",
+                      fontWeight: 700,
+                      color: "#0f172a",
+                    }}
+                  >
                     {previewData.totalRows}
                   </div>
                 </div>
 
                 <div
                   style={{
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    borderLeft: '4px solid #10b981',
-                    backgroundColor: '#f0fdf4',
+                    padding: "12px 16px",
+                    borderRadius: "8px",
+                    borderLeft: "4px solid #10b981",
+                    backgroundColor: "#f0fdf4",
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#166534' }}>{t('imports:preview.validRows', 'HỢP LỆ (SẴN SÀNG)')}</div>
-                  <div style={{ fontSize: '22px', fontWeight: 700, color: '#16a34a' }}>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: "#166534",
+                    }}
+                  >
+                    {t("imports:preview.validRows", "HỢP LỆ (SẴN SÀNG)")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "22px",
+                      fontWeight: 700,
+                      color: "#16a34a",
+                    }}
+                  >
                     {previewData.validRows}
                   </div>
                 </div>
 
                 <div
                   style={{
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    borderLeft: '4px solid #f59e0b',
-                    backgroundColor: '#fffbeb',
+                    padding: "12px 16px",
+                    borderRadius: "8px",
+                    borderLeft: "4px solid #f59e0b",
+                    backgroundColor: "#fffbeb",
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#92400e' }}>{t('imports:preview.duplicateRows', 'TRÙNG LẶP')}</div>
-                  <div style={{ fontSize: '22px', fontWeight: 700, color: '#d97706' }}>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: "#92400e",
+                    }}
+                  >
+                    {t("imports:preview.duplicateRows", "TRÙNG LẶP")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "22px",
+                      fontWeight: 700,
+                      color: "#d97706",
+                    }}
+                  >
                     {previewData.duplicateRows}
                   </div>
                 </div>
 
                 <div
                   style={{
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    borderLeft: '4px solid #ef4444',
-                    backgroundColor: '#fef2f2',
+                    padding: "12px 16px",
+                    borderRadius: "8px",
+                    borderLeft: "4px solid #ef4444",
+                    backgroundColor: "#fef2f2",
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#991b1b' }}>{t('imports:preview.invalidRows', 'DÒNG LỖI')}</div>
-                  <div style={{ fontSize: '22px', fontWeight: 700, color: '#dc2626' }}>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: "#991b1b",
+                    }}
+                  >
+                    {t("imports:preview.invalidRows", "DÒNG LỖI")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "22px",
+                      fontWeight: 700,
+                      color: "#dc2626",
+                    }}
+                  >
                     {previewData.invalidRows}
                   </div>
                 </div>
               </div>
 
               {/* Filter Tabs */}
-              <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  borderBottom: "1px solid #e2e8f0",
+                  paddingBottom: "8px",
+                }}
+              >
                 <button
                   type="button"
-                  onClick={() => {setActiveFilter('ALL');setPreviewPage(0);}}
+                  onClick={() => {
+                    setActiveFilter("ALL");
+                    setPreviewPage(0);
+                  }}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    fontSize: '12px',
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    border: "none",
+                    fontSize: "12px",
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    backgroundColor: activeFilter === 'ALL' ? '#0f172a' : '#f1f5f9',
-                    color: activeFilter === 'ALL' ? '#ffffff' : '#475569',
+                    cursor: "pointer",
+                    backgroundColor:
+                      activeFilter === "ALL" ? "#0f172a" : "#f1f5f9",
+                    color: activeFilter === "ALL" ? "#ffffff" : "#475569",
                   }}
                 >
-                  {t('imports:preview.filterAll', 'Tất cả')} ({previewData.totalRows})
+                  {t("imports:preview.filterAll", "Tất cả")} (
+                  {previewData.totalRows})
                 </button>
                 <button
                   type="button"
-                  onClick={() => {setActiveFilter('VALID');setPreviewPage(0);}}
+                  onClick={() => {
+                    setActiveFilter("VALID");
+                    setPreviewPage(0);
+                  }}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    fontSize: '12px',
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    border: "none",
+                    fontSize: "12px",
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    backgroundColor: activeFilter === 'VALID' ? '#16a34a' : '#f1f5f9',
-                    color: activeFilter === 'VALID' ? '#ffffff' : '#475569',
+                    cursor: "pointer",
+                    backgroundColor:
+                      activeFilter === "VALID" ? "#16a34a" : "#f1f5f9",
+                    color: activeFilter === "VALID" ? "#ffffff" : "#475569",
                   }}
                 >
-                  {t('imports:preview.filterValid', 'Chỉ dòng hợp lệ')} ({previewData.validRows})
+                  {t("imports:preview.filterValid", "Chỉ dòng hợp lệ")} (
+                  {previewData.validRows})
                 </button>
                 <button
                   type="button"
-                  onClick={() => {setActiveFilter('ERROR');setPreviewPage(0);}}
+                  onClick={() => {
+                    setActiveFilter("ERROR");
+                    setPreviewPage(0);
+                  }}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    fontSize: '12px',
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    border: "none",
+                    fontSize: "12px",
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    backgroundColor: activeFilter === 'ERROR' ? '#dc2626' : '#f1f5f9',
-                    color: activeFilter === 'ERROR' ? '#ffffff' : '#475569',
+                    cursor: "pointer",
+                    backgroundColor:
+                      activeFilter === "ERROR" ? "#dc2626" : "#f1f5f9",
+                    color: activeFilter === "ERROR" ? "#ffffff" : "#475569",
                   }}
                 >
-                  {t('imports:preview.filterError', 'Chỉ dòng lỗi & trùng')} ({previewData.invalidRows + previewData.duplicateRows})
+                  {t("imports:preview.filterError", "Chỉ dòng lỗi & trùng")} (
+                  {previewData.invalidRows + previewData.duplicateRows})
                 </button>
               </div>
 
               {/* Warning notice when invalid rows exist */}
-              {(previewData.invalidRows > 0 || previewData.duplicateRows > 0) && (
+              {(previewData.invalidRows > 0 ||
+                previewData.duplicateRows > 0) && (
                 <div
                   style={{
-                    padding: '10px 14px',
-                    backgroundColor: '#fffbeb',
-                    border: '1px solid #fde68a',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    color: '#92400e',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
+                    padding: "10px 14px",
+                    backgroundColor: "#fffbeb",
+                    border: "1px solid #fde68a",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    color: "#92400e",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
                   }}
                 >
                   {!receiving && <span>ℹ️</span>}
                   <span>
-                    {t('imports:preview.warningSkip', 'Lưu ý: Chỉ các dòng hợp lệ mới được import vào cơ sở dữ liệu. Các dòng lỗi sẽ bị bỏ qua.')}
+                    {t(
+                      "imports:preview.warningSkip",
+                      "Lưu ý: Chỉ các dòng hợp lệ mới được import vào cơ sở dữ liệu. Các dòng lỗi sẽ bị bỏ qua.",
+                    )}
                   </span>
                 </div>
               )}
@@ -668,126 +1110,340 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
               {/* Preview Table */}
               <div
                 style={{
-                  maxHeight: receiving ? undefined : '380px',
-                  overflowY: 'auto',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
+                  maxHeight: receiving ? undefined : "380px",
+                  overflowY: "auto",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
                 }}
               >
-                <table className="data-table" style={{ width: '100%', fontSize: receiving ? '14px' : '12px' }}>
-                  <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>
+                <table
+                  className="data-table"
+                  style={{
+                    width: "100%",
+                    fontSize: receiving ? "14px" : "12px",
+                  }}
+                >
+                  <thead
+                    style={{
+                      position: "sticky",
+                      top: 0,
+                      backgroundColor: "#f8fafc",
+                      zIndex: 1,
+                    }}
+                  >
                     <tr>
-                      <th style={{ width: '60px', textAlign: 'center' }}>{t('imports:preview.colRow', 'Dòng')}</th>
-                      <th style={{ width: '100px', textAlign: 'center' }}>{t('imports:preview.colValidation', 'Trạng thái')}</th>
-                      <th style={{ width: '140px' }}>{t('imports:preview.colTag', 'Mã tài sản')}</th>
-                      <th>{t('imports:preview.colName', 'Tên tài sản')}</th>
-                      <th style={{ width: '100px' }}>{t('imports:preview.colType', 'Loại')}</th>
-                      <th style={{ width: '120px' }}>{t('imports:preview.colSerial', 'Serial')}</th>
-                      <th style={{ width: '220px' }}>{t('imports:preview.colError', 'Chi tiết lỗi / Ghi chú')}</th>
+                      <th style={{ width: "60px", textAlign: "center" }}>
+                        {t("imports:preview.colRow", "Dòng")}
+                      </th>
+                      <th style={{ width: "100px", textAlign: "center" }}>
+                        {t("imports:preview.colValidation", "Trạng thái")}
+                      </th>
+                      <th style={{ width: "140px" }}>
+                        {t("imports:preview.colTag", "Mã tài sản")}
+                      </th>
+                      <th>{t("imports:preview.colName", "Tên tài sản")}</th>
+                      <th style={{ width: "100px" }}>
+                        {t("imports:preview.colType", "Loại")}
+                      </th>
+                      <th style={{ width: "120px" }}>
+                        {t("imports:preview.colSerial", "Serial")}
+                      </th>
+                      <th style={{ width: "220px" }}>
+                        {t(
+                          "imports:preview.colError",
+                          "Chi tiết lỗi / Ghi chú",
+                        )}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredRows.length === 0 ? (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
-                          {t('common:labels.noData', 'Không có dữ liệu')}
+                        <td
+                          colSpan={7}
+                          style={{
+                            textAlign: "center",
+                            padding: "24px",
+                            color: "#94a3b8",
+                          }}
+                        >
+                          {t("common:labels.noData", "Không có dữ liệu")}
                         </td>
                       </tr>
                     ) : (
-                      filteredRows.slice(previewPage*20,(previewPage+1)*20).map((row) => {
-                        const isError = row.validationStatus !== 'VALID';
-                        return (
-                          <tr
-                            key={row.rowNumber}
-                            style={{
-                              backgroundColor: isError ? (row.validationStatus === 'DUPLICATE' ? '#fffbeb' : '#fef2f2') : 'inherit',
-                            }}
-                          >
-                            <td style={{ textAlign: 'center', fontWeight: 600 }}>{row.rowNumber}<button type="button" className="btn btn-secondary" disabled={isUploading || isImporting} onClick={()=>setEditingRow(row.rowNumber)}>{t('imports:ocr.edit')}</button></td>
-                            <td style={{ textAlign: 'center' }}>{renderStatusBadge(row.validationStatus)}</td>
-                            <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>
-                              {row.rawData?.assetTag || <span style={{ color: '#64748b' }}>{t('imports:preview.generatedTag')}</span>}
-                            </td>
-                            <td>{row.rawData?.name || <span style={{ color: '#ef4444' }}>{t('imports:preview.missing')}</span>}</td>
-                            <td>{row.rawData?.type || '—'}</td>
-                            <td style={{ fontFamily: 'monospace' }}>{row.rawData?.serialNumber || '—'}</td>
-                            <td>
-                              {row.errorMessage ? (
-                                <div style={{ color: '#dc2626', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                  {row.errors?.length ? row.errors.map((err, i) => (
-                                    <div key={i}>• [{err.column}]: {err.message}</div>
-                                  )) : row.errorMessage}
-                                </div>
-                              ) : (
-                                <span style={{ color: '#16a34a' }}><CheckOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:statusBadges.VALID', 'Sẵn sàng lưu kho')}</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
+                      filteredRows
+                        .slice(previewPage * 20, (previewPage + 1) * 20)
+                        .map((row) => {
+                          const isError = row.validationStatus !== "VALID";
+                          return (
+                            <tr
+                              key={row.rowNumber}
+                              style={{
+                                backgroundColor: isError
+                                  ? row.validationStatus === "DUPLICATE"
+                                    ? "#fffbeb"
+                                    : "#fef2f2"
+                                  : "inherit",
+                              }}
+                            >
+                              <td
+                                style={{ textAlign: "center", fontWeight: 600 }}
+                              >
+                                {row.rowNumber}
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  disabled={isUploading || isImporting}
+                                  onClick={() => setEditingRow(row.rowNumber)}
+                                >
+                                  {t("imports:ocr.edit")}
+                                </button>
+                              </td>
+                              <td style={{ textAlign: "center" }}>
+                                {renderStatusBadge(row.validationStatus)}
+                              </td>
+                              <td
+                                style={{
+                                  fontWeight: 600,
+                                  fontFamily: "monospace",
+                                }}
+                              >
+                                {row.rawData?.assetTag || (
+                                  <span style={{ color: "#64748b" }}>
+                                    {t("imports:preview.generatedTag")}
+                                  </span>
+                                )}
+                              </td>
+                              <td>
+                                {row.rawData?.name || (
+                                  <span style={{ color: "#ef4444" }}>
+                                    {t("imports:preview.missing")}
+                                  </span>
+                                )}
+                              </td>
+                              <td>{row.rawData?.type || "—"}</td>
+                              <td style={{ fontFamily: "monospace" }}>
+                                {row.rawData?.serialNumber || "—"}
+                              </td>
+                              <td>
+                                {row.errorMessage ? (
+                                  <div
+                                    style={{
+                                      color: "#dc2626",
+                                      fontSize: "11px",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      gap: "2px",
+                                    }}
+                                  >
+                                    {row.errors?.length
+                                      ? row.errors.map((err, i) => (
+                                          <div key={i}>
+                                            • [{err.column}]: {err.message}
+                                          </div>
+                                        ))
+                                      : row.errorMessage}
+                                  </div>
+                                ) : (
+                                  <span style={{ color: "#16a34a" }}>
+                                    <CheckOutlinedIcon
+                                      fontSize="small"
+                                      aria-hidden="true"
+                                    />{" "}
+                                    {t(
+                                      "imports:statusBadges.VALID",
+                                      "Sẵn sàng lưu kho",
+                                    )}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
                     )}
                   </tbody>
                 </table>
               </div>
-              {filteredRows.length>20 && <div className="receiving-actions" style={{justifyContent:'flex-end'}}>
-                <button type="button" className="btn btn-secondary" disabled={previewPage===0} onClick={()=>setPreviewPage(v=>v-1)}>{t('imports:preview.previous')}</button>
-                <span>{t('imports:preview.page',{page:previewPage+1,pages:Math.ceil(filteredRows.length/20)})}</span>
-                <button type="button" className="btn btn-secondary" disabled={(previewPage+1)*20>=filteredRows.length} onClick={()=>setPreviewPage(v=>v+1)}>{t('imports:preview.next')}</button>
-              </div>}
+              {filteredRows.length > 20 && (
+                <div
+                  className="receiving-actions"
+                  style={{ justifyContent: "flex-end" }}
+                >
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={previewPage === 0}
+                    onClick={() => setPreviewPage((v) => v - 1)}
+                  >
+                    {t("imports:preview.previous")}
+                  </button>
+                  <span>
+                    {t("imports:preview.page", {
+                      page: previewPage + 1,
+                      pages: Math.ceil(filteredRows.length / 20),
+                    })}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={(previewPage + 1) * 20 >= filteredRows.length}
+                    onClick={() => setPreviewPage((v) => v + 1)}
+                  >
+                    {t("imports:preview.next")}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
           {/* STEP 3: COMPLETED */}
-          {step === 'completed' && (
-            <div style={{ textAlign: 'center', padding: '32px 16px' }}>
-
-              <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
-                {t('imports:completed.resultTitle')}
+          {step === "completed" && (
+            <div style={{ textAlign: "center", padding: "32px 16px" }}>
+              <h3
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  marginBottom: "8px",
+                }}
+              >
+                {t("imports:completed.resultTitle")}
               </h3>
-              <p style={{ fontSize: '14px', color: '#475569', maxWidth: '420px', margin: '0 auto 24px auto' }}>
-                {t(receiving ? 'imports:completed.receivingMessage' : 'imports:completed.successMessage', { count: importedCount })}
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "#475569",
+                  maxWidth: "420px",
+                  margin: "0 auto 24px auto",
+                }}
+              >
+                {t(
+                  receiving
+                    ? "imports:completed.receivingMessage"
+                    : "imports:completed.successMessage",
+                  { count: importedCount },
+                )}
               </p>
-              {result && <p>{t('imports:completed.batchId',{id:result.importBatchId})}</p>}
-              {result?.rows && <div style={{maxHeight:receiving ? undefined : '35vh',overflow:receiving ? undefined : 'auto',textAlign:'left',marginBottom:16}}>
-                <table className="data-table" style={{width:'100%'}}><thead><tr>
-                  <th>{t('imports:preview.colRow')}</th><th>{t('imports:preview.colValidation')}</th><th>{t('imports:preview.colTag')}</th><th>{t('imports:preview.colError')}</th>
-                </tr></thead><tbody>{result.rows.slice(resultPage*20,(resultPage+1)*20).map(row=><tr key={row.rowNumber}>
-                  <td>{row.rowNumber}</td><td>{t(`imports:statusBadges.${row.validationStatus}`,row.validationStatus)}</td>
-                  <td>{row.rawData?.assetTag || '—'}</td>
-                  <td>{row.errors?.map(error=>error.message).join('; ') || row.errorMessage || '—'}</td>
-                </tr>)}</tbody></table>
-              </div>}
-              {result?.rows && result.rows.length>20 && <div className="receiving-actions" style={{justifyContent:'center',marginBottom:12}}>
-                <button type="button" className="btn btn-secondary" disabled={resultPage===0} onClick={()=>setResultPage(v=>v-1)}>{t('imports:preview.previous')}</button>
-                <span>{t('imports:preview.page',{page:resultPage+1,pages:Math.ceil(result.rows.length/20)})}</span>
-                <button type="button" className="btn btn-secondary" disabled={(resultPage+1)*20>=result.rows.length} onClick={()=>setResultPage(v=>v+1)}>{t('imports:preview.next')}</button>
-              </div>}
-              {result && result.importedRows < result.totalRows && <button type="button" className="btn btn-secondary" onClick={()=>{setStep('upload');setPreviewData(null);setSelectedFile(null);}} style={{marginRight:8}}>{t('imports:completed.retryFile')}</button>}
+              {result && (
+                <p>
+                  {t("imports:completed.batchId", { id: result.importBatchId })}
+                </p>
+              )}
+              {result?.rows && (
+                <div
+                  style={{
+                    maxHeight: receiving ? undefined : "35vh",
+                    overflow: receiving ? undefined : "auto",
+                    textAlign: "left",
+                    marginBottom: 16,
+                  }}
+                >
+                  <table className="data-table" style={{ width: "100%" }}>
+                    <thead>
+                      <tr>
+                        <th>{t("imports:preview.colRow")}</th>
+                        <th>{t("imports:preview.colValidation")}</th>
+                        <th>{t("imports:preview.colTag")}</th>
+                        <th>{t("imports:preview.colError")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.rows
+                        .slice(resultPage * 20, (resultPage + 1) * 20)
+                        .map((row) => (
+                          <tr key={row.rowNumber}>
+                            <td>{row.rowNumber}</td>
+                            <td>
+                              {t(
+                                `imports:statusBadges.${row.validationStatus}`,
+                                row.validationStatus,
+                              )}
+                            </td>
+                            <td>{row.rawData?.assetTag || "—"}</td>
+                            <td>
+                              {row.errors
+                                ?.map((error) => error.message)
+                                .join("; ") ||
+                                row.errorMessage ||
+                                "—"}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {result?.rows && result.rows.length > 20 && (
+                <div
+                  className="receiving-actions"
+                  style={{ justifyContent: "center", marginBottom: 12 }}
+                >
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={resultPage === 0}
+                    onClick={() => setResultPage((v) => v - 1)}
+                  >
+                    {t("imports:preview.previous")}
+                  </button>
+                  <span>
+                    {t("imports:preview.page", {
+                      page: resultPage + 1,
+                      pages: Math.ceil(result.rows.length / 20),
+                    })}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={(resultPage + 1) * 20 >= result.rows.length}
+                    onClick={() => setResultPage((v) => v + 1)}
+                  >
+                    {t("imports:preview.next")}
+                  </button>
+                </div>
+              )}
+              {result && result.importedRows < result.totalRows && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setStep("upload");
+                    setPreviewData(null);
+                    setSelectedFile(null);
+                  }}
+                  style={{ marginRight: 8 }}
+                >
+                  {t("imports:completed.retryFile")}
+                </button>
+              )}
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={handleClose}
-                style={{ padding: '8px 24px', fontSize: '14px' }}
+                style={{ padding: "8px 24px", fontSize: "14px" }}
               >
-                {t('imports:completed.btnFinish', 'Đóng & Xem danh sách tài sản')}
+                {t(
+                  "imports:completed.btnFinish",
+                  "Đóng & Xem danh sách tài sản",
+                )}
               </button>
             </div>
           )}
         </div>
 
         {/* Modal Footer */}
-        {step !== 'completed' && (
+        {step !== "completed" && (
           <div
             style={{
-              padding: '16px 24px',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: '#f8fafc',
+              padding: "16px 24px",
+              borderTop: "1px solid #e2e8f0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: "#f8fafc",
             }}
           >
-            {step === 'upload' ? (
+            {step === "upload" ? (
               <>
                 <button
                   type="button"
@@ -795,7 +1451,7 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   onClick={handleClose}
                   disabled={isUploading}
                 >
-                  {t('common:buttons.cancel', 'Hủy bỏ')}
+                  {t("common:buttons.cancel", "Hủy bỏ")}
                 </button>
 
                 <button
@@ -803,17 +1459,29 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                   className="btn btn-primary"
                   onClick={handleUploadAndPreview}
                   disabled={!selectedFile || isUploading}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
                 >
                   {isUploading ? (
                     <>
                       {!receiving && <span>⏳</span>}
-                      <span>{t('imports:upload.analyzing', 'Đang kiểm tra file...')}</span>
+                      <span>
+                        {t("imports:upload.analyzing", "Đang kiểm tra file...")}
+                      </span>
                     </>
                   ) : (
                     <>
-                      {!receiving && <SearchOutlinedIcon fontSize="small" aria-hidden="true" />}
-                      <span>{t('imports:upload.btnPreview', 'Kiểm tra dữ liệu (Preview)')}</span>
+                      {!receiving && (
+                        <SearchOutlinedIcon
+                          fontSize="small"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span>
+                        {t(
+                          "imports:upload.btnPreview",
+                          "Kiểm tra dữ liệu (Preview)",
+                        )}
+                      </span>
                     </>
                   )}
                 </button>
@@ -823,45 +1491,69 @@ export const AssetImportModal: React.FC<AssetImportModalProps> = ({
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setStep('upload')}
+                  onClick={() => setStep("upload")}
                   disabled={isImporting || isUploading}
                 >
-                  <ArrowBackOutlinedIcon fontSize="small" aria-hidden="true" /> {t('imports:preview.btnBack', 'Chọn lại file khác')}
+                  <ArrowBackOutlinedIcon fontSize="small" aria-hidden="true" />{" "}
+                  {t("imports:preview.btnBack", "Chọn lại file khác")}
                 </button>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: "flex", gap: "10px" }}>
                   <button
                     type="button"
                     className="btn btn-secondary"
                     onClick={handleClose}
                     disabled={isImporting || isUploading}
                   >
-                    {t('common:buttons.close', 'Đóng')}
+                    {t("common:buttons.close", "Đóng")}
                   </button>
 
                   <button
                     type="button"
                     className="btn btn-primary"
                     onClick={handleConfirmImport}
-                    disabled={!previewData || previewData.validRows === 0 || isImporting || isUploading || needsValidation}
+                    disabled={
+                      !previewData ||
+                      previewData.validRows === 0 ||
+                      isImporting ||
+                      isUploading ||
+                      needsValidation
+                    }
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      backgroundColor: previewData?.validRows && previewData.validRows > 0 ? '#16a34a' : undefined,
-                      borderColor: previewData?.validRows && previewData.validRows > 0 ? '#16a34a' : undefined,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      backgroundColor:
+                        previewData?.validRows && previewData.validRows > 0
+                          ? "#16a34a"
+                          : undefined,
+                      borderColor:
+                        previewData?.validRows && previewData.validRows > 0
+                          ? "#16a34a"
+                          : undefined,
                     }}
                   >
                     {isImporting ? (
                       <>
                         {!receiving && <span>⏳</span>}
-                        <span>{t('imports:preview.importing', 'Đang nhập dữ liệu...')}</span>
+                        <span>
+                          {t(
+                            "imports:preview.importing",
+                            "Đang nhập dữ liệu...",
+                          )}
+                        </span>
                       </>
                     ) : (
                       <>
-                        <CheckOutlinedIcon fontSize="small" aria-hidden="true" />
+                        <CheckOutlinedIcon
+                          fontSize="small"
+                          aria-hidden="true"
+                        />
                         <span>
-                          {t('imports:preview.btnConfirm', { count: previewData?.validRows || 0, defaultValue: `Xác nhận Import (${previewData?.validRows || 0} dòng)` })}
+                          {t("imports:preview.btnConfirm", {
+                            count: previewData?.validRows || 0,
+                            defaultValue: `Xác nhận Import (${previewData?.validRows || 0} dòng)`,
+                          })}
                         </span>
                       </>
                     )}

@@ -1,15 +1,15 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
+import React from "react";
+import { useTranslation } from "react-i18next";
 
 export const LanguageSwitcher: React.FC = () => {
   const { i18n } = useTranslation();
 
-  const currentLang = i18n.language?.startsWith('en') ? 'en' : 'vi';
+  const currentLang = i18n.language?.startsWith("en") ? "en" : "vi";
 
-  const handleLanguageChange = (lng: 'vi' | 'en') => {
+  const handleLanguageChange = (lng: "vi" | "en") => {
     if (currentLang !== lng) {
       i18n.changeLanguage(lng);
-      localStorage.setItem('itam_language', lng);
+      localStorage.setItem("itam_language", lng);
     }
   };
 
@@ -21,9 +21,9 @@ export const LanguageSwitcher: React.FC = () => {
     >
       <button
         type="button"
-        onClick={() => handleLanguageChange('vi')}
+        onClick={() => handleLanguageChange("vi")}
         className="language-switcher-button"
-        aria-pressed={currentLang === 'vi'}
+        aria-pressed={currentLang === "vi"}
         lang="vi"
         title="Tiếng Việt"
       >
@@ -32,9 +32,9 @@ export const LanguageSwitcher: React.FC = () => {
 
       <button
         type="button"
-        onClick={() => handleLanguageChange('en')}
+        onClick={() => handleLanguageChange("en")}
         className="language-switcher-button"
-        aria-pressed={currentLang === 'en'}
+        aria-pressed={currentLang === "en"}
         lang="en"
         title="English"
       >

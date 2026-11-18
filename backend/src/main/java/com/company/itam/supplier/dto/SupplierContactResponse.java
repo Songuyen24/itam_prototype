@@ -10,7 +10,8 @@ public class SupplierContactResponse {
 
     public SupplierContactResponse() {}
 
-    public SupplierContactResponse(Long contactId, Long supplierId, String name, String position, String phone, String email) {
+    public SupplierContactResponse(
+            Long contactId, Long supplierId, String name, String position, String phone, String email) {
         this.contactId = contactId;
         this.supplierId = supplierId;
         this.name = name;

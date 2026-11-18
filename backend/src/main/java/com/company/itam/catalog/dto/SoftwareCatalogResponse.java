@@ -13,7 +13,14 @@ public class SoftwareCatalogResponse {
 
     public SoftwareCatalogResponse() {}
 
-    public SoftwareCatalogResponse(Long softwareCatalogId, String name, String manufacturer, String version, Boolean isActive, Instant createdAt, Instant updatedAt) {
+    public SoftwareCatalogResponse(
+            Long softwareCatalogId,
+            String name,
+            String manufacturer,
+            String version,
+            Boolean isActive,
+            Instant createdAt,
+            Instant updatedAt) {
         this.softwareCatalogId = softwareCatalogId;
         this.name = name;
         this.manufacturer = manufacturer;

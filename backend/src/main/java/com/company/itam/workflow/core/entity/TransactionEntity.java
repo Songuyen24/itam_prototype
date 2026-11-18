@@ -1,12 +1,14 @@
 package com.company.itam.workflow.core.entity;
 
-import com.company.itam.user.entity.UserEntity;
-import com.company.itam.workflow.core.enums.TransactionStatus;
-import com.company.itam.workflow.core.enums.TransactionType;
-import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.persistence.*;
+
+import com.company.itam.user.entity.UserEntity;
+import com.company.itam.workflow.core.enums.TransactionStatus;
+import com.company.itam.workflow.core.enums.TransactionType;
 
 @Entity
 @Table(name = "transactions")
@@ -59,12 +61,25 @@ public class TransactionEntity {
 
     @Column(name = "content_version", nullable = false)
     private long contentVersion;
+
     @Column(name = "submitted_revision", nullable = false)
     private int submittedRevision;
-    public long getContentVersion() { return contentVersion; }
-    public void setContentVersion(long value) { contentVersion = value; }
-    public int getSubmittedRevision() { return submittedRevision; }
-    public void setSubmittedRevision(int value) { submittedRevision = value; }
+
+    public long getContentVersion() {
+        return contentVersion;
+    }
+
+    public void setContentVersion(long value) {
+        contentVersion = value;
+    }
+
+    public int getSubmittedRevision() {
+        return submittedRevision;
+    }
+
+    public void setSubmittedRevision(int value) {
+        submittedRevision = value;
+    }
 
     @PrePersist
     protected void onCreate() {
@@ -155,8 +170,13 @@ public class TransactionEntity {
         this.createdAt = createdAt;
     }
 
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 
     public Instant getCompletedAt() {
         return completedAt;

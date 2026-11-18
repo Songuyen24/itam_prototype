@@ -1,7 +1,8 @@
 package com.company.itam.department.entity;
 
-import jakarta.persistence.*;
 import java.time.Instant;
+
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "departments")

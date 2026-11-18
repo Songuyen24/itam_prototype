@@ -1,7 +1,8 @@
 package com.company.itam.catalog.entity;
 
-import com.company.itam.common.enums.AssetCondition;
 import jakarta.persistence.*;
+
+import com.company.itam.common.enums.AssetCondition;
 
 @Entity
 @Table(name = "asset_conditions")

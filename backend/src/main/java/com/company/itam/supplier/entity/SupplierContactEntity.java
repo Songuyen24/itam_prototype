@@ -1,7 +1,6 @@
 package com.company.itam.supplier.entity;
 
 import jakarta.persistence.*;
-import java.io.Serializable;
 
 @Entity
 @Table(name = "supplier_contacts")

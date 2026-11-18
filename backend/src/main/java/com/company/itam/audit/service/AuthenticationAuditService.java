@@ -1,17 +1,21 @@
 package com.company.itam.audit.service;
 
-import com.company.itam.audit.entity.AuditLogEntity;
-import com.company.itam.audit.repository.AuditLogRepository;
-import com.company.itam.user.entity.UserEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.company.itam.audit.entity.AuditLogEntity;
+import com.company.itam.audit.repository.AuditLogRepository;
+import com.company.itam.user.entity.UserEntity;
+
 @Service
 public class AuthenticationAuditService {
+
     private final AuditLogRepository logs;
 
-    public AuthenticationAuditService(AuditLogRepository logs) { this.logs = logs; }
+    public AuthenticationAuditService(AuditLogRepository logs) {
+        this.logs = logs;
+    }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void record(UserEntity user, String action) {

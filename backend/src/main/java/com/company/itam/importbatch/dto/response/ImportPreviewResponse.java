@@ -14,9 +14,13 @@ public class ImportPreviewResponse {
 
     public ImportPreviewResponse() {}
 
-    public ImportPreviewResponse(String fileName, Integer totalRows, Integer validRows,
-                                 Integer invalidRows, Integer duplicateRows,
-                                 List<ImportRowDetailResponse> rows) {
+    public ImportPreviewResponse(
+            String fileName,
+            Integer totalRows,
+            Integer validRows,
+            Integer invalidRows,
+            Integer duplicateRows,
+            List<ImportRowDetailResponse> rows) {
         this.fileName = fileName;
         this.totalRows = totalRows;
         this.validRows = validRows;

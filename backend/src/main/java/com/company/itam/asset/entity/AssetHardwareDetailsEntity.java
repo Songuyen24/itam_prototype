@@ -1,9 +1,11 @@
 package com.company.itam.asset.entity;
 
+import java.time.LocalDate;
+
+import jakarta.persistence.*;
+
 import com.company.itam.catalog.entity.AssetConditionEntity;
 import com.company.itam.catalog.entity.ModelEntity;
-import jakarta.persistence.*;
-import java.time.LocalDate;
 
 @Entity
 @Table(name = "asset_hardware_details")

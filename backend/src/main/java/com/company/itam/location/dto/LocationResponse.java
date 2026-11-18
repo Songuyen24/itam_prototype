@@ -13,7 +13,14 @@ public class LocationResponse {
 
     public LocationResponse() {}
 
-    public LocationResponse(Long locationId, String code, String name, String address, Boolean isActive, Instant createdAt, Instant updatedAt) {
+    public LocationResponse(
+            Long locationId,
+            String code,
+            String name,
+            String address,
+            Boolean isActive,
+            Instant createdAt,
+            Instant updatedAt) {
         this.locationId = locationId;
         this.code = code;
         this.name = name;

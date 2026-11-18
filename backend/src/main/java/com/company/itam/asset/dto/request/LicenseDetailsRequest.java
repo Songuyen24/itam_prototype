@@ -1,7 +1,8 @@
 package com.company.itam.asset.dto.request;
 
-import jakarta.validation.constraints.*;
 import java.time.LocalDate;
+
+import jakarta.validation.constraints.*;
 
 public record LicenseDetailsRequest(
         @NotNull(message = "{validation.required}") Long softwareCatalogId,

@@ -1,13 +1,14 @@
 package com.company.itam.importbatch.repository;
 
-import com.company.itam.importbatch.entity.ImportRowEntity;
-import com.company.itam.common.enums.ValidationStatus;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.company.itam.common.enums.ValidationStatus;
+import com.company.itam.importbatch.entity.ImportRowEntity;
 
 @Repository
 public interface ImportRowRepository extends JpaRepository<ImportRowEntity, Long> {
@@ -22,12 +23,13 @@ public interface ImportRowRepository extends JpaRepository<ImportRowEntity, Long
     /**
      * List rows filtered by status with asset eagerly loaded.
      */
-    @Query("SELECT r FROM ImportRowEntity r LEFT JOIN FETCH r.asset " +
-           "WHERE r.importBatch.importBatchId = :batchId AND r.validationStatus = :status")
+    @Query("SELECT r FROM ImportRowEntity r LEFT JOIN FETCH r.asset "
+            + "WHERE r.importBatch.importBatchId = :batchId AND r.validationStatus = :status")
     List<ImportRowEntity> findByImportBatchImportBatchIdAndValidationStatusWithAsset(
-            @Param("batchId") Long batchId,
-            @Param("status") ValidationStatus status);
+            @Param("batchId") Long batchId, @Param("status") ValidationStatus status);
 
     List<ImportRowEntity> findByImportBatchImportBatchId(Long importBatchId);
-    List<ImportRowEntity> findByImportBatchImportBatchIdAndValidationStatus(Long importBatchId, ValidationStatus validationStatus);
+
+    List<ImportRowEntity> findByImportBatchImportBatchIdAndValidationStatus(
+            Long importBatchId, ValidationStatus validationStatus);
 }

@@ -1,7 +1,8 @@
 package com.company.itam.catalog.entity;
 
-import com.company.itam.common.enums.AssetCategory;
 import jakarta.persistence.*;
+
+import com.company.itam.common.enums.AssetCategory;
 
 @Entity
 @Table(name = "asset_categories")

@@ -1,15 +1,20 @@
 package com.company.itam.workflow.disposal.controller;
 
+import java.util.Map;
+
+import jakarta.validation.Valid;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import com.company.itam.common.pagination.PageResponse;
 import com.company.itam.common.response.ApiResponse;
 import com.company.itam.common.util.MessageHelper;
 import com.company.itam.publication.service.TransactionPublicationService;
+import com.company.itam.workflow.core.dto.WorkflowProgressModels;
 import com.company.itam.workflow.disposal.dto.DisposalModels.*;
 import com.company.itam.workflow.disposal.service.DisposalService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/v1/disposals")
@@ -18,13 +23,18 @@ public class DisposalController {
     private final MessageHelper messages;
     private final TransactionPublicationService publications;
 
-    public DisposalController(DisposalService service, MessageHelper messages, TransactionPublicationService publications) {
-        this.service = service; this.messages = messages; this.publications = publications;
+    public DisposalController(
+            DisposalService service, MessageHelper messages, TransactionPublicationService publications) {
+        this.service = service;
+        this.messages = messages;
+        this.publications = publications;
     }
 
     @GetMapping("/candidates")
-    public ApiResponse<PageResponse<AssetLine>> candidates(@RequestParam(defaultValue = "") String keyword,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+    public ApiResponse<PageResponse<AssetLine>> candidates(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         return ApiResponse.success(messages.getMessage("DISPOSAL_READ"), service.candidates(keyword, page, size));
     }
 
@@ -37,13 +47,14 @@ public class DisposalController {
     public ResponseEntity<ApiResponse<DisposalResponse>> create(@Valid @RequestBody CreateRequest request) {
         var result = service.create(request);
         publications.afterCommit(result.transactionId(), () -> publications.onDisposalPending(result.transactionId()));
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(messages.getMessage("DISPOSAL_CREATED"), result));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(messages.getMessage("DISPOSAL_CREATED"), result));
     }
 
     @PostMapping("/draft")
     public ResponseEntity<ApiResponse<DisposalResponse>> createDraft(@Valid @RequestBody CreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResponse.success(messages.getMessage("DISPOSAL_CREATED"), service.createDraft(request)));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(messages.getMessage("DISPOSAL_CREATED"), service.createDraft(request)));
     }
 
     @GetMapping("/{id}")
@@ -53,12 +64,12 @@ public class DisposalController {
 
     @PutMapping("/{id}")
     public ApiResponse<DisposalResponse> edit(@PathVariable Long id, @Valid @RequestBody CreateRequest request) {
-        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"),service.edit(id,request));
+        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"), service.edit(id, request));
     }
 
     @PostMapping("/{id}/{action:withdraw|submit|cancel}")
-    public ApiResponse<DisposalResponse> transition(@PathVariable Long id, @PathVariable String action,
-                                                  @Valid @RequestBody ApproveRequest request) {
+    public ApiResponse<DisposalResponse> transition(
+            @PathVariable Long id, @PathVariable String action, @Valid @RequestBody ApproveRequest request) {
         var result = service.transition(id, action, request.expectedFingerprint());
         if ("submit".equals(action)) {
             publications.afterCommit(id, () -> publications.onDisposalPending(id));
@@ -67,31 +78,42 @@ public class DisposalController {
     }
 
     @PostMapping("/{id}/per-user")
-    public ApiResponse<DisposalResponse> resolvePerUser(@PathVariable Long id,
-            @Valid @RequestBody PerUserRequest request) {
-        return ApiResponse.success(messages.getMessage("DISPOSAL_PER_USER_RESOLVED"), service.resolvePerUser(id, request));
+    public ApiResponse<DisposalResponse> resolvePerUser(
+            @PathVariable Long id, @Valid @RequestBody PerUserRequest request) {
+        return ApiResponse.success(
+                messages.getMessage("DISPOSAL_PER_USER_RESOLVED"), service.resolvePerUser(id, request));
     }
 
     @PostMapping("/{id}/approve")
-    public ApiResponse<DisposalResponse> approve(@PathVariable Long id,
-            @Valid @RequestBody ApproveRequest request) {
+    public ApiResponse<DisposalResponse> approve(@PathVariable Long id, @Valid @RequestBody ApproveRequest request) {
         var result = service.approve(id, request);
         return ApiResponse.success(messages.getMessage("DISPOSAL_APPROVED"), result);
     }
 
     @GetMapping("/{id}/progress")
-    public ApiResponse<java.util.Map<String,Object>> progress(@PathVariable Long id){return ApiResponse.success(messages.getMessage("DISPOSAL_READ"),service.progress(id));}
+    public ApiResponse<Map<String, Object>> progress(@PathVariable Long id) {
+        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"), service.progress(id));
+    }
+
     @PostMapping("/{id}/{action:approve-selected|reject-selected|cancel-lines}")
-    public ApiResponse<DisposalResponse> decide(@PathVariable Long id,@PathVariable String action,@Valid @RequestBody com.company.itam.workflow.core.dto.WorkflowProgressModels.Action request){
-        var result=service.decide(id,request,action.equals("approve-selected")?"APPROVED":action.equals("reject-selected")?"REJECTED":"CANCELLED");
-        if("COMPLETED".equals(result.status())) publications.afterCommit(id,()->publications.onCompleted(id,result));
-        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"),result);
+    public ApiResponse<DisposalResponse> decide(
+            @PathVariable Long id,
+            @PathVariable String action,
+            @Valid @RequestBody WorkflowProgressModels.Action request) {
+        String decision = action.equals("approve-selected")
+                ? "APPROVED"
+                : action.equals("reject-selected") ? "REJECTED" : "CANCELLED";
+        var result = service.decide(id, request, decision);
+        if ("COMPLETED".equals(result.status()))
+            publications.afterCommit(id, () -> publications.onCompleted(id, result));
+        return ApiResponse.success(messages.getMessage("DISPOSAL_READ"), result);
     }
 
     @PostMapping("/{id}/execute")
     public ApiResponse<DisposalResponse> execute(@PathVariable Long id, @Valid @RequestBody ExecuteRequest request) {
         var result = service.execute(id, request);
-        if ("COMPLETED".equals(result.status())) publications.afterCommit(id, () -> publications.onCompleted(id, result));
+        if ("COMPLETED".equals(result.status()))
+            publications.afterCommit(id, () -> publications.onCompleted(id, result));
         return ApiResponse.success(messages.getMessage("DISPOSAL_READ"), result);
     }
 

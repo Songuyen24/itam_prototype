@@ -7,7 +7,10 @@
   "resetFilters": "Đặt lại bộ lọc",
   "allStatuses": "Tất cả trạng thái",
   "createdRange": "Khoảng ngày tạo",
-  "assetTag": "Mã tài sản", "assetName": "Tên tài sản", "category": "Loại", "deviceTag": "Mã thiết bị",
+  "assetTag": "Mã tài sản",
+  "assetName": "Tên tài sản",
+  "category": "Loại",
+  "deviceTag": "Mã thiết bị",
   "heldOnly": "Đang giữ",
   "allEmployees": "Tất cả nhân viên",
   "searchHolders": "Tìm mã nhân viên, tên hoặc email",
@@ -29,12 +32,25 @@
   "cancelRemainingReason": "Lý do hủy các mục đã chọn",
   "groupReason": "Lý do",
   "changed": "Phiếu bàn giao đã thay đổi. Đã tải chi tiết mới nhất; hãy kiểm tra trước khi thử lại.",
-  "groupStatus": { "PENDING": "Chờ xử lý", "APPROVED": "Đã duyệt", "COMPLETED": "Đã hoàn tất", "REJECTED": "Đã từ chối", "CANCELLED": "Đã hủy" },
+  "groupStatus": {
+    "PENDING": "Chờ xử lý",
+    "APPROVED": "Đã duyệt",
+    "COMPLETED": "Đã hoàn tất",
+    "REJECTED": "Đã từ chối",
+    "CANCELLED": "Đã hủy"
+  },
   "overrideReason": "Nhập lý do xử lý thay người tạo",
   "draftConfirmTitle": "Kiểm tra phiếu nháp",
   "draftConfirmHint": "Kiểm tra người nhận, tài sản, linh kiện và suất license trước khi lưu nháp.",
   "saveDraft": "Lưu nháp",
-  "status": { "DRAFT": "Nháp", "PENDING": "Chờ bàn giao", "PARTIAL": "Hoàn tất một phần", "COMPLETED": "Đã hoàn tất", "CANCELLED": "Đã hủy", "REJECTED": "Từ chối" },
+  "status": {
+    "DRAFT": "Nháp",
+    "PENDING": "Chờ bàn giao",
+    "PARTIAL": "Hoàn tất một phần",
+    "COMPLETED": "Đã hoàn tất",
+    "CANCELLED": "Đã hủy",
+    "REJECTED": "Từ chối"
+  },
   "list": "Danh sách phiếu",
   "hint": "Chọn tài sản trong kho và một người nhận. Linh kiện đang gắn và suất OEM sẽ được thêm vào bước xem trước.",
   "searchAssets": "Tìm theo mã hoặc tên tài sản",
@@ -84,5 +100,15 @@
     "GraphicsCard": "Đồ họa"
   },
   "employeeCode": "Mã nhân viên",
-  "name": "Họ tên", "email": "Email", "devices": "Thiết bị", "components": "Linh kiện", "licenseSeats": "Suất license", "action": "Thao tác", "view": "Xem", "code": "Mã phiếu", "statusLabel": "Trạng thái", "createdAt": "Ngày tạo", "requester": "Người lập"
+  "name": "Họ tên",
+  "email": "Email",
+  "devices": "Thiết bị",
+  "components": "Linh kiện",
+  "licenseSeats": "Suất license",
+  "action": "Thao tác",
+  "view": "Xem",
+  "code": "Mã phiếu",
+  "statusLabel": "Trạng thái",
+  "createdAt": "Ngày tạo",
+  "requester": "Người lập"
 }

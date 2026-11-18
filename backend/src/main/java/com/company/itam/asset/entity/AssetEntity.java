@@ -1,14 +1,16 @@
 package com.company.itam.asset.entity;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+
+import jakarta.persistence.*;
+
 import com.company.itam.catalog.entity.*;
 import com.company.itam.department.entity.DepartmentEntity;
 import com.company.itam.location.entity.LocationEntity;
 import com.company.itam.supplier.entity.SupplierEntity;
 import com.company.itam.user.entity.UserEntity;
-import jakarta.persistence.*;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
 
 @Entity
 @Table(name = "assets")

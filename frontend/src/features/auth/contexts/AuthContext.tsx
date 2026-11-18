@@ -1,4 +1,4 @@
-import { demoLoginEnabled, demoPassword } from '../demo';
+import { demoLoginEnabled, demoPassword } from "../demo";
 import React, {
   createContext,
   useContext,
@@ -7,13 +7,16 @@ import React, {
   useState,
   useCallback,
   useRef,
-} from 'react';
-import { AuthUser, LoginResponse } from '../types/auth.types';
-import { authApi } from '../api/authApi';
-import { invalidateSessionRequests, registerUnauthorizedHandler } from '@/shared/api/httpClient';
+} from "react";
+import { AuthUser, LoginResponse } from "../types/auth.types";
+import { authApi } from "../api/authApi";
+import {
+  invalidateSessionRequests,
+  registerUnauthorizedHandler,
+} from "@/shared/api/httpClient";
 
-const TOKEN_STORAGE_KEY = 'itam_auth_token';
-const USER_STORAGE_KEY = 'itam_auth_user';
+const TOKEN_STORAGE_KEY = "itam_auth_token";
+const USER_STORAGE_KEY = "itam_auth_user";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -22,9 +25,8 @@ interface AuthContextValue {
   loading: boolean;
   login: (payload: { email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
-  /** Đổi sang role khác bằng cách đăng nhập lại với mật khẩu mặc định của seed user */
+  /** Demo role switching signs in again with the configured demo password. */
   switchRole: (email: string) => Promise<void>;
-  /** Cập nhật user/token từ phản hồi login */
   applyLoginResponse: (res: LoginResponse) => void;
 }
 
@@ -40,7 +42,11 @@ function persistToken(token: string | null, user: AuthUser | null) {
   }
 }
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,19 +70,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (payload: { email: string; password: string }) => {
-    clearSession();
-    const currentOperation = operation.current;
-    setLoading(true);
-    try {
-      const res = await authApi.login(payload);
-      if (operation.current === currentOperation && localStorage.getItem(TOKEN_STORAGE_KEY) === null) {
-        applyLoginResponse(res);
+  const login = useCallback(
+    async (payload: { email: string; password: string }) => {
+      clearSession();
+      const currentOperation = operation.current;
+      setLoading(true);
+      try {
+        const res = await authApi.login(payload);
+        if (
+          operation.current === currentOperation &&
+          localStorage.getItem(TOKEN_STORAGE_KEY) === null
+        ) {
+          applyLoginResponse(res);
+        }
+      } finally {
+        if (operation.current === currentOperation) setLoading(false);
       }
-    } finally {
-      if (operation.current === currentOperation) setLoading(false);
-    }
-  }, [applyLoginResponse, clearSession]);
+    },
+    [applyLoginResponse, clearSession],
+  );
 
   const logout = useCallback(async () => {
     const pendingLogout = authApi.logout();
@@ -92,16 +104,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [clearSession]);
 
-  const switchRole = useCallback(async (email: string) => {
-    if (!demoLoginEnabled || !demoPassword) throw new Error('Demo login is disabled');
-    const currentOperation = operation.current;
-    const currentToken = localStorage.getItem(TOKEN_STORAGE_KEY);
-    const res = await authApi.login({ email, password: demoPassword });
-    if (operation.current !== currentOperation || localStorage.getItem(TOKEN_STORAGE_KEY) !== currentToken) {
-      throw new Error('Session changed while switching account');
-    }
-    applyLoginResponse(res);
-  }, [applyLoginResponse]);
+  const switchRole = useCallback(
+    async (email: string) => {
+      if (!demoLoginEnabled || !demoPassword)
+        throw new Error("Demo login is disabled");
+      const currentOperation = operation.current;
+      const currentToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+      const res = await authApi.login({ email, password: demoPassword });
+      if (
+        operation.current !== currentOperation ||
+        localStorage.getItem(TOKEN_STORAGE_KEY) !== currentToken
+      ) {
+        throw new Error("Session changed while switching account");
+      }
+      applyLoginResponse(res);
+    },
+    [applyLoginResponse],
+  );
 
   useEffect(() => {
     registerUnauthorizedHandler(clearSession);
@@ -120,11 +139,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       try {
         const currentUser = await authApi.me();
-        if (operation.current === currentOperation && localStorage.getItem(TOKEN_STORAGE_KEY) === storedToken) {
-          applyLoginResponse({ token: storedToken, type: 'Bearer', user: currentUser });
+        if (
+          operation.current === currentOperation &&
+          localStorage.getItem(TOKEN_STORAGE_KEY) === storedToken
+        ) {
+          applyLoginResponse({
+            token: storedToken,
+            type: "Bearer",
+            user: currentUser,
+          });
         }
       } catch {
-        if (operation.current === currentOperation && localStorage.getItem(TOKEN_STORAGE_KEY) === storedToken) {
+        if (
+          operation.current === currentOperation &&
+          localStorage.getItem(TOKEN_STORAGE_KEY) === storedToken
+        ) {
           clearSession();
         }
       }
@@ -136,12 +165,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         void restoreSession();
       }
     };
-    window.addEventListener('storage', onStorage);
+    window.addEventListener("storage", onStorage);
     return () => {
       operation.current += 1;
       invalidateSessionRequests();
       registerUnauthorizedHandler(null);
-      window.removeEventListener('storage', onStorage);
+      window.removeEventListener("storage", onStorage);
     };
   }, [applyLoginResponse, clearSession]);
 
@@ -156,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       switchRole,
       applyLoginResponse,
     }),
-    [user, token, loading, login, logout, switchRole, applyLoginResponse]
+    [user, token, loading, login, logout, switchRole, applyLoginResponse],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -165,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error("useAuth must be used within AuthProvider");
   }
   return ctx;
 }

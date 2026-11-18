@@ -1,11 +1,13 @@
 package com.company.itam.document.entity;
 
+import java.time.Instant;
+
+import jakarta.persistence.*;
+
 import com.company.itam.asset.entity.AssetEntity;
 import com.company.itam.common.enums.DocumentType;
-import com.company.itam.workflow.core.entity.TransactionEntity;
 import com.company.itam.user.entity.UserEntity;
-import jakarta.persistence.*;
-import java.time.Instant;
+import com.company.itam.workflow.core.entity.TransactionEntity;
 
 @Entity
 @Table(name = "documents")
@@ -154,14 +156,37 @@ public class DocumentEntity {
         this.checksum = checksum;
     }
 
-    public Boolean getLocked() { return locked; }
-    public void setLocked(Boolean locked) { this.locked = locked; }
-    public Integer getPublicationVersion() { return publicationVersion; }
-    public void setPublicationVersion(Integer publicationVersion) { this.publicationVersion = publicationVersion; }
-    public String getTemplateVersion() { return templateVersion; }
-    public void setTemplateVersion(String templateVersion) { this.templateVersion = templateVersion; }
-    public Instant getIssuedAt() { return issuedAt; }
-    public void setIssuedAt(Instant issuedAt) { this.issuedAt = issuedAt; }
+    public Boolean getLocked() {
+        return locked;
+    }
+
+    public void setLocked(Boolean locked) {
+        this.locked = locked;
+    }
+
+    public Integer getPublicationVersion() {
+        return publicationVersion;
+    }
+
+    public void setPublicationVersion(Integer publicationVersion) {
+        this.publicationVersion = publicationVersion;
+    }
+
+    public String getTemplateVersion() {
+        return templateVersion;
+    }
+
+    public void setTemplateVersion(String templateVersion) {
+        this.templateVersion = templateVersion;
+    }
+
+    public Instant getIssuedAt() {
+        return issuedAt;
+    }
+
+    public void setIssuedAt(Instant issuedAt) {
+        this.issuedAt = issuedAt;
+    }
 
     public UserEntity getUploadedBy() {
         return uploadedBy;

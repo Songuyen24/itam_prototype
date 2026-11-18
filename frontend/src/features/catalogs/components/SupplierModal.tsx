@@ -1,9 +1,9 @@
-import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
-import { TableActionButton } from '@/shared/components/TableActionButton';
-import { PaginatedContent } from '@/shared/components/PaginatedContent';
-import { useTranslation } from 'react-i18next';
-import React, { useState, useEffect } from 'react';
-import { Supplier, SupplierContact } from '../types/catalog.types';
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import { TableActionButton } from "@/shared/components/TableActionButton";
+import { PaginatedContent } from "@/shared/components/PaginatedContent";
+import { useTranslation } from "react-i18next";
+import React, { useState, useEffect } from "react";
+import { Supplier, SupplierContact } from "../types/catalog.types";
 
 interface SupplierModalProps {
   isOpen: boolean;
@@ -24,23 +24,23 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
   onSave,
   onClose,
 }) => {
-  const { t } = useTranslation('catalogs');
+  const { t } = useTranslation("catalogs");
   const [formData, setFormData] = useState<Partial<Supplier>>({
-    code: '',
-    name: '',
-    taxCode: '',
-    address: '',
-    phone: '',
-    email: '',
+    code: "",
+    name: "",
+    taxCode: "",
+    address: "",
+    phone: "",
+    email: "",
     isActive: true,
   });
 
   const [contacts, setContacts] = useState<SupplierContact[]>([]);
   const [newContact, setNewContact] = useState<SupplierContact>({
-    name: '',
-    position: '',
-    phone: '',
-    email: '',
+    name: "",
+    position: "",
+    phone: "",
+    email: "",
   });
 
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -51,26 +51,26 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
         supplierId: initialData.supplierId,
         code: initialData.code,
         name: initialData.name,
-        taxCode: initialData.taxCode || '',
-        address: initialData.address || '',
-        phone: initialData.phone || '',
-        email: initialData.email || '',
+        taxCode: initialData.taxCode || "",
+        address: initialData.address || "",
+        phone: initialData.phone || "",
+        email: initialData.email || "",
         isActive: initialData.isActive,
       });
       setContacts(initialData.contacts || []);
     } else {
       setFormData({
-        code: '',
-        name: '',
-        taxCode: '',
-        address: '',
-        phone: '',
-        email: '',
+        code: "",
+        name: "",
+        taxCode: "",
+        address: "",
+        phone: "",
+        email: "",
         isActive: true,
       });
       setContacts([]);
     }
-    setNewContact({ name: '', position: '', phone: '', email: '' });
+    setNewContact({ name: "", position: "", phone: "", email: "" });
     setValidationError(null);
   }, [initialData, isOpen]);
 
@@ -78,11 +78,11 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
 
   const handleAddContact = () => {
     if (!newContact.name.trim()) {
-      alert(t('forms.contactRequired'));
+      alert(t("forms.contactRequired"));
       return;
     }
     setContacts([...contacts, { ...newContact }]);
-    setNewContact({ name: '', position: '', phone: '', email: '' });
+    setNewContact({ name: "", position: "", phone: "", email: "" });
   };
 
   const handleRemoveContact = (index: number) => {
@@ -92,11 +92,11 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.code?.trim()) {
-      setValidationError(t('forms.supplierCodeRequired'));
+      setValidationError(t("forms.supplierCodeRequired"));
       return;
     }
     if (!formData.name?.trim()) {
-      setValidationError(t('forms.supplierNameRequired'));
+      setValidationError(t("forms.supplierNameRequired"));
       return;
     }
 
@@ -106,10 +106,13 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content modal-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
-            <h3 className="modal-title">{title ?? t('forms.deleteTitle')}</h3>
+            <h3 className="modal-title">{title ?? t("forms.deleteTitle")}</h3>
             <button type="button" className="alert-close-btn" onClick={onClose}>
               &times;
             </button>
@@ -124,24 +127,32 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label required">{t('forms.supplierCode')}</label>
+                <label className="form-label required">
+                  {t("forms.supplierCode")}
+                </label>
                 <input
                   type="text"
                   className="form-input"
-                  value={formData.code || ''}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  value={formData.code || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, code: e.target.value })
+                  }
                   placeholder="VD: SUP_DELL..."
                   disabled={Boolean(initialData)}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label required">{t('forms.supplierName')}</label>
+                <label className="form-label required">
+                  {t("forms.supplierName")}
+                </label>
                 <input
                   type="text"
                   className="form-input"
-                  value={formData.name || ''}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.name || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="VD: Dell Vietnam Ltd."
                 />
               </div>
@@ -149,23 +160,27 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">{t('forms.taxCode')}</label>
+                <label className="form-label">{t("forms.taxCode")}</label>
                 <input
                   type="text"
                   className="form-input"
-                  value={formData.taxCode || ''}
-                  onChange={(e) => setFormData({ ...formData, taxCode: e.target.value })}
+                  value={formData.taxCode || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, taxCode: e.target.value })
+                  }
                   placeholder="VD: 0101234567"
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">{t('forms.phone')}</label>
+                <label className="form-label">{t("forms.phone")}</label>
                 <input
                   type="text"
                   className="form-input"
-                  value={formData.phone || ''}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  value={formData.phone || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   placeholder="VD: 028 3822 0000"
                 />
               </div>
@@ -173,24 +188,28 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">{t('forms.email')}</label>
+                <label className="form-label">{t("forms.email")}</label>
                 <input
                   type="email"
                   className="form-input"
-                  value={formData.email || ''}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  value={formData.email || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   placeholder="VD: contact@dell.com"
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">{t('forms.address')}</label>
+                <label className="form-label">{t("forms.address")}</label>
                 <input
                   type="text"
                   className="form-input"
-                  value={formData.address || ''}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder={t('forms.supplierAddress')}
+                  value={formData.address || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                  placeholder={t("forms.supplierAddress")}
                 />
               </div>
             </div>
@@ -200,93 +219,142 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                 <input
                   type="checkbox"
                   checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isActive: e.target.checked })
+                  }
                 />
-                <span>{t('forms.supplierActive')}</span>
+                <span>{t("forms.supplierActive")}</span>
               </label>
             </div>
 
             {/* Contacts Section */}
-            <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: 'var(--text-main)' }}>
-                {t('forms.contacts')}
+            <div
+              style={{
+                marginTop: "20px",
+                borderTop: "1px solid var(--border-color)",
+                paddingTop: "16px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  marginBottom: "12px",
+                  color: "var(--text-main)",
+                }}
+              >
+                {t("forms.contacts")}
               </div>
 
               {contacts.length > 0 ? (
-                <PaginatedContent items={contacts.map((contact, index) => ({ contact, index }))}>{rows => <div style={{ marginBottom: '16px' }}>
-                  <table className="data-table" style={{ border: '1px solid var(--border-color)' }}>
-                    <thead>
-                      <tr>
-                        <th>{t('forms.fullName')}</th>
-                        <th>{t('forms.position')}</th>
-                        <th>{t('forms.contactPhone')}</th>
-                        <th>Email</th>
-                        <th>{t('forms.actions')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map(({ contact, index: idx }) => (
-                        <tr key={contact.contactId || idx}>
-                          <td>{contact.name}</td>
-                          <td>{contact.position || '-'}</td>
-                          <td>{contact.phone || '-'}</td>
-                          <td>{contact.email || '-'}</td>
-                          <td>
-                            <TableActionButton className="btn-danger" icon={<DeleteOutlineOutlinedIcon />} label={t('forms.delete')} onClick={() => handleRemoveContact(idx)} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>}</PaginatedContent>
+                <PaginatedContent
+                  items={contacts.map((contact, index) => ({ contact, index }))}
+                >
+                  {(rows) => (
+                    <div style={{ marginBottom: "16px" }}>
+                      <table
+                        className="data-table"
+                        style={{ border: "1px solid var(--border-color)" }}
+                      >
+                        <thead>
+                          <tr>
+                            <th>{t("forms.fullName")}</th>
+                            <th>{t("forms.position")}</th>
+                            <th>{t("forms.contactPhone")}</th>
+                            <th>Email</th>
+                            <th>{t("forms.actions")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map(({ contact, index: idx }) => (
+                            <tr key={contact.contactId || idx}>
+                              <td>{contact.name}</td>
+                              <td>{contact.position || "-"}</td>
+                              <td>{contact.phone || "-"}</td>
+                              <td>{contact.email || "-"}</td>
+                              <td>
+                                <TableActionButton
+                                  className="btn-danger"
+                                  icon={<DeleteOutlineOutlinedIcon />}
+                                  label={t("forms.delete")}
+                                  onClick={() => handleRemoveContact(idx)}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </PaginatedContent>
               ) : (
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                  {t('forms.noContacts')}
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "var(--text-muted)",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {t("forms.noContacts")}
                 </p>
               )}
 
               {/* Add contact mini-form */}
               <div
                 style={{
-                  padding: '12px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px dashed var(--border-color)',
-                  borderRadius: 'var(--radius)',
+                  padding: "12px",
+                  backgroundColor: "#f8fafc",
+                  border: "1px dashed var(--border-color)",
+                  borderRadius: "var(--radius)",
                 }}
               >
-                <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
-                  {t('forms.addContact')}
+                <div
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    marginBottom: "8px",
+                  }}
+                >
+                  {t("forms.addContact")}
                 </div>
-                <div className="form-grid-2" style={{ marginBottom: '8px' }}>
+                <div className="form-grid-2" style={{ marginBottom: "8px" }}>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder={t('forms.contactName')}
+                    placeholder={t("forms.contactName")}
                     value={newContact.name}
-                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                    onChange={(e) =>
+                      setNewContact({ ...newContact, name: e.target.value })
+                    }
                   />
                   <input
                     type="text"
                     className="form-input"
-                    placeholder={t('forms.position')}
-                    value={newContact.position || ''}
-                    onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
+                    placeholder={t("forms.position")}
+                    value={newContact.position || ""}
+                    onChange={(e) =>
+                      setNewContact({ ...newContact, position: e.target.value })
+                    }
                   />
                 </div>
-                <div className="form-grid-2" style={{ marginBottom: '8px' }}>
+                <div className="form-grid-2" style={{ marginBottom: "8px" }}>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder={t('forms.phone')}
-                    value={newContact.phone || ''}
-                    onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                    placeholder={t("forms.phone")}
+                    value={newContact.phone || ""}
+                    onChange={(e) =>
+                      setNewContact({ ...newContact, phone: e.target.value })
+                    }
                   />
                   <input
                     type="email"
                     className="form-input"
                     placeholder="Email"
-                    value={newContact.email || ''}
-                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                    value={newContact.email || ""}
+                    onChange={(e) =>
+                      setNewContact({ ...newContact, email: e.target.value })
+                    }
                   />
                 </div>
                 <button
@@ -294,18 +362,27 @@ export const SupplierModal: React.FC<SupplierModalProps> = ({
                   className="btn btn-sm btn-secondary"
                   onClick={handleAddContact}
                 >
-                  {t('forms.addToList')}
+                  {t("forms.addToList")}
                 </button>
               </div>
             </div>
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              {t('forms.cancel')}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+              disabled={isSaving}
+            >
+              {t("forms.cancel")}
             </button>
-            <button type="submit" className="btn btn-primary" disabled={isSaving}>
-              {isSaving ? t('forms.saving') : t('forms.saveSupplier')}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={isSaving}
+            >
+              {isSaving ? t("forms.saving") : t("forms.saveSupplier")}
             </button>
           </div>
         </form>

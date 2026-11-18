@@ -1,12 +1,13 @@
 package com.company.itam.asset.mapper;
 
+import org.springframework.stereotype.Component;
+
 import com.company.itam.asset.dto.response.AssetDetailResponse;
 import com.company.itam.asset.dto.response.AssetResponse;
 import com.company.itam.asset.dto.response.HardwareConfigDto;
 import com.company.itam.asset.entity.AssetEntity;
 import com.company.itam.asset.entity.AssetHardwareDetailsEntity;
 import com.company.itam.catalog.entity.ModelEntity;
-import org.springframework.stereotype.Component;
 
 @Component
 public class AssetMapper {
@@ -55,7 +56,10 @@ public class AssetMapper {
         response.setAssetTag(entity.getAssetTag());
         response.setName(entity.getName());
 
-        if (entity.getLicenseDetails()!=null) response.setLicenseAssignmentTypeCode(entity.getLicenseDetails().getAssignmentType().getCode());
+        if (entity.getLicenseDetails() != null) {
+            response.setLicenseAssignmentTypeCode(
+                    entity.getLicenseDetails().getAssignmentType().getCode());
+        }
 
         // Type & Category
         if (entity.getType() != null) {
@@ -65,7 +69,8 @@ public class AssetMapper {
 
             if (entity.getType().getCategory() != null) {
                 response.setCategoryId(entity.getType().getCategory().getCategoryId());
-                response.setCategoryCode(entity.getType().getCategory().getCode().name());
+                response.setCategoryCode(
+                        entity.getType().getCategory().getCode().name());
                 response.setCategoryName(entity.getType().getCategory().getName());
             }
         }
@@ -165,7 +170,8 @@ public class AssetMapper {
         config.setEffectiveCpu(resolveEffectiveValue(hw.getActualCpu(), config.getDefaultCpu()));
         config.setEffectiveRam(resolveEffectiveValue(hw.getActualRam(), config.getDefaultRam()));
         config.setEffectiveStorage(resolveEffectiveValue(hw.getActualStorage(), config.getDefaultStorage()));
-        config.setEffectiveGraphicsCard(resolveEffectiveValue(hw.getActualGraphicsCard(), config.getDefaultGraphicsCard()));
+        config.setEffectiveGraphicsCard(
+                resolveEffectiveValue(hw.getActualGraphicsCard(), config.getDefaultGraphicsCard()));
 
         return config;
     }

@@ -1,95 +1,306 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { receivingApi, References } from '@/features/receiving/api/receivingApi';
-import { ReceivingAssetForm } from '@/features/receiving/components/ReceivingAssetForm';
-import { ReceivingAssetDetails } from '@/features/receiving/components/ReceivingAssetDetails';
-import en from '@/shared/i18n/locales/en/documents.json';
-import vn from '@/shared/i18n/locales/vi/documents.json';
-const client=vi.hoisted(()=>vi.fn());
-vi.mock('@/shared/api/httpClient',()=>({httpClient:client,downloadFile:vi.fn()}));
-vi.mock('react-i18next',()=>({useTranslation:()=>({t:(key:string)=>key,i18n:{language:'en'}})}));
-const refs:References={types:[{id:1,name:'Laptop',category:'DEVICE'},{id:2,name:'Package',category:'LICENSE'}],conditions:[{id:1,name:'New'}],models:[],locations:[],departments:[],suppliers:[],software:[{id:1,name:'Office'}],assignments:[{id:1,name:'Per user',code:'PER_USER'}],terms:[{id:1,name:'Subscription',code:'SUBSCRIPTION'}]};
-describe('T14 receiving',()=>{
-  beforeEach(()=>client.mockReset());
-  it('sends exactly the content and submission versions currently reviewed',async()=>{
-    client.mockResolvedValue({success:true});
-    await receivingApi.action({transactionId:5,transactionCode:'IMP-5',type:'IMPORT',status:'PENDING',createdAt:'2026-09-09',documentsEditable:false,expectedVersion:9,submittedRevision:2},'reject','Wrong configuration');
-    expect(client).toHaveBeenCalledWith('/v1/import-drafts/5/reject',{method:'POST',body:JSON.stringify({expectedVersion:9,expectedSubmissionRevision:2,reason:'Wrong configuration'})});
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  receivingApi,
+  References,
+} from "@/features/receiving/api/receivingApi";
+import { ReceivingAssetForm } from "@/features/receiving/components/ReceivingAssetForm";
+import { ReceivingAssetDetails } from "@/features/receiving/components/ReceivingAssetDetails";
+import en from "@/shared/i18n/locales/en/documents.json";
+import vn from "@/shared/i18n/locales/vi/documents.json";
+const client = vi.hoisted(() => vi.fn());
+vi.mock("@/shared/api/httpClient", () => ({
+  httpClient: client,
+  downloadFile: vi.fn(),
+}));
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key, i18n: { language: "en" } }),
+}));
+const refs: References = {
+  types: [
+    { id: 1, name: "Laptop", category: "DEVICE" },
+    { id: 2, name: "Package", category: "LICENSE" },
+  ],
+  conditions: [{ id: 1, name: "New" }],
+  models: [],
+  locations: [],
+  departments: [],
+  suppliers: [],
+  software: [{ id: 1, name: "Office" }],
+  assignments: [{ id: 1, name: "Per user", code: "PER_USER" }],
+  terms: [{ id: 1, name: "Subscription", code: "SUBSCRIPTION" }],
+};
+describe("T14 receiving", () => {
+  beforeEach(() => client.mockReset());
+  it("sends exactly the content and submission versions currently reviewed", async () => {
+    client.mockResolvedValue({ success: true });
+    await receivingApi.action(
+      {
+        transactionId: 5,
+        transactionCode: "IMP-5",
+        type: "IMPORT",
+        status: "PENDING",
+        createdAt: "2026-09-09",
+        documentsEditable: false,
+        expectedVersion: 9,
+        submittedRevision: 2,
+      },
+      "reject",
+      "Wrong configuration",
+    );
+    expect(client).toHaveBeenCalledWith("/v1/import-drafts/5/reject", {
+      method: "POST",
+      body: JSON.stringify({
+        expectedVersion: 9,
+        expectedSubmissionRevision: 2,
+        reason: "Wrong configuration",
+      }),
+    });
     expect(client).toHaveBeenCalledTimes(1);
   });
-  it('edits and removes only a versioned line of the selected draft',async()=>{
-    await receivingApi.saveLine(5,9,{name:'RAM',typeId:3},8);
-    await receivingApi.remove(5,10,8);
-    expect(client.mock.calls.map(c=>[c[0],c[1].method])).toEqual([['/v1/import-drafts/5/assets/8?expectedVersion=9','PUT'],['/v1/import-drafts/5/assets/8?expectedVersion=10','DELETE']]);
+  it("edits and removes only a versioned line of the selected draft", async () => {
+    await receivingApi.saveLine(5, 9, { name: "RAM", typeId: 3 }, 8);
+    await receivingApi.remove(5, 10, 8);
+    expect(client.mock.calls.map((c) => [c[0], c[1].method])).toEqual([
+      ["/v1/import-drafts/5/assets/8?expectedVersion=9", "PUT"],
+      ["/v1/import-drafts/5/assets/8?expectedVersion=10", "DELETE"],
+    ]);
   });
-  it('uses the restricted purchasing candidate endpoint rather than inventory',async()=>{
-    await receivingApi.candidates('TAG & serial',2);
-    expect(client.mock.calls[0][0]).toBe('/v1/import-drafts/candidates?keyword=TAG+%26+serial&page=2');
+  it("uses the restricted purchasing candidate endpoint rather than inventory", async () => {
+    await receivingApi.candidates("TAG & serial", 2);
+    expect(client.mock.calls[0][0]).toBe(
+      "/v1/import-drafts/candidates?keyword=TAG+%26+serial&page=2",
+    );
   });
-  it('previews and confirms Excel within a versioned receiving draft',async()=>{
-    client.mockResolvedValue({success:true,data:{transaction:{expectedVersion:10},batch:{importBatchId:7,importedRows:1,rows:[]}}});
-    const file=new File(['data'],'receiving.xlsx');
+  it("previews and confirms Excel within a versioned receiving draft", async () => {
+    client.mockResolvedValue({
+      success: true,
+      data: {
+        transaction: { expectedVersion: 10 },
+        batch: { importBatchId: 7, importedRows: 1, rows: [] },
+      },
+    });
+    const file = new File(["data"], "receiving.xlsx");
     await receivingApi.previewExcel(file);
-    const previewCall=client.mock.calls[0];
-    expect(previewCall[0]).toBe('/v1/import-drafts/excel/preview');
-    expect(previewCall[1].body.get('file')).toBe(file);
-    const payload={fileName:file.name,validRows:[{rowNumber:2,name:'Laptop',type:'LAPTOP'}],retryBatchId:6};
-    await receivingApi.confirmExcel(5,9,payload);
-    expect(client).toHaveBeenLastCalledWith('/v1/import-drafts/5/excel/confirm?expectedVersion=9',{method:'POST',body:JSON.stringify(payload)});
+    const previewCall = client.mock.calls[0];
+    expect(previewCall[0]).toBe("/v1/import-drafts/excel/preview");
+    expect(previewCall[1].body.get("file")).toBe(file);
+    const payload = {
+      fileName: file.name,
+      validRows: [{ rowNumber: 2, name: "Laptop", type: "LAPTOP" }],
+      retryBatchId: 6,
+    };
+    await receivingApi.confirmExcel(5, 9, payload);
+    expect(client).toHaveBeenLastCalledWith(
+      "/v1/import-drafts/5/excel/confirm?expectedVersion=9",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
   });
-  it('requires hardware condition while keeping serial optional',()=>{
-    const html=renderToStaticMarkup(<ReceivingAssetForm refs={refs} initial={{name:'Laptop',typeId:1}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);
-    expect(html).toMatch(/receiving.name<span[^>]*aria-hidden="true"[^>]*>\*<\/span><input[^>]*required/);
-    expect(html).toMatch(/receiving.typeId<span[^>]*aria-hidden="true"[^>]*>\*<\/span><select[^>]*required/);
-    expect(html).toMatch(/receiving.conditionId<span[^>]*aria-hidden="true"[^>]*>\*<\/span><select[^>]*required/);
+  it("requires hardware condition while keeping serial optional", () => {
+    const html = renderToStaticMarkup(
+      <ReceivingAssetForm
+        refs={refs}
+        initial={{ name: "Laptop", typeId: 1 }}
+        busy={false}
+        onSave={async () => {}}
+        onCancel={() => {}}
+      />,
+    );
+    expect(html).toMatch(
+      /receiving.name<span[^>]*aria-hidden="true"[^>]*>\*<\/span><input[^>]*required/,
+    );
+    expect(html).toMatch(
+      /receiving.typeId<span[^>]*aria-hidden="true"[^>]*>\*<\/span><select[^>]*required/,
+    );
+    expect(html).toMatch(
+      /receiving.conditionId<span[^>]*aria-hidden="true"[^>]*>\*<\/span><select[^>]*required/,
+    );
     expect(html).toMatch(/receiving.serialNumber<input[^>]*type="text"/);
     expect(html).not.toMatch(/receiving.serialNumber<input[^>]*required/);
-    expect(html).toContain('receiving.actualRam');
+    expect(html).toContain("receiving.actualRam");
   });
-  it('requires subscription expiry and seats and omits hardware fields for licenses',()=>{
-    const html=renderToStaticMarkup(<ReceivingAssetForm refs={refs} initial={{name:'Package',typeId:2,license:{softwareCatalogId:1,assignmentTypeId:1,termTypeId:1,seatCount:10}}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);
-    for(const field of ['softwareCatalogId','assignmentTypeId','termTypeId','seatCount','expiryDate']) {
-      expect(html).toMatch(new RegExp(`receiving\\.${field}<span[^>]*aria-hidden="true"[^>]*>\\*<\\/span>`));
+  it("requires subscription expiry and seats and omits hardware fields for licenses", () => {
+    const html = renderToStaticMarkup(
+      <ReceivingAssetForm
+        refs={refs}
+        initial={{
+          name: "Package",
+          typeId: 2,
+          license: {
+            softwareCatalogId: 1,
+            assignmentTypeId: 1,
+            termTypeId: 1,
+            seatCount: 10,
+          },
+        }}
+        busy={false}
+        onSave={async () => {}}
+        onCancel={() => {}}
+      />,
+    );
+    for (const field of [
+      "softwareCatalogId",
+      "assignmentTypeId",
+      "termTypeId",
+      "seatCount",
+      "expiryDate",
+    ]) {
+      expect(html).toMatch(
+        new RegExp(
+          `receiving\\.${field}<span[^>]*aria-hidden="true"[^>]*>\\*<\\/span>`,
+        ),
+      );
     }
-    expect(html).toMatch(/receiving.expiryDate<span[^>]*>\*<\/span><input[^>]*required/);
+    expect(html).toMatch(
+      /receiving.expiryDate<span[^>]*>\*<\/span><input[^>]*required/,
+    );
     expect(html).toContain('min="1"');
-    expect(html).not.toContain('receiving.conditionId');
-    expect(html).not.toContain('licenseKey');
+    expect(html).not.toContain("receiving.conditionId");
+    expect(html).not.toContain("licenseKey");
   });
-  it('keeps perpetual license expiry optional and unmarked',()=>{
-    const perpetual={...refs,terms:[{id:2,name:'Perpetual',code:'PERPETUAL'}]};
-    const html=renderToStaticMarkup(<ReceivingAssetForm refs={perpetual} initial={{name:'Package',typeId:2,license:{softwareCatalogId:1,assignmentTypeId:1,termTypeId:2,seatCount:10}}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);
+  it("keeps perpetual license expiry optional and unmarked", () => {
+    const perpetual = {
+      ...refs,
+      terms: [{ id: 2, name: "Perpetual", code: "PERPETUAL" }],
+    };
+    const html = renderToStaticMarkup(
+      <ReceivingAssetForm
+        refs={perpetual}
+        initial={{
+          name: "Package",
+          typeId: 2,
+          license: {
+            softwareCatalogId: 1,
+            assignmentTypeId: 1,
+            termTypeId: 2,
+            seatCount: 10,
+          },
+        }}
+        busy={false}
+        onSave={async () => {}}
+        onCancel={() => {}}
+      />,
+    );
     expect(html).toMatch(/receiving.expiryDate<input/);
     expect(html).not.toMatch(/receiving.expiryDate<span[^>]*>\*<\/span>/);
     expect(html).not.toMatch(/receiving.expiryDate<input[^>]*required/);
   });
-  it('groups required hardware and license fields outside optional configuration',()=>{
-    const hardware=renderToStaticMarkup(<ReceivingAssetForm refs={refs} initial={{name:'Laptop',typeId:1}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);
-    for(const section of ['identity','purchase','hardware','configuration']) expect(hardware).toContain(`receiving.sections.${section}`);
-    expect(hardware.indexOf('receiving.conditionId')).toBeLessThan(hardware.indexOf('<details'));
-    expect(hardware).not.toContain('receiving.sections.license');
-    const license=renderToStaticMarkup(<ReceivingAssetForm refs={refs} initial={{name:'Package',typeId:2,license:{softwareCatalogId:1,assignmentTypeId:1,termTypeId:1,seatCount:10}}} busy={false} onSave={async()=>{}} onCancel={()=>{}}/>);
-    expect(license).toContain('receiving.sections.license');
-    expect(license).not.toContain('receiving.sections.configuration');
-    expect(license).not.toContain('<details');
+  it("groups required hardware and license fields outside optional configuration", () => {
+    const hardware = renderToStaticMarkup(
+      <ReceivingAssetForm
+        refs={refs}
+        initial={{ name: "Laptop", typeId: 1 }}
+        busy={false}
+        onSave={async () => {}}
+        onCancel={() => {}}
+      />,
+    );
+    for (const section of ["identity", "purchase", "hardware", "configuration"])
+      expect(hardware).toContain(`receiving.sections.${section}`);
+    expect(hardware.indexOf("receiving.conditionId")).toBeLessThan(
+      hardware.indexOf("<details"),
+    );
+    expect(hardware).not.toContain("receiving.sections.license");
+    const license = renderToStaticMarkup(
+      <ReceivingAssetForm
+        refs={refs}
+        initial={{
+          name: "Package",
+          typeId: 2,
+          license: {
+            softwareCatalogId: 1,
+            assignmentTypeId: 1,
+            termTypeId: 1,
+            seatCount: 10,
+          },
+        }}
+        busy={false}
+        onSave={async () => {}}
+        onCancel={() => {}}
+      />,
+    );
+    expect(license).toContain("receiving.sections.license");
+    expect(license).not.toContain("receiving.sections.configuration");
+    expect(license).not.toContain("<details");
   });
-  it('renders frozen model defaults, actual values and effective configuration',()=>{
-    const html=renderToStaticMarkup(<ReceivingAssetDetails line={{assetId:1,assetTag:'OLD-TAG',name:'Old name',category:'DEVICE',input:{name:'Old name',typeId:1,actualRam:'32GB'},model:{default_ram:'16GB'},effectiveHardware:{ram:'32GB'}}}/>);
-    expect(html).toContain('OLD-TAG');expect(html).toContain('16GB');expect(html).toContain('32GB');
-    expect(html).toContain('receiving.defaultConfig');expect(html).toContain('receiving.effectiveConfig');
+  it("renders frozen model defaults, actual values and effective configuration", () => {
+    const html = renderToStaticMarkup(
+      <ReceivingAssetDetails
+        line={{
+          assetId: 1,
+          assetTag: "OLD-TAG",
+          name: "Old name",
+          category: "DEVICE",
+          input: { name: "Old name", typeId: 1, actualRam: "32GB" },
+          model: { default_ram: "16GB" },
+          effectiveHardware: { ram: "32GB" },
+        }}
+      />,
+    );
+    expect(html).toContain("OLD-TAG");
+    expect(html).toContain("16GB");
+    expect(html).toContain("32GB");
+    expect(html).toContain("receiving.defaultConfig");
+    expect(html).toContain("receiving.effectiveConfig");
   });
-  it('has matching English and Vietnamese receiving labels and events',()=>{
-    expect(Object.keys(en.receiving).sort()).toEqual(Object.keys(vn.receiving).sort());
-    expect(Object.keys(en.receiving.events)).toEqual(Object.keys(vn.receiving.events));
-    expect(en.receiving.approveConfirm).toContain('all');expect(vn.receiving.approveConfirm).toContain('toàn bộ');
+  it("has matching English and Vietnamese receiving labels and events", () => {
+    expect(Object.keys(en.receiving).sort()).toEqual(
+      Object.keys(vn.receiving).sort(),
+    );
+    expect(Object.keys(en.receiving.events)).toEqual(
+      Object.keys(vn.receiving.events),
+    );
+    expect(en.receiving.approveConfirm).toContain("all");
+    expect(vn.receiving.approveConfirm).toContain("toàn bộ");
   });
 });
 
-it('keeps supplied details visible once across identity, purchase and technical groups',()=>{
-  const html=renderToStaticMarkup(<ReceivingAssetDetails line={{assetId:1,assetTag:'IT-01',name:'Laptop',category:'DEVICE',input:{name:'Laptop',typeId:1,serialNumber:'SN-01',poNumber:'PO-01',actualCpu:'Core i7',purchaseCost:250},labels:{type:'Laptop type',supplier:'Supplier A',location:'Office B'}}}/>);
-  for (const value of ['SN-01','PO-01','Core i7','Supplier A','Office B','Laptop type']) expect(html.split(value)).toHaveLength(2);
-  expect(html.indexOf('receiving.sections.identity')).toBeLessThan(html.indexOf('SN-01'));
-  expect(html.indexOf('receiving.sections.purchase')).toBeLessThan(html.indexOf('PO-01'));
-  expect(html.indexOf('receiving.sections.purchase')).toBeLessThan(html.indexOf('Supplier A'));
-  expect(html.indexOf('receiving.sections.configuration')).toBeLessThan(html.indexOf('Core i7'));
+it("keeps supplied details visible once across identity, purchase and technical groups", () => {
+  const html = renderToStaticMarkup(
+    <ReceivingAssetDetails
+      line={{
+        assetId: 1,
+        assetTag: "IT-01",
+        name: "Laptop",
+        category: "DEVICE",
+        input: {
+          name: "Laptop",
+          typeId: 1,
+          serialNumber: "SN-01",
+          poNumber: "PO-01",
+          actualCpu: "Core i7",
+          purchaseCost: 250,
+        },
+        labels: {
+          type: "Laptop type",
+          supplier: "Supplier A",
+          location: "Office B",
+        },
+      }}
+    />,
+  );
+  for (const value of [
+    "SN-01",
+    "PO-01",
+    "Core i7",
+    "Supplier A",
+    "Office B",
+    "Laptop type",
+  ])
+    expect(html.split(value)).toHaveLength(2);
+  expect(html.indexOf("receiving.sections.identity")).toBeLessThan(
+    html.indexOf("SN-01"),
+  );
+  expect(html.indexOf("receiving.sections.purchase")).toBeLessThan(
+    html.indexOf("PO-01"),
+  );
+  expect(html.indexOf("receiving.sections.purchase")).toBeLessThan(
+    html.indexOf("Supplier A"),
+  );
+  expect(html.indexOf("receiving.sections.configuration")).toBeLessThan(
+    html.indexOf("Core i7"),
+  );
 });

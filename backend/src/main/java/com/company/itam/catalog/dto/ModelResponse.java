@@ -18,9 +18,19 @@ public class ModelResponse {
 
     public ModelResponse() {}
 
-    public ModelResponse(Long modelId, String name, String brand, Long typeId, String typeName,
-                         String defaultCpu, String defaultRam, String defaultStorage, String defaultGraphicsCard,
-                         Boolean isActive, Instant createdAt, Instant updatedAt) {
+    public ModelResponse(
+            Long modelId,
+            String name,
+            String brand,
+            Long typeId,
+            String typeName,
+            String defaultCpu,
+            String defaultRam,
+            String defaultStorage,
+            String defaultGraphicsCard,
+            Boolean isActive,
+            Instant createdAt,
+            Instant updatedAt) {
         this.modelId = modelId;
         this.name = name;
         this.brand = brand;

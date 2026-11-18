@@ -1,19 +1,19 @@
-import { demoLoginEnabled, demoPassword, demoRolePresets } from '../demo';
-import React, { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext';
-import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher/LanguageSwitcher';
-import { ApiError } from '@/shared/api/httpClient';
-import { getHomePath } from '../permissions';
+import { demoLoginEnabled, demoPassword, demoRolePresets } from "../demo";
+import React, { useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "../contexts/AuthContext";
+import { LanguageSwitcher } from "@/shared/components/LanguageSwitcher/LanguageSwitcher";
+import { ApiError } from "@/shared/api/httpClient";
+import { getHomePath } from "../permissions";
 
 const LoginPage: React.FC = () => {
-  const { t } = useTranslation(['auth', 'common']);
+  const { t } = useTranslation(["auth", "common"]);
   const { login, isAuthenticated, loading, user } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -22,12 +22,14 @@ const LoginPage: React.FC = () => {
     setSubmitting(true);
     try {
       await login({ email: loginEmail, password: loginPassword });
-      navigate('/', { replace: true });
+      navigate("/", { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError(t('auth:errors.unknown', 'Đăng nhập thất bại, vui lòng thử lại'));
+        setError(
+          t("auth:errors.unknown", "Đăng nhập thất bại, vui lòng thử lại"),
+        );
       }
     } finally {
       setSubmitting(false);
@@ -37,7 +39,7 @@ const LoginPage: React.FC = () => {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !password) {
-      setError(t('auth:errors.required', 'Vui lòng nhập email và mật khẩu'));
+      setError(t("auth:errors.required", "Vui lòng nhập email và mật khẩu"));
       return;
     }
     void doLogin(email.trim(), password);
@@ -57,27 +59,34 @@ const LoginPage: React.FC = () => {
     <div className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <div className="sidebar-logo-icon" style={{ marginRight: 12 }}>IT</div>
+          <div className="sidebar-logo-icon" style={{ marginRight: 12 }}>
+            IT
+          </div>
           <div>
-            <h1 className="login-title">{t('auth:title', 'Đăng nhập ITAM Pro')}</h1>
+            <h1 className="login-title">
+              {t("auth:title", "Đăng nhập ITAM Pro")}
+            </h1>
             <p className="login-subtitle">
-              {t('auth:subtitle', 'Hệ thống quản lý và theo dõi vòng đời tài sản CNTT')}
+              {t(
+                "auth:subtitle",
+                "Hệ thống quản lý và theo dõi vòng đời tài sản CNTT",
+              )}
             </p>
           </div>
-          <div style={{ marginLeft: 'auto' }}>
+          <div style={{ marginLeft: "auto" }}>
             <LanguageSwitcher />
           </div>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
           <label className="form-label">
-            <span>{t('auth:loginIdentifier')}</span>
+            <span>{t("auth:loginIdentifier")}</span>
             <input
               type="text"
               className="form-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('auth:loginIdentifier')}
+              placeholder={t("auth:loginIdentifier")}
               autoComplete="username"
               disabled={submitting}
               required
@@ -85,7 +94,7 @@ const LoginPage: React.FC = () => {
           </label>
 
           <label className="form-label">
-            <span>{t('auth:password', 'Mật khẩu')}</span>
+            <span>{t("auth:password", "Mật khẩu")}</span>
             <input
               type="password"
               className="form-input"
@@ -110,36 +119,47 @@ const LoginPage: React.FC = () => {
             disabled={submitting}
           >
             {submitting
-              ? t('auth:submitting', 'Đang đăng nhập...')
-              : t('auth:submit', 'Đăng nhập')}
+              ? t("auth:submitting", "Đang đăng nhập...")
+              : t("auth:submit", "Đăng nhập")}
           </button>
         </form>
 
-        {demoLoginEnabled && demoPassword && <><div className="login-divider">
-          <span>{t('auth:quickLoginHeader', 'Đăng nhập nhanh theo vai trò')}</span>
-        </div>
+        {demoLoginEnabled && demoPassword && (
+          <>
+            <div className="login-divider">
+              <span>
+                {t("auth:quickLoginHeader", "Đăng nhập nhanh theo vai trò")}
+              </span>
+            </div>
 
-        <div className="quick-login-grid">
-          {demoRolePresets.map((preset) => (
-            <button
-              key={preset.email}
-              type="button"
-              className="quick-login-tile"
-              onClick={() => handleQuickLogin(preset)}
-              disabled={submitting}
-            >
-              <span className={`role-badge role-${preset.role}`}>{preset.role}</span>
-              <strong>{t(`auth:roles.${preset.role}`)}</strong>
-              <small>{t(`auth:roleDescriptions.${preset.role}`)}</small>
-              <code>{preset.email}</code>
-            </button>
-          ))}
-        </div>
+            <div className="quick-login-grid">
+              {demoRolePresets.map((preset) => (
+                <button
+                  key={preset.email}
+                  type="button"
+                  className="quick-login-tile"
+                  onClick={() => handleQuickLogin(preset)}
+                  disabled={submitting}
+                >
+                  <span className={`role-badge role-${preset.role}`}>
+                    {preset.role}
+                  </span>
+                  <strong>{t(`auth:roles.${preset.role}`)}</strong>
+                  <small>{t(`auth:roleDescriptions.${preset.role}`)}</small>
+                  <code>{preset.email}</code>
+                </button>
+              ))}
+            </div>
 
-        <p className="login-footer">
-          {t('auth:defaultPasswordHint', 'Mật khẩu mặc định cho tài khoản seed: ')}
-          <code>{demoPassword}</code>
-        </p></>}
+            <p className="login-footer">
+              {t(
+                "auth:defaultPasswordHint",
+                "Mật khẩu mặc định cho tài khoản seed: ",
+              )}
+              <code>{demoPassword}</code>
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

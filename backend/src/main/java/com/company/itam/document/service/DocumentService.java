@@ -1,23 +1,35 @@
 package com.company.itam.document.service;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.Set;
+
+import jakarta.persistence.criteria.Predicate;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.company.itam.common.enums.DocumentType;
 import com.company.itam.common.exception.AppException;
 import com.company.itam.common.pagination.PageResponse;
 import com.company.itam.document.dto.DocumentDownload;
-import com.company.itam.document.dto.DocumentResponse;
 import com.company.itam.document.dto.DocumentLibraryRow;
+import com.company.itam.document.dto.DocumentResponse;
 import com.company.itam.document.entity.DocumentEntity;
 import com.company.itam.document.repository.DocumentRepository;
 import com.company.itam.workflow.core.entity.TransactionEntity;
+import com.company.itam.workflow.core.enums.TransactionStatus;
 import com.company.itam.workflow.core.enums.TransactionType;
 import com.company.itam.workflow.core.repository.TransactionRepository;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
+import com.company.itam.workflow.core.service.WorkflowProgressService;
+import com.company.itam.workflow.receiving.service.ImportDraftService;
 
 @Service
 @Transactional(readOnly = true)
@@ -27,17 +39,21 @@ public class DocumentService {
     private final TransactionRepository transactionRepository;
     private final DocumentAccessService accessService;
     private final LocalDocumentStorage storage;
-    private final com.company.itam.workflow.receiving.service.ImportDraftService drafts;
-    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
-    private final com.company.itam.workflow.core.service.WorkflowProgressService progress;
+    private final ImportDraftService drafts;
+    private final JdbcTemplate jdbc;
+    private final WorkflowProgressService progress;
 
-    public DocumentService(DocumentRepository documentRepository,
-                           TransactionRepository transactionRepository,
-                           DocumentAccessService accessService,
-                           LocalDocumentStorage storage, com.company.itam.workflow.receiving.service.ImportDraftService drafts,
-                           org.springframework.jdbc.core.JdbcTemplate jdbc, com.company.itam.workflow.core.service.WorkflowProgressService progress) {
-        this.progress=progress;
-        this.drafts = drafts; this.jdbc = jdbc;
+    public DocumentService(
+            DocumentRepository documentRepository,
+            TransactionRepository transactionRepository,
+            DocumentAccessService accessService,
+            LocalDocumentStorage storage,
+            ImportDraftService drafts,
+            JdbcTemplate jdbc,
+            WorkflowProgressService progress) {
+        this.progress = progress;
+        this.drafts = drafts;
+        this.jdbc = jdbc;
         this.documentRepository = documentRepository;
         this.transactionRepository = transactionRepository;
         this.accessService = accessService;
@@ -49,33 +65,61 @@ public class DocumentService {
         TransactionEntity transaction = findTransaction(transactionId);
         accessService.requireRead(transaction);
         validatePage(page, size);
-        return PageResponse.of(documentRepository.findLinked(transactionId, PageRequest.of(page, size))
+        return PageResponse.of(documentRepository
+                .findLinked(transactionId, PageRequest.of(page, size))
                 .map(DocumentResponse::fromEntity));
     }
 
-    public PageResponse<DocumentLibraryRow> library(String keyword, DocumentType documentType,
-            TransactionType transactionType, Long transactionId, int page, int size) {
+    public PageResponse<DocumentLibraryRow> library(
+            String keyword,
+            DocumentType documentType,
+            TransactionType transactionType,
+            Long transactionId,
+            int page,
+            int size) {
         accessService.requireTransactionReader();
         validatePage(page, size);
-        if (keyword != null && keyword.length() > 100 || transactionId != null && transactionId <= 0) throw invalidRequest();
+        if (keyword != null && keyword.length() > 100 || transactionId != null && transactionId <= 0)
+            throw invalidRequest();
         boolean purchasing = accessService.isPurchasingReader();
-        if (purchasing && transactionType != null && transactionType != TransactionType.IMPORT && transactionType != TransactionType.DISPOSAL)
-            throw new AccessDeniedException("Access denied");
+        if (purchasing
+                && transactionType != null
+                && transactionType != TransactionType.IMPORT
+                && transactionType != TransactionType.DISPOSAL) throw new AccessDeniedException("Access denied");
         TransactionType permittedType = transactionType;
-        String search = keyword == null ? "" : keyword.trim().toLowerCase(java.util.Locale.ROOT)
-            .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-        return PageResponse.of(documentRepository.findAll((root, query, builder) -> {
-            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
-            var transaction = root.join("transaction");
-            if (purchasing) predicates.add(transaction.get("type").in(TransactionType.IMPORT, TransactionType.DISPOSAL));
-            if (permittedType != null) predicates.add(builder.equal(transaction.get("type"), permittedType));
-            if (documentType != null) predicates.add(builder.equal(root.get("documentType"), documentType));
-            if (transactionId != null) predicates.add(builder.equal(transaction.get("transactionId"), transactionId));
-            if (!search.isEmpty()) predicates.add(builder.or(
-                builder.like(builder.lower(root.get("originalFileName")), "%" + search + "%", '\\'),
-                builder.like(builder.lower(transaction.get("transactionCode")), "%" + search + "%", '\\')));
-            return builder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
-        }, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt", "documentId"))).map(DocumentLibraryRow::fromEntity));
+        String search = keyword == null
+                ? ""
+                : keyword.trim()
+                        .toLowerCase(Locale.ROOT)
+                        .replace("\\", "\\\\")
+                        .replace("%", "\\%")
+                        .replace("_", "\\_");
+        return PageResponse.of(documentRepository
+                .findAll(
+                        (root, query, builder) -> {
+                            var predicates = new ArrayList<Predicate>();
+                            var transaction = root.join("transaction");
+                            if (purchasing)
+                                predicates.add(
+                                        transaction.get("type").in(TransactionType.IMPORT, TransactionType.DISPOSAL));
+                            if (permittedType != null)
+                                predicates.add(builder.equal(transaction.get("type"), permittedType));
+                            if (documentType != null)
+                                predicates.add(builder.equal(root.get("documentType"), documentType));
+                            if (transactionId != null)
+                                predicates.add(builder.equal(transaction.get("transactionId"), transactionId));
+                            if (!search.isEmpty())
+                                predicates.add(builder.or(
+                                        builder.like(
+                                                builder.lower(root.get("originalFileName")), "%" + search + "%", '\\'),
+                                        builder.like(
+                                                builder.lower(transaction.get("transactionCode")),
+                                                "%" + search + "%",
+                                                '\\')));
+                            return builder.and(predicates.toArray(Predicate[]::new));
+                        },
+                        PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt", "documentId")))
+                .map(DocumentLibraryRow::fromEntity));
     }
 
     public DocumentResponse getDocument(Long documentId) {
@@ -92,8 +136,8 @@ public class DocumentService {
     }
 
     @Transactional
-    public DocumentResponse upload(MultipartFile file, Long transactionId, DocumentType documentType,
-                                   Long assetId, Long expectedVersion) {
+    public DocumentResponse upload(
+            MultipartFile file, Long transactionId, DocumentType documentType, Long assetId, Long expectedVersion) {
         TransactionEntity transaction = findTransaction(transactionId);
         boolean disposal = transaction.getType() == TransactionType.DISPOSAL;
         if (disposal) accessService.requireDisposalEvidenceRole(transaction);
@@ -109,24 +153,34 @@ public class DocumentService {
         }
         if (disposal) {
             transaction = transactionRepository.findForUpdate(transactionId).orElseThrow(this::invalidRequest);
-            progress.requireVersion(transaction,expectedVersion);
-            if (!java.util.Set.of(com.company.itam.workflow.core.enums.TransactionStatus.APPROVED,
-                    com.company.itam.workflow.core.enums.TransactionStatus.PARTIAL).contains(transaction.getStatus()))
+            progress.requireVersion(transaction, expectedVersion);
+            if (!Set.of(TransactionStatus.APPROVED, TransactionStatus.PARTIAL).contains(transaction.getStatus()))
                 throw new AppException(HttpStatus.CONFLICT, "DOCUMENT_LOCKED", "DOCUMENT_LOCKED");
-            if (documentType != DocumentType.DISPOSAL_REPORT && documentType != DocumentType.OTHER) throw invalidRequest();
+            if (documentType != DocumentType.DISPOSAL_REPORT && documentType != DocumentType.OTHER)
+                throw invalidRequest();
         } else {
             transaction = drafts.lockDraft(transactionId, expectedVersion);
-            if (!java.util.Set.of(DocumentType.INVOICE,DocumentType.PURCHASE_ORDER,DocumentType.CONTRACT,DocumentType.OTHER).contains(documentType)) throw invalidRequest();
+            if (!Set.of(DocumentType.INVOICE, DocumentType.PURCHASE_ORDER, DocumentType.CONTRACT, DocumentType.OTHER)
+                    .contains(documentType)) throw invalidRequest();
         }
-        if (assetId != null && !Boolean.TRUE.equals(jdbc.queryForObject(
-                "SELECT EXISTS(SELECT 1 FROM transaction_assets WHERE transaction_id=? AND asset_id=?)", Boolean.class,transactionId,assetId))) {
+        if (assetId != null
+                && !Boolean.TRUE.equals(jdbc.queryForObject(
+                        "SELECT EXISTS(SELECT 1 FROM transaction_assets WHERE transaction_id=? AND asset_id=?)",
+                        Boolean.class,
+                        transactionId,
+                        assetId))) {
             throw invalidRequest();
         }
         var stored = storage.store(transaction.getType(), file);
         DocumentEntity document = new DocumentEntity();
         document.setTransaction(transaction);
-        if (assetId != null) document.setAsset(transaction.getTransactionAssets().stream()
-                .filter(line -> line.getAsset()!=null && assetId.equals(line.getAsset().getAssetId())).findFirst().orElseThrow(this::invalidRequest).getAsset());
+        if (assetId != null)
+            document.setAsset(transaction.getTransactionAssets().stream()
+                    .filter(line -> line.getAsset() != null
+                            && assetId.equals(line.getAsset().getAssetId()))
+                    .findFirst()
+                    .orElseThrow(this::invalidRequest)
+                    .getAsset());
         document.setDocumentType(documentType);
         document.setOriginalFileName(stored.originalFileName());
         document.setStoredFileName(stored.storedFileName());
@@ -138,10 +192,14 @@ public class DocumentService {
         documentRepository.saveAndFlush(document);
         if (disposal) {
             transaction.setContentVersion(transaction.getContentVersion() + 1);
-            transaction.setUpdatedAt(java.time.Instant.now());
+            transaction.setUpdatedAt(Instant.now());
             transactionRepository.flush();
-            jdbc.update("INSERT INTO audit_logs(entity_type,entity_id,transaction_id,actor_user_id,action,details) VALUES ('TRANSACTION',?,?,?,'DISPOSAL_EVIDENCE_UPLOADED',?)",
-                    transactionId,transactionId,drafts.actor().getUserId(),"documentId="+document.getDocumentId());
+            jdbc.update(
+                    "INSERT INTO audit_logs(entity_type,entity_id,transaction_id,actor_user_id,action,details) VALUES ('TRANSACTION',?,?,?,'DISPOSAL_EVIDENCE_UPLOADED',?)",
+                    transactionId,
+                    transactionId,
+                    drafts.actor().getUserId(),
+                    "documentId=" + document.getDocumentId());
         } else drafts.changed(transaction, "UPLOAD_DOCUMENT");
         return DocumentResponse.fromEntity(document);
     }
@@ -152,22 +210,28 @@ public class DocumentService {
         accessService.requireImportRole(document.getTransaction());
         Long workingId = transactionId == null ? document.getTransaction().getTransactionId() : transactionId;
         TransactionEntity t = drafts.lockDraft(workingId, expectedVersion);
-        if (jdbc.update("DELETE FROM transaction_document_links WHERE transaction_id=? AND document_id=?", workingId,documentId)!=1)
-            throw invalidRequest();
+        if (jdbc.update(
+                        "DELETE FROM transaction_document_links WHERE transaction_id=? AND document_id=?",
+                        workingId,
+                        documentId)
+                != 1) throw invalidRequest();
         // Detach only. Historical file bytes and metadata are never deleted or overwritten.
         drafts.changed(t, "DETACH_DOCUMENT");
     }
 
     private DocumentEntity findDocument(Long id) {
         validateId(id);
-        return documentRepository.findById(id)
+        return documentRepository
+                .findById(id)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "DOCUMENT_NOT_FOUND", "Document not found"));
     }
 
     private TransactionEntity findTransaction(Long id) {
         validateId(id);
-        return transactionRepository.findById(id)
-                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "TRANSACTION_NOT_FOUND", "Transaction not found"));
+        return transactionRepository
+                .findById(id)
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.NOT_FOUND, "TRANSACTION_NOT_FOUND", "Transaction not found"));
     }
 
     private void validateId(Long id) {
@@ -185,5 +249,4 @@ public class DocumentService {
     private AppException invalidRequest() {
         return new AppException(HttpStatus.BAD_REQUEST, "DOCUMENT_REQUEST_INVALID", "Invalid document request");
     }
-
 }

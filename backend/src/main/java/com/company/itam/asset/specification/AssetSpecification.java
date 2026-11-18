@@ -1,13 +1,17 @@
 package com.company.itam.asset.specification;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.criteria.*;
+
+import org.springframework.data.jpa.domain.Specification;
+
 import com.company.itam.asset.dto.request.AssetSearchCriteria;
 import com.company.itam.asset.entity.AssetEntity;
 import com.company.itam.asset.entity.AssetHardwareDetailsEntity;
-import jakarta.persistence.criteria.*;
-import org.springframework.data.jpa.domain.Specification;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.company.itam.asset.entity.LicenseAllocationEntity;
+import com.company.itam.asset.entity.LicenseAllocationStatus;
 
 public class AssetSpecification implements Specification<AssetEntity> {
 
@@ -56,7 +60,8 @@ public class AssetSpecification implements Specification<AssetEntity> {
             }
 
             // Serial Number specific search
-            if (criteria.getSerialNumber() != null && !criteria.getSerialNumber().trim().isEmpty()) {
+            if (criteria.getSerialNumber() != null
+                    && !criteria.getSerialNumber().trim().isEmpty()) {
                 String pattern = "%" + criteria.getSerialNumber().trim().toLowerCase() + "%";
                 predicates.add(cb.like(cb.lower(hwJoin.get("serialNumber")), pattern));
             }
@@ -105,10 +110,16 @@ public class AssetSpecification implements Specification<AssetEntity> {
             // Assigned To user filter
             if (criteria.getAssignedTo() != null) {
                 var allocation = query.subquery(Long.class);
-                var ar = allocation.from(com.company.itam.asset.entity.LicenseAllocationEntity.class);
-                allocation.select(ar.get("allocationId")).where(cb.equal(ar.get("license").get("assetId"),root.get("assetId")),
-                        cb.equal(ar.get("user").get("userId"),criteria.getAssignedTo()),cb.equal(ar.get("status"),com.company.itam.asset.entity.LicenseAllocationStatus.ACTIVE));
-                predicates.add(cb.or(cb.equal(root.join("assignedTo",JoinType.LEFT).get("userId"), criteria.getAssignedTo()),cb.exists(allocation)));
+                var ar = allocation.from(LicenseAllocationEntity.class);
+                allocation
+                        .select(ar.get("allocationId"))
+                        .where(
+                                cb.equal(ar.get("license").get("assetId"), root.get("assetId")),
+                                cb.equal(ar.get("user").get("userId"), criteria.getAssignedTo()),
+                                cb.equal(ar.get("status"), LicenseAllocationStatus.ACTIVE));
+                predicates.add(cb.or(
+                        cb.equal(root.join("assignedTo", JoinType.LEFT).get("userId"), criteria.getAssignedTo()),
+                        cb.exists(allocation)));
             }
         }
 

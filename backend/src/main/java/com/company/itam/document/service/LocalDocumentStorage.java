@@ -1,21 +1,13 @@
 package com.company.itam.document.service;
 
-import com.company.itam.common.exception.AppException;
-import com.company.itam.document.entity.DocumentEntity;
-import com.company.itam.workflow.core.enums.TransactionType;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.web.multipart.MultipartFile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
@@ -26,12 +18,24 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.company.itam.common.exception.AppException;
+import com.company.itam.document.entity.DocumentEntity;
+import com.company.itam.workflow.core.enums.TransactionType;
+
 @Service
 public class LocalDocumentStorage {
     private static final Logger log = LoggerFactory.getLogger(LocalDocumentStorage.class);
-    private static final Map<String, String> MIME_TYPES = Map.of(
-            "pdf", "application/pdf", "png", "image/png",
-            "jpg", "image/jpeg", "jpeg", "image/jpeg");
+    private static final Map<String, String> MIME_TYPES =
+            Map.of("pdf", "application/pdf", "png", "image/png", "jpg", "image/jpeg", "jpeg", "image/jpeg");
     private static final byte[] PNG_HEADER = {(byte) 137, 80, 78, 71, 13, 10, 26, 10};
     private final Path root;
     private final int maxFileSize;
@@ -54,7 +58,8 @@ public class LocalDocumentStorage {
         if (!safeOriginalName(originalName)) {
             throw error(HttpStatus.BAD_REQUEST, "DOCUMENT_FILE_INVALID");
         }
-        String extension = originalName.substring(originalName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
+        String extension =
+                originalName.substring(originalName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
         String mimeType = MIME_TYPES.get(extension);
         if (mimeType == null || !mimeType.equalsIgnoreCase(file.getContentType())) {
             throw error(HttpStatus.BAD_REQUEST, "DOCUMENT_FILE_INVALID");
@@ -78,13 +83,18 @@ public class LocalDocumentStorage {
             String storedName = UUID.randomUUID() + "." + extension;
             destination = directory.resolve(storedName);
             // CREATE_NEW never replaces an existing file, including an existing link.
-            try (var output = Files.newOutputStream(destination, StandardOpenOption.CREATE_NEW,
-                    StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
+            try (var output = Files.newOutputStream(
+                    destination, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
                 created = true;
                 output.write(bytes);
             }
-            StoredFile stored = new StoredFile(originalName, storedName, folder(type) + "/" + storedName,
-                    mimeType, (long) bytes.length, checksum(bytes));
+            StoredFile stored = new StoredFile(
+                    originalName,
+                    storedName,
+                    folder(type) + "/" + storedName,
+                    mimeType,
+                    (long) bytes.length,
+                    checksum(bytes));
             if (TransactionSynchronizationManager.isActualTransactionActive()
                     && TransactionSynchronizationManager.isSynchronizationActive()) {
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -94,7 +104,9 @@ public class LocalDocumentStorage {
                             try {
                                 discard(stored);
                             } catch (RuntimeException cleanupFailure) {
-                                log.error("Unable to clean up an uncommitted document file: {}", stored.storedFileName(),
+                                log.error(
+                                        "Unable to clean up an uncommitted document file: {}",
+                                        stored.storedFileName(),
                                         cleanupFailure);
                             }
                         }
@@ -119,21 +131,56 @@ public class LocalDocumentStorage {
     }
 
     private record GeneratedPdf(String fileName, byte[] bytes) implements MultipartFile {
-        @Override public String getName() { return "file"; }
-        @Override public String getOriginalFilename() { return fileName; }
-        @Override public String getContentType() { return "application/pdf"; }
-        @Override public boolean isEmpty() { return bytes.length == 0; }
-        @Override public long getSize() { return bytes.length; }
-        @Override public byte[] getBytes() { return bytes.clone(); }
-        @Override public InputStream getInputStream() { return new java.io.ByteArrayInputStream(bytes); }
-        @Override public void transferTo(java.io.File dest) throws IOException { Files.write(dest.toPath(), bytes); }
+        @Override
+        public String getName() {
+            return "file";
+        }
+
+        @Override
+        public String getOriginalFilename() {
+            return fileName;
+        }
+
+        @Override
+        public String getContentType() {
+            return "application/pdf";
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return bytes.length == 0;
+        }
+
+        @Override
+        public long getSize() {
+            return bytes.length;
+        }
+
+        @Override
+        public byte[] getBytes() {
+            return bytes.clone();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return new ByteArrayInputStream(bytes);
+        }
+
+        @Override
+        public void transferTo(File dest) throws IOException {
+            Files.write(dest.toPath(), bytes);
+        }
     }
 
     public byte[] read(DocumentEntity document) {
-        if (document == null || document.getTransaction() == null || document.getTransaction().getType() == null) {
+        if (document == null
+                || document.getTransaction() == null
+                || document.getTransaction().getType() == null) {
             throw error(HttpStatus.CONFLICT, "DOCUMENT_PATH_INVALID");
         }
-        Path path = resolveStoredPath(document.getStoragePath(), document.getStoredFileName(),
+        Path path = resolveStoredPath(
+                document.getStoragePath(),
+                document.getStoredFileName(),
                 folder(document.getTransaction().getType()));
         try {
             verifyExistingPath(path);
@@ -145,11 +192,12 @@ public class LocalDocumentStorage {
                 bytes = boundedRead(input);
             }
             if ((document.getFileSize() != null && document.getFileSize() != bytes.length)
-                    || (document.getChecksum() != null && !document.getChecksum().equals(checksum(bytes)))) {
+                    || (document.getChecksum() != null
+                            && !document.getChecksum().equals(checksum(bytes)))) {
                 throw error(HttpStatus.CONFLICT, "DOCUMENT_FILE_CORRUPT");
             }
             return bytes;
-        } catch (java.nio.file.NoSuchFileException ex) {
+        } catch (NoSuchFileException ex) {
             throw error(HttpStatus.NOT_FOUND, "DOCUMENT_FILE_NOT_FOUND");
         } catch (IOException ex) {
             throw error(HttpStatus.INTERNAL_SERVER_ERROR, "DOCUMENT_STORAGE_ERROR");
@@ -161,7 +209,8 @@ public class LocalDocumentStorage {
         if (file == null) return;
         String relativePath = file.storagePath();
         String directory = relativePath == null || !relativePath.contains("/")
-                ? "" : relativePath.substring(0, relativePath.indexOf('/'));
+                ? ""
+                : relativePath.substring(0, relativePath.indexOf('/'));
         Path path = resolveStoredPath(relativePath, file.storedFileName(), directory);
         try {
             if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) return;
@@ -174,7 +223,8 @@ public class LocalDocumentStorage {
 
     private Path resolveStoredPath(String relativePath, String storedName, String directory) {
         if (!Arrays.asList("import", "handover", "recovery", "disposal").contains(directory)
-                || storedName == null || !storedName.matches("[0-9a-f-]{36}\\.(pdf|png|jpg|jpeg)")
+                || storedName == null
+                || !storedName.matches("[0-9a-f-]{36}\\.(pdf|png|jpg|jpeg)")
                 || !(directory + "/" + storedName).equals(relativePath)) {
             throw error(HttpStatus.CONFLICT, "DOCUMENT_PATH_INVALID");
         }
@@ -190,11 +240,12 @@ public class LocalDocumentStorage {
             if (!Files.exists(current, LinkOption.NOFOLLOW_LINKS)) {
                 try {
                     Files.createDirectory(current);
-                } catch (java.nio.file.FileAlreadyExistsException ignored) {
+                } catch (FileAlreadyExistsException ignored) {
                     // A concurrent upload may have created the directory; validate it below.
                 }
             }
-            if (Files.isSymbolicLink(current) || !Files.isDirectory(current, LinkOption.NOFOLLOW_LINKS)
+            if (Files.isSymbolicLink(current)
+                    || !Files.isDirectory(current, LinkOption.NOFOLLOW_LINKS)
                     || !current.toRealPath().equals(current)) {
                 throw error(HttpStatus.CONFLICT, "DOCUMENT_PATH_INVALID");
             }
@@ -217,20 +268,29 @@ public class LocalDocumentStorage {
     }
 
     private static boolean safeOriginalName(String name) {
-        return name != null && !name.isBlank() && name.length() <= 500
-                && name.equals(name.strip()) && !name.endsWith(".")
-                && name.indexOf('.') > 0 && name.chars().noneMatch(c -> c < 32 || c == 127
-                || "\\/:*?\"<>|".indexOf(c) >= 0);
+        return name != null
+                && !name.isBlank()
+                && name.length() <= 500
+                && name.equals(name.strip())
+                && !name.endsWith(".")
+                && name.indexOf('.') > 0
+                && name.chars().noneMatch(c -> c < 32 || c == 127 || "\\/:*?\"<>|".indexOf(c) >= 0);
     }
 
     private static boolean matchesSignature(String extension, byte[] bytes) {
         return switch (extension) {
-            case "pdf" -> bytes.length >= 8 && bytes[0] == '%' && bytes[1] == 'P'
-                    && bytes[2] == 'D' && bytes[3] == 'F' && bytes[4] == '-';
+            case "pdf" -> bytes.length >= 8
+                    && bytes[0] == '%'
+                    && bytes[1] == 'P'
+                    && bytes[2] == 'D'
+                    && bytes[3] == 'F'
+                    && bytes[4] == '-';
             case "png" -> bytes.length > PNG_HEADER.length
                     && Arrays.equals(Arrays.copyOf(bytes, PNG_HEADER.length), PNG_HEADER);
-            case "jpg", "jpeg" -> bytes.length > 3 && bytes[0] == (byte) 0xff
-                    && bytes[1] == (byte) 0xd8 && bytes[2] == (byte) 0xff;
+            case "jpg", "jpeg" -> bytes.length > 3
+                    && bytes[0] == (byte) 0xff
+                    && bytes[1] == (byte) 0xd8
+                    && bytes[2] == (byte) 0xff;
             default -> false;
         };
     }
@@ -251,6 +311,11 @@ public class LocalDocumentStorage {
         return new AppException(status, code, code);
     }
 
-    public record StoredFile(String originalFileName, String storedFileName, String storagePath,
-                             String mimeType, Long fileSize, String checksum) {}
+    public record StoredFile(
+            String originalFileName,
+            String storedFileName,
+            String storagePath,
+            String mimeType,
+            Long fileSize,
+            String checksum) {}
 }

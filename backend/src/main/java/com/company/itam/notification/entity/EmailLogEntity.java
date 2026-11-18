@@ -1,10 +1,12 @@
 package com.company.itam.notification.entity;
 
-import com.company.itam.common.enums.EmailStatus;
-import com.company.itam.workflow.core.entity.TransactionEntity;
-import com.company.itam.document.entity.DocumentEntity;
-import jakarta.persistence.*;
 import java.time.Instant;
+
+import jakarta.persistence.*;
+
+import com.company.itam.common.enums.EmailStatus;
+import com.company.itam.document.entity.DocumentEntity;
+import com.company.itam.workflow.core.entity.TransactionEntity;
 
 @Entity
 @Table(name = "email_logs")
@@ -112,10 +114,22 @@ public class EmailLogEntity {
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }
-    public String getEventType() { return eventType; }
-    public void setEventType(String eventType) { this.eventType = eventType; }
-    public DocumentEntity getDocument() { return document; }
-    public void setDocument(DocumentEntity document) { this.document = document; }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
+
+    public DocumentEntity getDocument() {
+        return document;
+    }
+
+    public void setDocument(DocumentEntity document) {
+        this.document = document;
+    }
 
     public Instant getSentAt() {
         return sentAt;

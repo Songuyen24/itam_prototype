@@ -1,5 +1,10 @@
 package com.company.itam.location.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.company.itam.asset.repository.AssetRepository;
 import com.company.itam.common.exception.CatalogInUseException;
 import com.company.itam.common.exception.DuplicateResourceException;
@@ -9,10 +14,6 @@ import com.company.itam.location.dto.LocationRequest;
 import com.company.itam.location.dto.LocationResponse;
 import com.company.itam.location.entity.LocationEntity;
 import com.company.itam.location.repository.LocationRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class LocationService {
@@ -42,7 +43,8 @@ public class LocationService {
 
     @Transactional(readOnly = true)
     public LocationResponse getLocationById(Long id) {
-        LocationEntity entity = locationRepository.findById(id)
+        LocationEntity entity = locationRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vị trí với ID: " + id));
         return toResponse(entity);
     }
@@ -65,7 +67,8 @@ public class LocationService {
 
     @Transactional
     public LocationResponse updateLocation(Long id, LocationRequest request) {
-        LocationEntity entity = locationRepository.findById(id)
+        LocationEntity entity = locationRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vị trí với ID: " + id));
 
         if (!entity.getCode().equalsIgnoreCase(request.getCode().trim())
@@ -86,7 +89,8 @@ public class LocationService {
 
     @Transactional
     public void deleteLocation(Long id) {
-        LocationEntity entity = locationRepository.findById(id)
+        LocationEntity entity = locationRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vị trí với ID: " + id));
 
         if (assetRepository.existsByLocationLocationId(id)) {
@@ -98,7 +102,8 @@ public class LocationService {
 
     @Transactional
     public LocationResponse toggleActive(Long id, Boolean active) {
-        LocationEntity entity = locationRepository.findById(id)
+        LocationEntity entity = locationRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vị trí với ID: " + id));
         entity.setIsActive(active != null ? active : !Boolean.TRUE.equals(entity.getIsActive()));
         return toResponse(locationRepository.save(entity));
@@ -112,7 +117,6 @@ public class LocationService {
                 entity.getAddress(),
                 entity.getIsActive(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
+                entity.getUpdatedAt());
     }
 }

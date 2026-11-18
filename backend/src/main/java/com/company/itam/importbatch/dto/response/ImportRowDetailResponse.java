@@ -1,10 +1,10 @@
 package com.company.itam.importbatch.dto.response;
 
-import com.company.itam.common.enums.ValidationStatus;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import com.company.itam.common.enums.ValidationStatus;
 
 public class ImportRowDetailResponse {
 
@@ -17,8 +17,12 @@ public class ImportRowDetailResponse {
 
     public ImportRowDetailResponse() {}
 
-    public ImportRowDetailResponse(Integer rowNumber, ValidationStatus validationStatus, String errorMessage,
-                                   List<ImportRowErrorResponse> errors, Map<String, Object> rawData) {
+    public ImportRowDetailResponse(
+            Integer rowNumber,
+            ValidationStatus validationStatus,
+            String errorMessage,
+            List<ImportRowErrorResponse> errors,
+            Map<String, Object> rawData) {
         this.rowNumber = rowNumber;
         this.validationStatus = validationStatus;
         this.errorMessage = errorMessage;

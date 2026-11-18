@@ -1,7 +1,8 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
 
-const AUTH_TOKEN_KEY = 'itam_auth_token';
-const AUTH_USER_KEY = 'itam_auth_user';
+const AUTH_TOKEN_KEY = "itam_auth_token";
+const AUTH_USER_KEY = "itam_auth_user";
 
 export class ApiError extends Error {
   status: number;
@@ -9,9 +10,15 @@ export class ApiError extends Error {
   errors?: string[];
   rows?: unknown[];
 
-  constructor(message: string, status: number, code?: string, errors?: string[], rows?: unknown[]) {
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    errors?: string[],
+    rows?: unknown[],
+  ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.errors = errors;
@@ -21,14 +28,14 @@ export class ApiError extends Error {
 
 export function getCurrentLanguage(): string {
   try {
-    const stored = localStorage.getItem('itam_language');
-    if (stored && (stored.startsWith('en') || stored.startsWith('vi'))) {
-      return stored.startsWith('en') ? 'en' : 'vi';
+    const stored = localStorage.getItem("itam_language");
+    if (stored && (stored.startsWith("en") || stored.startsWith("vi"))) {
+      return stored.startsWith("en") ? "en" : "vi";
     }
   } catch {
     // Ignore localStorage errors in SSR or restricted test environments
   }
-  return 'vi';
+  return "vi";
 }
 
 function getAuthToken(): string | null {
@@ -39,16 +46,17 @@ function getAuthToken(): string | null {
   }
 }
 
-/**
- * Được gọi bởi AuthProvider khi nhận 401: xóa session và chuyển hướng về /login.
- * Hàm này được truyền từ bên ngoài vào httpClient để tránh phụ thuộc vòng tròn.
- */
+// Registered by AuthProvider to avoid a circular dependency with the HTTP client.
 let onUnauthorized: (() => void) | null = null;
 let requestOverrideReason: (() => Promise<string | null>) | null = null;
-export function registerOverrideReasonHandler(handler: (() => Promise<string | null>) | null): void {
+export function registerOverrideReasonHandler(
+  handler: (() => Promise<string | null>) | null,
+): void {
   requestOverrideReason = handler;
 }
-export function registerUnauthorizedHandler(handler: (() => void) | null): void {
+export function registerUnauthorizedHandler(
+  handler: (() => void) | null,
+): void {
   onUnauthorized = handler;
 }
 
@@ -58,12 +66,18 @@ export function invalidateSessionRequests(): void {
   sessionRevision += 1;
 }
 
-function assertCurrentSession(token: string | null, revision: number, language: string): void {
+function assertCurrentSession(
+  token: string | null,
+  revision: number,
+  language: string,
+): void {
   if (token !== getAuthToken() || revision !== sessionRevision) {
     throw new ApiError(
-      language === 'en' ? 'The signed-in account has changed' : 'Tài khoản đăng nhập đã thay đổi',
+      language === "en"
+        ? "The signed-in account has changed"
+        : "Tài khoản đăng nhập đã thay đổi",
       0,
-      'SESSION_CHANGED'
+      "SESSION_CHANGED",
     );
   }
 }
@@ -80,25 +94,25 @@ function clearLocalSession(): void {
 
 async function httpClient<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const currentLang = getCurrentLanguage();
 
   const isFormData = options.body instanceof FormData;
   const headers: Record<string, string> = {
-    'Accept-Language': currentLang,
+    "Accept-Language": currentLang,
     ...((options.headers as Record<string, string>) || {}),
   };
 
-  if (!isFormData && !headers['Content-Type']) {
-    headers['Content-Type'] = 'application/json';
+  if (!isFormData && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
   }
 
   const token = getAuthToken();
   const revision = sessionRevision;
-  if (token && !headers['Authorization']) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (token && !headers["Authorization"]) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await fetch(url, {
@@ -108,7 +122,7 @@ async function httpClient<T>(
   assertCurrentSession(token, revision, currentLang);
 
   if (response.status === 401) {
-    let errorMessage = currentLang === 'en' ? 'Unauthorized' : 'Chưa xác thực';
+    let errorMessage = currentLang === "en" ? "Unauthorized" : "Chưa xác thực";
     try {
       const errorData = await response.json();
       if (errorData && errorData.message) {
@@ -118,27 +132,41 @@ async function httpClient<T>(
       // ignore parse errors
     }
     assertCurrentSession(token, revision, currentLang);
-    if (endpoint !== '/v1/auth/login') {
+    if (endpoint !== "/v1/auth/login") {
       clearLocalSession();
       onUnauthorized?.();
     }
-    throw new ApiError(errorMessage, 401, 'UNAUTHORIZED');
+    throw new ApiError(errorMessage, 401, "UNAUTHORIZED");
   }
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: response.statusText }));
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: response.statusText }));
     assertCurrentSession(token, revision, currentLang);
-    if (errorData.code === 'OVERRIDE_REASON_REQUIRED' && !headers['X-Override-Reason']) {
+    if (
+      errorData.code === "OVERRIDE_REASON_REQUIRED" &&
+      !headers["X-Override-Reason"]
+    ) {
       const reason = await requestOverrideReason?.();
       assertCurrentSession(token, revision, currentLang);
-      if (reason?.trim()) return httpClient<T>(endpoint, { ...options, headers: { ...headers, 'X-Override-Reason': encodeURIComponent(reason.trim()) } });
+      if (reason?.trim()) {
+        return httpClient<T>(endpoint, {
+          ...options,
+          headers: {
+            ...headers,
+            "X-Override-Reason": encodeURIComponent(reason.trim()),
+          },
+        });
+      }
     }
     throw new ApiError(
-      errorData.message || (currentLang === 'en' ? 'An error occurred' : 'Có lỗi xảy ra'),
+      errorData.message ||
+        (currentLang === "en" ? "An error occurred" : "Có lỗi xảy ra"),
       response.status,
       errorData.code,
       errorData.errors,
-      errorData.rows
+      errorData.rows,
     );
   }
 
@@ -152,16 +180,25 @@ async function fetchFileBlob(endpoint: string): Promise<Blob> {
   const url = `${API_BASE_URL}${endpoint}`;
   const currentLang = getCurrentLanguage();
 
-  const headers: Record<string, string> = { 'Accept-Language': currentLang };
+  const headers: Record<string, string> = { "Accept-Language": currentLang };
   const token = getAuthToken();
   const revision = sessionRevision;
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   let response: Response;
-  try { response = await fetch(url, { headers }); }
-  catch { throw new ApiError(currentLang === 'en' ? 'Unable to connect to the file server. Try again.' : 'Không kết nối được máy chủ tệp. Vui lòng thử lại.', 0, 'NETWORK_ERROR'); }
+  try {
+    response = await fetch(url, { headers });
+  } catch {
+    throw new ApiError(
+      currentLang === "en"
+        ? "Unable to connect to the file server. Try again."
+        : "Không kết nối được máy chủ tệp. Vui lòng thử lại.",
+      0,
+      "NETWORK_ERROR",
+    );
+  }
   assertCurrentSession(token, revision, currentLang);
 
   if (response.status === 401) {
@@ -170,15 +207,20 @@ async function fetchFileBlob(endpoint: string): Promise<Blob> {
       onUnauthorized();
     }
     throw new ApiError(
-      currentLang === 'en' ? 'Unauthorized' : 'Chưa xác thực',
+      currentLang === "en" ? "Unauthorized" : "Chưa xác thực",
       401,
-      'UNAUTHORIZED'
+      "UNAUTHORIZED",
     );
   }
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new ApiError(body?.message || (currentLang === 'en' ? 'Unable to load file' : 'Không thể tải tệp'), response.status, body?.code);
+    throw new ApiError(
+      body?.message ||
+        (currentLang === "en" ? "Unable to load file" : "Không thể tải tệp"),
+      response.status,
+      body?.code,
+    );
   }
 
   const blob = await response.blob();
@@ -186,10 +228,13 @@ async function fetchFileBlob(endpoint: string): Promise<Blob> {
   return blob;
 }
 
-async function downloadFile(endpoint: string, fallbackFilename: string): Promise<void> {
+async function downloadFile(
+  endpoint: string,
+  fallbackFilename: string,
+): Promise<void> {
   const blob = await fetchFileBlob(endpoint);
   const downloadUrl = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = downloadUrl;
   a.download = fallbackFilename;
   document.body.appendChild(a);

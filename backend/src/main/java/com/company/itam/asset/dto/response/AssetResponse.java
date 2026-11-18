@@ -5,18 +5,46 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 public class AssetResponse {
+
     private boolean pendingHandover;
     private boolean pendingDisposal;
-    public boolean isPendingDisposal() { return pendingDisposal; }
-    public void setPendingDisposal(boolean value) { pendingDisposal = value; }
+
+    public boolean isPendingDisposal() {
+        return pendingDisposal;
+    }
+
+    public void setPendingDisposal(boolean value) {
+        pendingDisposal = value;
+    }
+
     private boolean pendingRecovery;
-    public boolean isPendingRecovery() { return pendingRecovery; }
-    public void setPendingRecovery(boolean value) { pendingRecovery = value; }
-    public boolean isPendingHandover() { return pendingHandover; }
-    public void setPendingHandover(boolean value) { pendingHandover = value; }
+
+    public boolean isPendingRecovery() {
+        return pendingRecovery;
+    }
+
+    public void setPendingRecovery(boolean value) {
+        pendingRecovery = value;
+    }
+
+    public boolean isPendingHandover() {
+        return pendingHandover;
+    }
+
+    public void setPendingHandover(boolean value) {
+        pendingHandover = value;
+    }
+
     private String licenseAssignmentTypeCode;
-    public String getLicenseAssignmentTypeCode() { return licenseAssignmentTypeCode; }
-    public void setLicenseAssignmentTypeCode(String value) { licenseAssignmentTypeCode = value; }
+
+    public String getLicenseAssignmentTypeCode() {
+        return licenseAssignmentTypeCode;
+    }
+
+    public void setLicenseAssignmentTypeCode(String value) {
+        licenseAssignmentTypeCode = value;
+    }
+
     private Long assetId;
     private String assetTag;
     private String name;

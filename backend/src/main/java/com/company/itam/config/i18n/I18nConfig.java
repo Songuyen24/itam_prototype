@@ -1,31 +1,30 @@
 package com.company.itam.config.i18n;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.validation.Validator;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-
 @Configuration
 public class I18nConfig implements WebMvcConfigurer {
 
     public static final Locale DEFAULT_LOCALE = Locale.of("vi");
-    public static final List<Locale> SUPPORTED_LOCALES = Arrays.asList(
-            DEFAULT_LOCALE,
-            Locale.ENGLISH,
-            Locale.of("en")
-    );
+    public static final List<Locale> SUPPORTED_LOCALES = Arrays.asList(DEFAULT_LOCALE, Locale.ENGLISH, Locale.of("en"));
 
     @Bean
     public LocaleResolver localeResolver() {
@@ -58,14 +57,16 @@ public class I18nConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public org.springframework.validation.beanvalidation.LocalValidatorFactoryBean validator() {
-        var validator = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
+    public LocalValidatorFactoryBean validator() {
+        var validator = new LocalValidatorFactoryBean();
         validator.setValidationMessageSource(messageSource());
         return validator;
     }
 
     @Override
-    public org.springframework.validation.Validator getValidator() { return validator(); }
+    public Validator getValidator() {
+        return validator();
+    }
 
     public static class CustomLocaleResolver extends AcceptHeaderLocaleResolver {
         private static final String LOCALE_REQUEST_ATTRIBUTE_NAME = CustomLocaleResolver.class.getName() + ".LOCALE";

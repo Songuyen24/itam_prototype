@@ -13,8 +13,7 @@ public class ModelRequest {
     @Size(max = 255, message = "{validation.size}")
     private String brand;
 
-    @NotNull(message = "{validation.required}")
-    private Long typeId;
+    @NotNull(message = "{validation.required}") private Long typeId;
 
     @Size(max = 255, message = "{validation.size}")
     private String defaultCpu;

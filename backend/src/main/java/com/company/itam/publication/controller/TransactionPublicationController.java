@@ -1,25 +1,31 @@
 package com.company.itam.publication.controller;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import com.company.itam.audit.service.DownloadAuditService;
 import com.company.itam.common.response.ApiResponse;
 import com.company.itam.common.util.MessageHelper;
 import com.company.itam.publication.dto.PublicationStatusResponse;
 import com.company.itam.publication.service.TransactionPublicationService;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.*;
-import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/v1/transactions/{id}")
 public class TransactionPublicationController {
     private final TransactionPublicationService service;
     private final MessageHelper messages;
-    private final com.company.itam.audit.service.DownloadAuditService downloads;
+    private final DownloadAuditService downloads;
 
-    public TransactionPublicationController(TransactionPublicationService service, MessageHelper messages,
-            com.company.itam.audit.service.DownloadAuditService downloads) {
-        this.service = service; this.messages = messages; this.downloads = downloads;
+    public TransactionPublicationController(
+            TransactionPublicationService service, MessageHelper messages, DownloadAuditService downloads) {
+        this.service = service;
+        this.messages = messages;
+        this.downloads = downloads;
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF','PUR_STAFF')")
@@ -34,16 +40,25 @@ public class TransactionPublicationController {
         var download = service.latestPdf(id);
         downloads.record("TRANSACTION", id, "PDF_DOWNLOADED");
         String fileName = download.document().originalFileName().replaceAll("[\\p{Cntrl}/\\\\]", "_");
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).contentLength(download.content().length)
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .contentLength(download.content().length)
                 .cacheControl(CacheControl.noStore())
-                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(fileName, StandardCharsets.UTF_8).build().toString())
-                .header("X-Content-Type-Options", "nosniff").body(new ByteArrayResource(download.content()));
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(fileName, StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(new ByteArrayResource(download.content()));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF','PUR_STAFF')")
     @GetMapping("/email-logs")
-    public ApiResponse<java.util.List<PublicationStatusResponse.EmailAttempt>> emailLogs(@PathVariable Long id) {
-        return ApiResponse.success(messages.getMessage("PUBLICATION_READ"), service.status(id).emails());
+    public ApiResponse<List<PublicationStatusResponse.EmailAttempt>> emailLogs(@PathVariable Long id) {
+        return ApiResponse.success(
+                messages.getMessage("PUBLICATION_READ"), service.status(id).emails());
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")

@@ -1,23 +1,29 @@
 package com.company.itam.dashboard;
 
-import com.company.itam.common.exception.AppException;
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDate;
-import java.util.LinkedHashMap;
-import java.util.Map;
+
+import com.company.itam.common.exception.AppException;
 
 @Service
 @Transactional(readOnly = true)
 public class DashboardService {
     private final JdbcTemplate jdbc;
-    public DashboardService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+
+    public DashboardService(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
 
     // Aggregate each one-to-many source before joining, so a multi-line voucher is counted once.
-    private static final String EVENTS = """
+    private static final String EVENTS =
+            """
         SELECT t.*, COALESCE(i.devices,0) AS devices, COALESCE(i.components,0) AS components,
             COALESCE(i.packages,0) AS packages,
             CASE WHEN t.type='DISPOSAL' THEN NULL WHEN COALESCE(i.packages,0)=0 THEN 0
@@ -55,24 +61,51 @@ public class DashboardService {
     private static final String COMPLETED = " WHERE status='COMPLETED' AND completed_at>=? AND completed_at<?";
 
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")
-    public Map<String, Object> summary() { return summary("thisMonth",null,null); }
+    public Map<String, Object> summary() {
+        return summary("thisMonth", null, null);
+    }
 
     @PreAuthorize("hasAnyAuthority('ADMIN','IT_STAFF')")
     public Map<String, Object> summary(String period, LocalDate from, LocalDate to) {
-        LocalDate month = jdbc.queryForObject("SELECT CURRENT_DATE",LocalDate.class).withDayOfMonth(1);
-        if ("thisMonth".equals(period)) { from=month; to=month.plusMonths(1).minusDays(1); }
-        else if ("lastMonth".equals(period)) { from=month.minusMonths(1); to=month.minusDays(1); }
-        else if (!"custom".equals(period)) throw invalidPeriod();
-        if (from==null || to==null || from.isAfter(to) || to.equals(LocalDate.MAX)) throw invalidPeriod();
-        Object[] bounds = {from.atStartOfDay(),to.plusDays(1).atStartOfDay()};
+        LocalDate month =
+                jdbc.queryForObject("SELECT CURRENT_DATE", LocalDate.class).withDayOfMonth(1);
+        if ("thisMonth".equals(period)) {
+            from = month;
+            to = month.plusMonths(1).minusDays(1);
+        } else if ("lastMonth".equals(period)) {
+            from = month.minusMonths(1);
+            to = month.minusDays(1);
+        } else if (!"custom".equals(period)) throw invalidPeriod();
+        if (from == null || to == null || from.isAfter(to) || to.equals(LocalDate.MAX)) throw invalidPeriod();
+        Object[] bounds = {from.atStartOfDay(), to.plusDays(1).atStartOfDay()};
         var result = new LinkedHashMap<String, Object>();
-        result.put("from",from); result.put("to",to);
-        result.put("byStatus", counts("SELECT s.code,COUNT(*) FROM assets a JOIN asset_statuses s USING(status_id) JOIN asset_types ty USING(type_id) JOIN asset_categories c USING(category_id) WHERE c.code='DEVICE' GROUP BY s.code ORDER BY s.code"));
-        result.put("byType", counts("SELECT t.code,COUNT(*) FROM assets a JOIN asset_types t USING(type_id) GROUP BY t.code ORDER BY t.code"));
-        result.put("byLocation", counts("SELECT COALESCE(l.name,''),COUNT(*) FROM assets a LEFT JOIN locations l USING(location_id) GROUP BY COALESCE(l.name,'') ORDER BY 1"));
-        result.put("byDepartment", counts("SELECT COALESCE(d.name,''),COUNT(*) FROM assets a LEFT JOIN departments d USING(department_id) GROUP BY COALESCE(d.name,'') ORDER BY 1"));
-        result.put("damagedDevices",jdbc.queryForObject("SELECT COUNT(*) FROM assets a JOIN asset_types ty USING(type_id) JOIN asset_categories c USING(category_id) JOIN asset_hardware_details h USING(asset_id) JOIN asset_conditions ac USING(condition_id) WHERE c.code='DEVICE' AND ac.code='DAMAGED'",Long.class));
-        result.put("inventory",jdbc.queryForList("""
+        result.put("from", from);
+        result.put("to", to);
+        result.put(
+                "byStatus",
+                counts(
+                        "SELECT s.code,COUNT(*) FROM assets a JOIN asset_statuses s USING(status_id) JOIN asset_types ty USING(type_id) JOIN asset_categories c USING(category_id) WHERE c.code='DEVICE' GROUP BY s.code ORDER BY s.code"));
+        result.put(
+                "byType",
+                counts(
+                        "SELECT t.code,COUNT(*) FROM assets a JOIN asset_types t USING(type_id) GROUP BY t.code ORDER BY t.code"));
+        result.put(
+                "byLocation",
+                counts(
+                        "SELECT COALESCE(l.name,''),COUNT(*) FROM assets a LEFT JOIN locations l USING(location_id) GROUP BY COALESCE(l.name,'') ORDER BY 1"));
+        result.put(
+                "byDepartment",
+                counts(
+                        "SELECT COALESCE(d.name,''),COUNT(*) FROM assets a LEFT JOIN departments d USING(department_id) GROUP BY COALESCE(d.name,'') ORDER BY 1"));
+        result.put(
+                "damagedDevices",
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM assets a JOIN asset_types ty USING(type_id) JOIN asset_categories c USING(category_id) JOIN asset_hardware_details h USING(asset_id) JOIN asset_conditions ac USING(condition_id) WHERE c.code='DEVICE' AND ac.code='DAMAGED'",
+                        Long.class));
+        result.put(
+                "inventory",
+                jdbc.queryForList(
+                        """
             SELECT c.code AS category,COUNT(*) AS count,COALESCE(SUM(ld.seat_count),0) AS total_seats,
                 COALESCE(SUM(la.active),0) AS active_seats,COALESCE(SUM(la.reserved),0) AS reserved_seats,
                 COALESCE(SUM(ld.seat_count-COALESCE(la.active,0)-COALESCE(la.reserved,0)),0) AS available_seats
@@ -83,27 +116,71 @@ public class DashboardService {
                 FROM license_allocations WHERE status<>'RELEASED' GROUP BY license_asset_id) la ON la.license_asset_id=a.asset_id
             GROUP BY c.code ORDER BY c.code
             """));
-        result.put("pendingReceivings", pending("IMPORT")); result.put("pendingDisposals", pending("DISPOSAL"));
-        result.put("pending",counts("SELECT type,COUNT(*) FROM transactions WHERE status IN ('PENDING','PARTIAL','APPROVED') GROUP BY type ORDER BY type"));
-        result.put("drafts",counts("SELECT type,COUNT(*) FROM transactions WHERE status='DRAFT' GROUP BY type ORDER BY type"));
-        result.put("failedEmails",jdbc.queryForObject("""
+        result.put("pendingReceivings", pending("IMPORT"));
+        result.put("pendingDisposals", pending("DISPOSAL"));
+        result.put(
+                "pending",
+                counts(
+                        "SELECT type,COUNT(*) FROM transactions WHERE status IN ('PENDING','PARTIAL','APPROVED') GROUP BY type ORDER BY type"));
+        result.put(
+                "drafts",
+                counts("SELECT type,COUNT(*) FROM transactions WHERE status='DRAFT' GROUP BY type ORDER BY type"));
+        result.put(
+                "failedEmails",
+                jdbc.queryForObject(
+                        """
             SELECT COUNT(*) FROM email_logs e WHERE e.status='FAILED' AND NOT EXISTS
             (SELECT 1 FROM email_logs newer WHERE newer.transaction_id=e.transaction_id AND newer.recipient=e.recipient
              AND newer.event_type IS NOT DISTINCT FROM e.event_type
              AND (newer.created_at,newer.email_log_id)>(e.created_at,e.email_log_id))
-            """,Long.class));
-        result.put("failedPdfs",jdbc.queryForObject("""
+            """,
+                        Long.class));
+        result.put(
+                "failedPdfs",
+                jdbc.queryForObject(
+                        """
             SELECT COUNT(DISTINCT p.transaction_id) FROM publication_attempts p WHERE NOT EXISTS
             (SELECT 1 FROM documents d WHERE d.transaction_id=p.transaction_id AND d.issued_at>=p.created_at)
-            """,Long.class));
-        result.put("movements",jdbc.queryForList("SELECT type,COUNT(*) AS transactions,SUM(devices) AS devices,SUM(components) AS components,SUM(packages) AS packages,CASE WHEN COUNT(*) FILTER (WHERE seats IS NULL)>0 THEN NULL ELSE SUM(seats) END AS seats,COUNT(DISTINCT recipient_user_id) AS recipients FROM ("+EVENTS+") e"+COMPLETED+" GROUP BY type ORDER BY type",bounds));
-        result.put("daily",jdbc.queryForList("SELECT CAST(completed_at AS date) AS day,type,COUNT(*) AS transactions FROM transactions"+COMPLETED+" GROUP BY CAST(completed_at AS date),type ORDER BY day,type",bounds));
-        result.put("recent",jdbc.queryForList("SELECT transaction_id,transaction_code,type,status,created_at,completed_at,actor,recipient,devices,components,packages,seats FROM ("+EVENTS+") e"+COMPLETED+" ORDER BY completed_at DESC,transaction_id DESC LIMIT 10",bounds));
+            """,
+                        Long.class));
+        result.put(
+                "movements",
+                jdbc.queryForList(
+                        "SELECT type,COUNT(*) AS transactions,SUM(devices) AS devices,SUM(components) AS components,SUM(packages) AS packages,CASE WHEN COUNT(*) FILTER (WHERE seats IS NULL)>0 THEN NULL ELSE SUM(seats) END AS seats,COUNT(DISTINCT recipient_user_id) AS recipients FROM ("
+                                + EVENTS + ") e" + COMPLETED + " GROUP BY type ORDER BY type",
+                        bounds));
+        result.put(
+                "daily",
+                jdbc.queryForList(
+                        "SELECT CAST(completed_at AS date) AS day,type,COUNT(*) AS transactions FROM transactions"
+                                + COMPLETED + " GROUP BY CAST(completed_at AS date),type ORDER BY day,type",
+                        bounds));
+        result.put(
+                "recent",
+                jdbc.queryForList(
+                        "SELECT transaction_id,transaction_code,type,status,created_at,completed_at,actor,recipient,devices,components,packages,seats FROM ("
+                                + EVENTS + ") e" + COMPLETED
+                                + " ORDER BY completed_at DESC,transaction_id DESC LIMIT 10",
+                        bounds));
         return result;
     }
-    private AppException invalidPeriod() { return new AppException(HttpStatus.BAD_REQUEST,"VALIDATION_ERROR","Invalid dashboard period"); }
-    private Map<String, Long> counts(String sql) {
-        var result = new LinkedHashMap<String, Long>(); jdbc.query(sql, rs -> { result.put(rs.getString(1), rs.getLong(2)); }); return result;
+
+    private AppException invalidPeriod() {
+        return new AppException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid dashboard period");
     }
-    private long pending(String type) { return jdbc.queryForObject("SELECT COUNT(*) FROM transactions WHERE type=? AND status IN ('PENDING','PARTIAL','APPROVED')", Long.class, type); }
+
+    private Map<String, Long> counts(String sql) {
+        var result = new LinkedHashMap<String, Long>();
+        jdbc.query(sql, rs -> {
+            result.put(rs.getString(1), rs.getLong(2));
+        });
+        return result;
+    }
+
+    private long pending(String type) {
+        return jdbc.queryForObject(
+                "SELECT COUNT(*) FROM transactions WHERE type=? AND status IN ('PENDING','PARTIAL','APPROVED')",
+                Long.class,
+                type);
+    }
 }

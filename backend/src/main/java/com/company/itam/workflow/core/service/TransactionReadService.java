@@ -1,5 +1,21 @@
 package com.company.itam.workflow.core.service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+import jakarta.persistence.criteria.Predicate;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.company.itam.common.exception.AppException;
 import com.company.itam.common.pagination.PageResponse;
 import com.company.itam.document.service.DocumentAccessService;
@@ -8,19 +24,6 @@ import com.company.itam.workflow.core.entity.TransactionEntity;
 import com.company.itam.workflow.core.enums.TransactionStatus;
 import com.company.itam.workflow.core.enums.TransactionType;
 import com.company.itam.workflow.core.repository.TransactionRepository;
-import jakarta.persistence.criteria.Predicate;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.time.LocalDate;
-import java.time.ZoneId;
 
 @Service
 @Transactional(readOnly = true)
@@ -34,24 +37,39 @@ public class TransactionReadService {
         this.accessService = accessService;
     }
 
-    public PageResponse<TransactionSummaryResponse> getTransactions(TransactionType type, TransactionStatus status,
-                                                                     String keyword, int page, int size) {
+    public PageResponse<TransactionSummaryResponse> getTransactions(
+            TransactionType type, TransactionStatus status, String keyword, int page, int size) {
         return getTransactions(type, status, null, keyword, page, size);
     }
 
-    public PageResponse<TransactionSummaryResponse> getTransactions(TransactionType type, TransactionStatus status,
-                                                                     java.util.Set<TransactionStatus> statuses,
-                                                                     String keyword, int page, int size) {
+    public PageResponse<TransactionSummaryResponse> getTransactions(
+            TransactionType type,
+            TransactionStatus status,
+            Set<TransactionStatus> statuses,
+            String keyword,
+            int page,
+            int size) {
         return getTransactions(type, status, statuses, keyword, null, null, page, size);
     }
 
-    public PageResponse<TransactionSummaryResponse> getTransactions(TransactionType type, TransactionStatus status,
-                                                                     java.util.Set<TransactionStatus> statuses,
-                                                                     String keyword, LocalDate from, LocalDate to, int page, int size) {
+    public PageResponse<TransactionSummaryResponse> getTransactions(
+            TransactionType type,
+            TransactionStatus status,
+            Set<TransactionStatus> statuses,
+            String keyword,
+            LocalDate from,
+            LocalDate to,
+            int page,
+            int size) {
         accessService.requireTransactionReader();
-        if (page < 0 || size < 1 || size > 100 || (keyword != null && keyword.length() > 100)
-                || (status != null && statuses != null) || (statuses != null && statuses.isEmpty())
-                || (from != null && to != null && from.isAfter(to)) || (to != null && to.equals(LocalDate.MAX))) {
+        if (page < 0
+                || size < 1
+                || size > 100
+                || (keyword != null && keyword.length() > 100)
+                || (status != null && statuses != null)
+                || (statuses != null && statuses.isEmpty())
+                || (from != null && to != null && from.isAfter(to))
+                || (to != null && to.equals(LocalDate.MAX))) {
             throw invalidRequest();
         }
         TransactionType permittedType = type;
@@ -62,28 +80,39 @@ public class TransactionReadService {
             permittedType = TransactionType.IMPORT;
         }
         TransactionType filterType = permittedType;
-        String search = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT)
-                .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        String search = keyword == null
+                ? ""
+                : keyword.trim()
+                        .toLowerCase(Locale.ROOT)
+                        .replace("\\", "\\\\")
+                        .replace("%", "\\%")
+                        .replace("_", "\\_");
         var zone = ZoneId.systemDefault();
         var fromInstant = from == null ? null : from.atStartOfDay(zone).toInstant();
         var toExclusive = to == null ? null : to.plusDays(1).atStartOfDay(zone).toInstant();
-        return PageResponse.of(transactionRepository.findAll((root, query, builder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            if (filterType != null) {
-                predicates.add(builder.equal(root.get("type"), filterType));
-            }
-            if (status != null) {
-                predicates.add(builder.equal(root.get("status"), status));
-            } else if (statuses != null) {
-                predicates.add(root.get("status").in(statuses));
-            }
-            if (!search.isEmpty()) {
-                predicates.add(builder.like(builder.lower(root.get("transactionCode")), "%" + search + "%", '\\'));
-            }
-            if (fromInstant != null) predicates.add(builder.greaterThanOrEqualTo(root.get("createdAt"), fromInstant));
-            if (toExclusive != null) predicates.add(builder.lessThan(root.get("createdAt"), toExclusive));
-            return builder.and(predicates.toArray(Predicate[]::new));
-        }, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt", "transactionId")))
+        return PageResponse.of(transactionRepository
+                .findAll(
+                        (root, query, builder) -> {
+                            List<Predicate> predicates = new ArrayList<>();
+                            if (filterType != null) {
+                                predicates.add(builder.equal(root.get("type"), filterType));
+                            }
+                            if (status != null) {
+                                predicates.add(builder.equal(root.get("status"), status));
+                            } else if (statuses != null) {
+                                predicates.add(root.get("status").in(statuses));
+                            }
+                            if (!search.isEmpty()) {
+                                predicates.add(builder.like(
+                                        builder.lower(root.get("transactionCode")), "%" + search + "%", '\\'));
+                            }
+                            if (fromInstant != null)
+                                predicates.add(builder.greaterThanOrEqualTo(root.get("createdAt"), fromInstant));
+                            if (toExclusive != null)
+                                predicates.add(builder.lessThan(root.get("createdAt"), toExclusive));
+                            return builder.and(predicates.toArray(Predicate[]::new));
+                        },
+                        PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt", "transactionId")))
                 .map(TransactionSummaryResponse::fromEntity));
     }
 
@@ -92,8 +121,10 @@ public class TransactionReadService {
         if (id == null || id <= 0) {
             throw invalidRequest();
         }
-        TransactionEntity transaction = transactionRepository.findById(id)
-                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "TRANSACTION_NOT_FOUND", "Transaction not found"));
+        TransactionEntity transaction = transactionRepository
+                .findById(id)
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.NOT_FOUND, "TRANSACTION_NOT_FOUND", "Transaction not found"));
         accessService.requireRead(transaction);
         return TransactionSummaryResponse.fromEntity(transaction);
     }

@@ -1,8 +1,8 @@
 package com.company.itam.importbatch.dto.response;
 
-import com.company.itam.common.enums.ImportBatchStatus;
-
 import java.time.Instant;
+
+import com.company.itam.common.enums.ImportBatchStatus;
 
 public class ImportBatchResponse {
 

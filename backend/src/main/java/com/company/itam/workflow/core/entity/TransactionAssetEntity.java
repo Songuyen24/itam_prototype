@@ -1,10 +1,14 @@
 package com.company.itam.workflow.core.entity;
 
-import com.company.itam.asset.entity.AssetEntity;
-import io.hypersistence.utils.hibernate.type.json.JsonType;
-import jakarta.persistence.*;
-import org.hibernate.annotations.Type;
 import java.util.Map;
+
+import jakarta.persistence.*;
+
+import org.hibernate.annotations.Type;
+
+import com.company.itam.asset.entity.AssetEntity;
+
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 
 @Entity
 @Table(name = "transaction_assets")
@@ -55,8 +59,13 @@ public class TransactionAssetEntity {
         return asset;
     }
 
-    public Integer getLineNumber() { return lineNumber; }
-    public void setLineNumber(Integer lineNumber) { this.lineNumber = lineNumber; }
+    public Integer getLineNumber() {
+        return lineNumber;
+    }
+
+    public void setLineNumber(Integer lineNumber) {
+        this.lineNumber = lineNumber;
+    }
 
     public void setAsset(AssetEntity asset) {
         this.asset = asset;

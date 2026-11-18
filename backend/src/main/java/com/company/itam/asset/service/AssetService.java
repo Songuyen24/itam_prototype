@@ -1,7 +1,29 @@
 package com.company.itam.asset.service;
 
+import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
+import jakarta.persistence.criteria.JoinType;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.company.itam.asset.dto.request.AssetCreationPurpose;
 import com.company.itam.asset.dto.request.AssetSearchCriteria;
 import com.company.itam.asset.dto.request.CreateHardwareAssetRequest;
+import com.company.itam.asset.dto.request.LicenseDetailsRequest;
 import com.company.itam.asset.dto.request.UpdateHardwareAssetRequest;
 import com.company.itam.asset.dto.request.ValidateUniquenessRequest;
 import com.company.itam.asset.dto.response.AssetDetailResponse;
@@ -13,8 +35,15 @@ import com.company.itam.asset.mapper.AssetMapper;
 import com.company.itam.asset.repository.AssetHardwareDetailsRepository;
 import com.company.itam.asset.repository.AssetRepository;
 import com.company.itam.asset.specification.AssetSpecification;
-import com.company.itam.catalog.entity.*;
-import com.company.itam.catalog.repository.*;
+import com.company.itam.catalog.entity.AssetConditionEntity;
+import com.company.itam.catalog.entity.AssetStatusEntity;
+import com.company.itam.catalog.entity.AssetTypeEntity;
+import com.company.itam.catalog.entity.ModelEntity;
+import com.company.itam.catalog.repository.AssetConditionRepository;
+import com.company.itam.catalog.repository.AssetStatusRepository;
+import com.company.itam.catalog.repository.AssetTypeRepository;
+import com.company.itam.catalog.repository.ModelRepository;
+import com.company.itam.common.enums.AssetCategory;
 import com.company.itam.common.enums.AssetStatus;
 import com.company.itam.common.exception.AppException;
 import com.company.itam.common.exception.DuplicateResourceException;
@@ -28,21 +57,6 @@ import com.company.itam.supplier.entity.SupplierEntity;
 import com.company.itam.supplier.repository.SupplierRepository;
 import com.company.itam.user.entity.UserEntity;
 import com.company.itam.user.repository.UserRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @Transactional(readOnly = true)
@@ -74,8 +88,12 @@ public class AssetService {
             LocationRepository locationRepository,
             SupplierRepository supplierRepository,
             UserRepository userRepository,
-            AssetMapper assetMapper, LicenseDetailsService licenses, AssetAuditService audit, JdbcTemplate jdbc) {
-        this.licenses = licenses; this.audit = audit;
+            AssetMapper assetMapper,
+            LicenseDetailsService licenses,
+            AssetAuditService audit,
+            JdbcTemplate jdbc) {
+        this.licenses = licenses;
+        this.audit = audit;
         this.jdbc = jdbc;
         this.assetRepository = assetRepository;
         this.assetHardwareDetailsRepository = assetHardwareDetailsRepository;
@@ -95,14 +113,13 @@ public class AssetService {
         if (!canReadInventory(authentication)) {
             throw new AccessDeniedException("Access denied");
         }
+
         Page<AssetEntity> page = assetRepository.findAll(new AssetSpecification(criteria), pageable);
         var ids = page.getContent().stream().map(AssetEntity::getAssetId).toList();
-        var pending = ids.isEmpty() ? java.util.Set.<Long>of()
-                : new java.util.HashSet<>(assetRepository.pendingHandoverAssetIds(ids));
-        var recovering = ids.isEmpty() ? java.util.Set.<Long>of()
-                : new java.util.HashSet<>(assetRepository.pendingRecoveryAssetIds(ids));
-        var disposing = ids.isEmpty() ? java.util.Set.<Long>of()
-                : new java.util.HashSet<>(assetRepository.pendingDisposalAssetIds(ids));
+        var pending = ids.isEmpty() ? Set.<Long>of() : new HashSet<>(assetRepository.pendingHandoverAssetIds(ids));
+        var recovering = ids.isEmpty() ? Set.<Long>of() : new HashSet<>(assetRepository.pendingRecoveryAssetIds(ids));
+        var disposing = ids.isEmpty() ? Set.<Long>of() : new HashSet<>(assetRepository.pendingDisposalAssetIds(ids));
+
         return PageResponse.of(page.map(asset -> {
             var response = assetMapper.toResponse(asset);
             response.setPendingHandover(pending.contains(asset.getAssetId()));
@@ -113,25 +130,51 @@ public class AssetService {
     }
 
     public PageResponse<AssetResponse> relationshipCandidates(Long id, String keyword, Pageable pageable) {
-        if (!canReadInventory(requireAuthentication())) throw new AccessDeniedException("Access denied");
-        var source = assetRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + id));
-        boolean parent = source.getType().getCategory().getCode() == com.company.itam.common.enums.AssetCategory.DEVICE;
-        var criteria = new AssetSearchCriteria(); criteria.setKeyword(keyword);
+        if (!canReadInventory(requireAuthentication())) {
+            throw new AccessDeniedException("Access denied");
+        }
+
+        var source =
+                assetRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + id));
+        boolean parent = source.getType().getCategory().getCode() == AssetCategory.DEVICE;
+
+        var criteria = new AssetSearchCriteria();
+        criteria.setKeyword(keyword);
+
         var specification = new AssetSpecification(criteria).and((root, query, cb) -> {
             var category = root.get("type").get("category").get("code");
-            var license = root.join("licenseDetails", jakarta.persistence.criteria.JoinType.LEFT);
-            var assignment = license.join("assignmentType", jakarta.persistence.criteria.JoinType.LEFT);
-            var kind = parent ? cb.or(cb.equal(category, com.company.itam.common.enums.AssetCategory.COMPONENT), cb.and(cb.equal(category, com.company.itam.common.enums.AssetCategory.LICENSE), cb.equal(assignment.get("code"), "OEM"))) : cb.equal(category, com.company.itam.common.enums.AssetCategory.DEVICE);
-            return cb.and(cb.notEqual(root.get("assetId"), id), cb.equal(root.get("status").get("code"), AssetStatus.IN_STOCK), cb.isNull(root.get("assignedTo")), kind);
+            var license = root.join("licenseDetails", JoinType.LEFT);
+            var assignment = license.join("assignmentType", JoinType.LEFT);
+            var kind = parent
+                    ? cb.or(
+                            cb.equal(category, AssetCategory.COMPONENT),
+                            cb.and(cb.equal(category, AssetCategory.LICENSE), cb.equal(assignment.get("code"), "OEM")))
+                    : cb.equal(category, AssetCategory.DEVICE);
+
+            return cb.and(
+                    cb.notEqual(root.get("assetId"), id),
+                    cb.equal(root.get("status").get("code"), AssetStatus.IN_STOCK),
+                    cb.isNull(root.get("assignedTo")),
+                    kind);
         });
+
         return PageResponse.of(assetRepository.findAll(specification, pageable).map(assetMapper::toResponse));
     }
 
-    public record RecoveryCandidate(Long assetId, String assetTag, String name, String categoryCode,
-                                    String licenseAssignmentTypeCode, Long assignedToUserId, String assignedToFullName,
-                                    Long allocationId, String deviceTag, Integer seats) {}
+    public record RecoveryCandidate(
+            Long assetId,
+            String assetTag,
+            String name,
+            String categoryCode,
+            String licenseAssignmentTypeCode,
+            Long assignedToUserId,
+            String assignedToFullName,
+            Long allocationId,
+            String deviceTag,
+            Integer seats) {}
 
-    private static final String RECOVERY_CANDIDATES = """
+    private static final String RECOVERY_CANDIDATES =
+            """
             SELECT a.asset_id, a.asset_tag, a.name, c.code AS category_code, NULL::varchar AS license_assignment_type_code, a.assigned_to, u.full_name,
                    NULL::bigint AS allocation_id, NULL::varchar AS device_tag, NULL::integer AS seats, 1 AS sort_order
             FROM assets a JOIN asset_types t ON t.type_id=a.type_id JOIN asset_categories c ON c.category_id=t.category_id
@@ -154,27 +197,65 @@ public class AssetService {
         if (!canReadInventory(authentication)) {
             throw new AccessDeniedException("Access denied");
         }
-        if (userId == null || userId < 1 || pageable.getPageNumber() < 0 || pageable.getPageSize() < 1 || pageable.getPageSize() > 100 || (keyword != null && keyword.length() > 100))
+        if (userId == null
+                || userId < 1
+                || pageable.getPageNumber() < 0
+                || pageable.getPageSize() < 1
+                || pageable.getPageSize() > 100
+                || (keyword != null && keyword.length() > 100)) {
             throw new AppException(HttpStatus.BAD_REQUEST, "RECOVERY_REQUEST_INVALID", "RECOVERY_REQUEST_INVALID");
-        String search = (keyword == null ? "" : keyword).trim().toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        }
+
+        String search = (keyword == null ? "" : keyword)
+                .trim()
+                .toLowerCase(Locale.ROOT)
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
         String pattern = "%" + search + "%";
-        String filtered = "SELECT * FROM (" + RECOVERY_CANDIDATES + ") candidates WHERE LOWER(asset_tag) LIKE ? ESCAPE '\\' OR LOWER(name) LIKE ? ESCAPE '\\'";
+        String filtered = "SELECT * FROM (" + RECOVERY_CANDIDATES
+                + ") candidates WHERE LOWER(asset_tag) LIKE ? ESCAPE '\\' OR LOWER(name) LIKE ? ESCAPE '\\'";
         Object[] filterArgs = {userId, userId, pattern, pattern};
         long total = jdbc.queryForObject("SELECT COUNT(*) FROM (" + filtered + ") counted", Long.class, filterArgs);
-        List<RecoveryCandidate> content = jdbc.query(filtered + " ORDER BY sort_order, asset_tag, asset_id, allocation_id LIMIT ? OFFSET ?", (rs, row) ->
-                        new RecoveryCandidate(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),
-                                rs.getLong(6), rs.getString(7), rs.getObject(8, Long.class), rs.getString(9), rs.getObject(10, Integer.class)),
-                userId, userId, pattern, pattern, pageable.getPageSize(), pageable.getOffset());
+
+        List<RecoveryCandidate> content = jdbc.query(
+                filtered + " ORDER BY sort_order, asset_tag, asset_id, allocation_id LIMIT ? OFFSET ?",
+                (rs, row) -> new RecoveryCandidate(
+                        rs.getLong(1),
+                        rs.getString(2),
+                        rs.getString(3),
+                        rs.getString(4),
+                        rs.getString(5),
+                        rs.getLong(6),
+                        rs.getString(7),
+                        rs.getObject(8, Long.class),
+                        rs.getString(9),
+                        rs.getObject(10, Integer.class)),
+                userId,
+                userId,
+                pattern,
+                pattern,
+                pageable.getPageSize(),
+                pageable.getOffset());
+
         int pages = total == 0 ? 0 : (int) Math.ceil((double) total / pageable.getPageSize());
-        return new PageResponse<>(content, pageable.getPageNumber(), pageable.getPageSize(), total, pages, pageable.getPageNumber() + 1 >= pages);
+        return new PageResponse<>(
+                content,
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                total,
+                pages,
+                pageable.getPageNumber() + 1 >= pages);
     }
 
     public PageResponse<AssetResponse> getMyAssets(String keyword, Pageable pageable) {
         Authentication authentication = requireAuthentication();
         requireAssetReader(authentication);
+
         AssetSearchCriteria criteria = new AssetSearchCriteria();
         criteria.setKeyword(keyword);
         criteria.setAssignedTo(resolveCurrentUser(authentication).getUserId());
+
         Page<AssetEntity> page = assetRepository.findAll(new AssetSpecification(criteria), pageable);
         return PageResponse.of(page.map(assetMapper::toResponse));
     }
@@ -182,25 +263,35 @@ public class AssetService {
     public AssetDetailResponse getAssetById(Long id) {
         Authentication authentication = requireAuthentication();
         requireAssetReader(authentication);
-        AssetEntity asset = assetRepository.findByIdWithHardwareDetails(id)
+
+        AssetEntity asset = assetRepository
+                .findByIdWithHardwareDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id));
+
         if (!canReadInventory(authentication)) {
             UserEntity currentUser = resolveCurrentUser(authentication);
             if ((asset.getAssignedTo() == null
-                    || !Objects.equals(asset.getAssignedTo().getUserId(), currentUser.getUserId()))
-                    && !(asset.getLicenseDetails()!=null && licenses.assignedTo(id,currentUser.getUserId()))) {
+                            || !Objects.equals(asset.getAssignedTo().getUserId(), currentUser.getUserId()))
+                    && !(asset.getLicenseDetails() != null && licenses.assignedTo(id, currentUser.getUserId()))) {
                 // Do not reveal whether another user's asset exists.
                 throw new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id);
             }
         }
+
         var response = assetMapper.toDetailResponse(asset);
-        if (canReadInventory(authentication)) response.setPendingHandover(assetRepository.hasPendingHandover(id));
-        if (canReadInventory(authentication)) response.setPendingRecovery(assetRepository.hasPendingRecovery(id));
-        if (canReadInventory(authentication)) response.setPendingDisposal(assetRepository.hasPendingDisposal(id));
-        if (asset.getLicenseDetails()!=null) response.setLicense(licenses.response(asset, canReadInventory(authentication)));
+        if (canReadInventory(authentication)) {
+            response.setPendingHandover(assetRepository.hasPendingHandover(id));
+            response.setPendingRecovery(assetRepository.hasPendingRecovery(id));
+            response.setPendingDisposal(assetRepository.hasPendingDisposal(id));
+        }
+        if (asset.getLicenseDetails() != null) {
+            response.setLicense(licenses.response(asset, canReadInventory(authentication)));
+        }
         if (!canReadInventory(authentication)) {
-            response.setCreatedByUserId(null); response.setCreatedByFullName(null);
-            response.setUpdatedByUserId(null); response.setUpdatedByFullName(null);
+            response.setCreatedByUserId(null);
+            response.setCreatedByFullName(null);
+            response.setUpdatedByUserId(null);
+            response.setUpdatedByFullName(null);
         }
         return response;
     }
@@ -208,8 +299,10 @@ public class AssetService {
     @Transactional
     public AssetDetailResponse createHardwareAsset(CreateHardwareAssetRequest request) {
         Authentication auth = requireAuthentication();
-        if (!hasAuthority(auth, "ADMIN") && !hasAuthority(auth, "IT_STAFF")) throw new AccessDeniedException("Access denied");
-        if (request.getCreationPurpose() != com.company.itam.asset.dto.request.AssetCreationPurpose.BASELINE) {
+        if (!hasAuthority(auth, "ADMIN") && !hasAuthority(auth, "IT_STAFF")) {
+            throw new AccessDeniedException("Access denied");
+        }
+        if (request.getCreationPurpose() != AssetCreationPurpose.BASELINE) {
             throw new AppException(HttpStatus.BAD_REQUEST, "ASSET_BASELINE_REQUIRED", "ASSET_BASELINE_REQUIRED");
         }
         return createHardware(request, false, "CREATE_BASELINE");
@@ -218,51 +311,70 @@ public class AssetService {
     @Transactional
     public AssetDetailResponse createHardwareDraft(CreateHardwareAssetRequest request) {
         Authentication auth = requireAuthentication();
-        if (!hasAuthority(auth,"ADMIN") && !hasAuthority(auth,"PUR_STAFF")) throw new AccessDeniedException("Access denied");
+        if (!hasAuthority(auth, "ADMIN") && !hasAuthority(auth, "PUR_STAFF")) {
+            throw new AccessDeniedException("Access denied");
+        }
         return createHardware(request, true, "CREATE");
     }
 
     private AssetDetailResponse createHardware(CreateHardwareAssetRequest request, boolean draft, String auditAction) {
         jdbc.queryForList("SELECT pg_advisory_xact_lock(74101301)");
+
         String assetTag = normalizeString(request.getAssetTag());
-        if (assetTag == null) assetTag = assetRepository.nextGeneratedAssetTag();
+        if (assetTag == null) {
+            assetTag = assetRepository.nextGeneratedAssetTag();
+        }
         if (assetRepository.existsByAssetTag(assetTag)) {
             throw new DuplicateResourceException("DUPLICATE_ASSET_TAG", "Mã tài sản đã tồn tại: " + assetTag);
         }
 
-        String serialNumber = (request.getSerialNumber() != null && !request.getSerialNumber().trim().isEmpty())
-                ? request.getSerialNumber().trim() : null;
+        String serialNumber = (request.getSerialNumber() != null
+                        && !request.getSerialNumber().trim().isEmpty())
+                ? request.getSerialNumber().trim()
+                : null;
 
         if (serialNumber != null && assetHardwareDetailsRepository.existsBySerialNumber(serialNumber)) {
-            throw new DuplicateResourceException("DUPLICATE_SERIAL_NUMBER", "Số Serial Number đã tồn tại: " + serialNumber);
+            throw new DuplicateResourceException(
+                    "DUPLICATE_SERIAL_NUMBER", "Số Serial Number đã tồn tại: " + serialNumber);
         }
 
         if (request.getPurchaseCost() != null && request.getPurchaseCost().compareTo(BigDecimal.ZERO) < 0) {
             throw new AppException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Giá mua không được âm");
         }
 
-        AssetTypeEntity type = assetTypeRepository.findById(request.getTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại tài sản với ID: " + request.getTypeId()));
+        AssetTypeEntity type = assetTypeRepository
+                .findById(request.getTypeId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Không tìm thấy loại tài sản với ID: " + request.getTypeId()));
 
         AssetStatusEntity status;
         if (request.getStatusId() != null) {
-            status = assetStatusRepository.findById(request.getStatusId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy trạng thái với ID: " + request.getStatusId()));
+            status = assetStatusRepository
+                    .findById(request.getStatusId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy trạng thái với ID: " + request.getStatusId()));
         } else {
-            status = assetStatusRepository.findByCode(AssetStatus.IN_STOCK)
+            status = assetStatusRepository
+                    .findByCode(AssetStatus.IN_STOCK)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy trạng thái mặc định IN_STOCK"));
         }
 
-        if (!draft && status.getCode() != AssetStatus.IN_STOCK)
+        if (!draft && status.getCode() != AssetStatus.IN_STOCK) {
             throw new AppException(HttpStatus.CONFLICT, "ASSET_WORKFLOW_REQUIRED", "ASSET_WORKFLOW_REQUIRED");
+        }
         if ((status.getCode() == AssetStatus.PENDING_IMPORT) != draft) {
-            throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
+            throw new AppException(
+                    HttpStatus.CONFLICT, "IMPORT_ASSET_LOCKED", "Receiving assets must be edited through their draft");
         }
 
-        boolean license = type.getCategory()!=null && type.getCategory().getCode()==com.company.itam.common.enums.AssetCategory.LICENSE;
-        if (license && (request.getAssignedToUserId()!=null || (!draft && status.getCode()!=AssetStatus.IN_STOCK)))
-            throw new AppException(HttpStatus.CONFLICT,"ASSET_WORKFLOW_REQUIRED","ASSET_WORKFLOW_REQUIRED");
-        if (!license && request.getLicense()!=null) throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_DETAILS_REQUIRED","LICENSE_DETAILS_REQUIRED");
+        boolean license = type.getCategory() != null && type.getCategory().getCode() == AssetCategory.LICENSE;
+        if (license
+                && (request.getAssignedToUserId() != null || (!draft && status.getCode() != AssetStatus.IN_STOCK))) {
+            throw new AppException(HttpStatus.CONFLICT, "ASSET_WORKFLOW_REQUIRED", "ASSET_WORKFLOW_REQUIRED");
+        }
+        if (!license && request.getLicense() != null) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "LICENSE_DETAILS_REQUIRED", "LICENSE_DETAILS_REQUIRED");
+        }
         validateStatusAndAssignment(status.getCode(), request.getAssignedToUserId());
 
         AssetEntity asset = new AssetEntity();
@@ -275,26 +387,34 @@ public class AssetService {
         asset.setPurchaseCost(request.getPurchaseCost() != null ? request.getPurchaseCost() : BigDecimal.ZERO);
 
         if (request.getAssignedToUserId() != null) {
-            UserEntity assignedTo = userRepository.findById(request.getAssignedToUserId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng được gán với ID: " + request.getAssignedToUserId()));
+            UserEntity assignedTo = userRepository
+                    .findById(request.getAssignedToUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy người dùng được gán với ID: " + request.getAssignedToUserId()));
             asset.setAssignedTo(assignedTo);
         }
 
         if (request.getDepartmentId() != null) {
-            DepartmentEntity department = departmentRepository.findById(request.getDepartmentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng ban với ID: " + request.getDepartmentId()));
+            DepartmentEntity department = departmentRepository
+                    .findById(request.getDepartmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy phòng ban với ID: " + request.getDepartmentId()));
             asset.setDepartment(department);
         }
 
         if (request.getLocationId() != null) {
-            LocationEntity location = locationRepository.findById(request.getLocationId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vị trí với ID: " + request.getLocationId()));
+            LocationEntity location = locationRepository
+                    .findById(request.getLocationId())
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException("Không tìm thấy vị trí với ID: " + request.getLocationId()));
             asset.setLocation(location);
         }
 
         if (request.getSupplierId() != null) {
-            SupplierEntity supplier = supplierRepository.findById(request.getSupplierId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà cung cấp với ID: " + request.getSupplierId()));
+            SupplierEntity supplier = supplierRepository
+                    .findById(request.getSupplierId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy nhà cung cấp với ID: " + request.getSupplierId()));
             asset.setSupplier(supplier);
         }
 
@@ -305,15 +425,25 @@ public class AssetService {
         AssetEntity savedAsset = assetRepository.save(asset);
 
         if (license) {
-            if (serialNumber!=null || request.getModelId()!=null || request.getConditionId()!=null || request.getWarrantyExpiration()!=null || request.getActualCpu()!=null || request.getActualRam()!=null || request.getActualStorage()!=null || request.getActualGraphicsCard()!=null)
-                throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_HARDWARE_FIELDS","LICENSE_HARDWARE_FIELDS");
-            licenses.save(savedAsset,request.getLicense());
-            audit.record(savedAsset.getAssetId(),auditAction,currentUser,null,audit.snapshot(savedAsset));
-            var response=assetMapper.toDetailResponse(savedAsset); response.setLicense(licenses.response(savedAsset,true)); return response;
+            if (serialNumber != null
+                    || request.getModelId() != null
+                    || request.getConditionId() != null
+                    || request.getWarrantyExpiration() != null
+                    || request.getActualCpu() != null
+                    || request.getActualRam() != null
+                    || request.getActualStorage() != null
+                    || request.getActualGraphicsCard() != null) {
+                throw new AppException(HttpStatus.BAD_REQUEST, "LICENSE_HARDWARE_FIELDS", "LICENSE_HARDWARE_FIELDS");
+            }
+            licenses.save(savedAsset, request.getLicense());
+            audit.record(savedAsset.getAssetId(), auditAction, currentUser, null, audit.snapshot(savedAsset));
+            var response = assetMapper.toDetailResponse(savedAsset);
+            response.setLicense(licenses.response(savedAsset, true));
+            return response;
         }
+
         // Save Hardware Details
         AssetHardwareDetailsEntity hwDetails = new AssetHardwareDetailsEntity();
-
         hwDetails.setAsset(savedAsset);
         hwDetails.setSerialNumber(serialNumber);
         hwDetails.setWarrantyExpiration(request.getWarrantyExpiration());
@@ -323,23 +453,29 @@ public class AssetService {
         hwDetails.setActualGraphicsCard(normalizeString(request.getActualGraphicsCard()));
 
         if (request.getModelId() != null) {
-            ModelEntity model = modelRepository.findById(request.getModelId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy model với ID: " + request.getModelId()));
-            if (model.getType()!=null && !Objects.equals(model.getType().getTypeId(),type.getTypeId()))
-                throw new AppException(HttpStatus.BAD_REQUEST,"MODEL_TYPE_MISMATCH","Model does not match asset type");
+            ModelEntity model = modelRepository
+                    .findById(request.getModelId())
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException("Không tìm thấy model với ID: " + request.getModelId()));
+            if (model.getType() != null && !Objects.equals(model.getType().getTypeId(), type.getTypeId())) {
+                throw new AppException(
+                        HttpStatus.BAD_REQUEST, "MODEL_TYPE_MISMATCH", "Model does not match asset type");
+            }
             hwDetails.setModel(model);
         }
 
         if (request.getConditionId() != null) {
-            AssetConditionEntity condition = assetConditionRepository.findById(request.getConditionId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tình trạng với ID: " + request.getConditionId()));
+            AssetConditionEntity condition = assetConditionRepository
+                    .findById(request.getConditionId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy tình trạng với ID: " + request.getConditionId()));
             hwDetails.setCondition(condition);
         }
 
         AssetHardwareDetailsEntity savedHwDetails = assetHardwareDetailsRepository.save(hwDetails);
         savedAsset.setHardwareDetails(savedHwDetails);
 
-        audit.record(savedAsset.getAssetId(),auditAction,currentUser,null,audit.snapshot(savedAsset));
+        audit.record(savedAsset.getAssetId(), auditAction, currentUser, null, audit.snapshot(savedAsset));
         return assetMapper.toDetailResponse(savedAsset);
     }
 
@@ -348,51 +484,71 @@ public class AssetService {
         return updateHardware(id, request, false);
     }
 
-    /** Internal receiving operation; caller holds the draft and asset locks. */
+    /**
+     * Internal receiving operation; caller holds the draft and asset locks.
+     */
     @Transactional
     public AssetDetailResponse updateReceivingAsset(Long id, UpdateHardwareAssetRequest request) {
         Authentication auth = requireAuthentication();
-        if (!hasAuthority(auth,"ADMIN") && !hasAuthority(auth,"PUR_STAFF")) throw new AccessDeniedException("Access denied");
+        if (!hasAuthority(auth, "ADMIN") && !hasAuthority(auth, "PUR_STAFF")) {
+            throw new AccessDeniedException("Access denied");
+        }
         return updateHardware(id, request, true);
     }
 
     private AssetDetailResponse updateHardware(Long id, UpdateHardwareAssetRequest request, boolean receiving) {
-        AssetEntity asset = assetRepository.lockById(id)
+        AssetEntity asset = assetRepository
+                .lockById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài sản với ID: " + id));
 
-        if (assetRepository.hasPendingDisposal(id)) throw new AppException(HttpStatus.CONFLICT, "DISPOSAL_ALREADY_PENDING", "DISPOSAL_ALREADY_PENDING");
+        if (assetRepository.hasPendingDisposal(id)) {
+            throw new AppException(HttpStatus.CONFLICT, "DISPOSAL_ALREADY_PENDING", "DISPOSAL_ALREADY_PENDING");
+        }
         if (assetRepository.hasPendingHandover(id)) {
             throw new AppException(HttpStatus.CONFLICT, "HANDOVER_ASSET_RESERVED", "HANDOVER_ASSET_RESERVED");
         }
         if (assetRepository.hasPendingRecovery(id)) {
             throw new AppException(HttpStatus.CONFLICT, "RECOVERY_ASSET_RESERVED", "RECOVERY_ASSET_RESERVED");
         }
-        if (receiving ? asset.getStatus().getCode() != AssetStatus.PENDING_IMPORT
-                : (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT || assetRepository.hasActiveReceiving(id))) {
-            throw new AppException(HttpStatus.CONFLICT,"IMPORT_ASSET_LOCKED","Receiving assets must be edited through their draft");
+        if (receiving
+                ? asset.getStatus().getCode() != AssetStatus.PENDING_IMPORT
+                : (asset.getStatus().getCode() == AssetStatus.PENDING_IMPORT
+                        || assetRepository.hasActiveReceiving(id))) {
+            throw new AppException(
+                    HttpStatus.CONFLICT, "IMPORT_ASSET_LOCKED", "Receiving assets must be edited through their draft");
         }
-        if (!receiving && (request.getExpectedVersion() == null
-                || !request.getExpectedVersion().equals(asset.getVersion()))) {
+        if (!receiving
+                && (request.getExpectedVersion() == null
+                        || !request.getExpectedVersion().equals(asset.getVersion()))) {
             throw new AppException(HttpStatus.CONFLICT, "ASSET_VERSION_CONFLICT", "ASSET_VERSION_CONFLICT");
         }
+
         var before = audit.snapshot(asset);
         String assetTag = normalizeString(request.getAssetTag());
         if (!receiving && assetTag != null && !assetTag.equals(asset.getAssetTag())) {
-            throw new AppException(HttpStatus.CONFLICT, "ASSET_TAG_IMMUTABLE", "Asset tag cannot be changed after saving");
+            throw new AppException(
+                    HttpStatus.CONFLICT, "ASSET_TAG_IMMUTABLE", "Asset tag cannot be changed after saving");
         }
-        if (assetTag == null) assetTag = asset.getAssetTag();
+        if (assetTag == null) {
+            assetTag = asset.getAssetTag();
+        }
+
         Optional<AssetEntity> existingTag = assetRepository.findByAssetTag(assetTag);
         if (existingTag.isPresent() && !existingTag.get().getAssetId().equals(id)) {
             throw new DuplicateResourceException("DUPLICATE_ASSET_TAG", "Mã tài sản đã tồn tại: " + assetTag);
         }
 
-        String serialNumber = (request.getSerialNumber() != null && !request.getSerialNumber().trim().isEmpty())
-                ? request.getSerialNumber().trim() : null;
+        String serialNumber = (request.getSerialNumber() != null
+                        && !request.getSerialNumber().trim().isEmpty())
+                ? request.getSerialNumber().trim()
+                : null;
 
         if (serialNumber != null) {
-            Optional<AssetHardwareDetailsEntity> existingSerial = assetHardwareDetailsRepository.findBySerialNumber(serialNumber);
+            Optional<AssetHardwareDetailsEntity> existingSerial =
+                    assetHardwareDetailsRepository.findBySerialNumber(serialNumber);
             if (existingSerial.isPresent() && !existingSerial.get().getAssetId().equals(id)) {
-                throw new DuplicateResourceException("DUPLICATE_SERIAL_NUMBER", "Số Serial Number đã tồn tại: " + serialNumber);
+                throw new DuplicateResourceException(
+                        "DUPLICATE_SERIAL_NUMBER", "Số Serial Number đã tồn tại: " + serialNumber);
             }
         }
 
@@ -400,20 +556,33 @@ public class AssetService {
             throw new AppException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Giá mua không được âm");
         }
 
-        AssetTypeEntity type = assetTypeRepository.findById(request.getTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại tài sản với ID: " + request.getTypeId()));
+        AssetTypeEntity type = assetTypeRepository
+                .findById(request.getTypeId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Không tìm thấy loại tài sản với ID: " + request.getTypeId()));
 
         AssetStatusEntity status = asset.getStatus();
         if (request.getStatusId() != null && !request.getStatusId().equals(status.getStatusId())) {
-            status = assetStatusRepository.findById(request.getStatusId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy trạng thái với ID: " + request.getStatusId()));
+            status = assetStatusRepository
+                    .findById(request.getStatusId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy trạng thái với ID: " + request.getStatusId()));
         }
 
-        if (!Objects.equals(type.getTypeId(),asset.getType().getTypeId()) || status.getCode()!=asset.getStatus().getCode()
-                || !Objects.equals(request.getAssignedToUserId(),asset.getAssignedTo()==null?null:asset.getAssignedTo().getUserId()))
-            throw new AppException(HttpStatus.CONFLICT,"ASSET_WORKFLOW_REQUIRED","ASSET_WORKFLOW_REQUIRED");
-        boolean license = asset.getLicenseDetails()!=null;
-        if (!license && request.getLicense()!=null) throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_DETAILS_REQUIRED","LICENSE_DETAILS_REQUIRED");
+        if (!Objects.equals(type.getTypeId(), asset.getType().getTypeId())
+                || status.getCode() != asset.getStatus().getCode()
+                || !Objects.equals(
+                        request.getAssignedToUserId(),
+                        asset.getAssignedTo() == null
+                                ? null
+                                : asset.getAssignedTo().getUserId())) {
+            throw new AppException(HttpStatus.CONFLICT, "ASSET_WORKFLOW_REQUIRED", "ASSET_WORKFLOW_REQUIRED");
+        }
+
+        boolean license = asset.getLicenseDetails() != null;
+        if (!license && request.getLicense() != null) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "LICENSE_DETAILS_REQUIRED", "LICENSE_DETAILS_REQUIRED");
+        }
         validateStatusAndAssignment(status.getCode(), request.getAssignedToUserId());
 
         asset.setAssetTag(assetTag);
@@ -427,32 +596,40 @@ public class AssetService {
         }
 
         if (request.getAssignedToUserId() != null) {
-            UserEntity assignedTo = userRepository.findById(request.getAssignedToUserId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng được gán với ID: " + request.getAssignedToUserId()));
+            UserEntity assignedTo = userRepository
+                    .findById(request.getAssignedToUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy người dùng được gán với ID: " + request.getAssignedToUserId()));
             asset.setAssignedTo(assignedTo);
         } else {
             asset.setAssignedTo(null);
         }
 
         if (request.getDepartmentId() != null) {
-            DepartmentEntity department = departmentRepository.findById(request.getDepartmentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng ban với ID: " + request.getDepartmentId()));
+            DepartmentEntity department = departmentRepository
+                    .findById(request.getDepartmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy phòng ban với ID: " + request.getDepartmentId()));
             asset.setDepartment(department);
         } else {
             asset.setDepartment(null);
         }
 
         if (request.getLocationId() != null) {
-            LocationEntity location = locationRepository.findById(request.getLocationId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vị trí với ID: " + request.getLocationId()));
+            LocationEntity location = locationRepository
+                    .findById(request.getLocationId())
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException("Không tìm thấy vị trí với ID: " + request.getLocationId()));
             asset.setLocation(location);
         } else {
             asset.setLocation(null);
         }
 
         if (request.getSupplierId() != null) {
-            SupplierEntity supplier = supplierRepository.findById(request.getSupplierId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà cung cấp với ID: " + request.getSupplierId()));
+            SupplierEntity supplier = supplierRepository
+                    .findById(request.getSupplierId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy nhà cung cấp với ID: " + request.getSupplierId()));
             asset.setSupplier(supplier);
         } else {
             asset.setSupplier(null);
@@ -462,22 +639,38 @@ public class AssetService {
         asset.setUpdatedBy(currentUser);
 
         if (license) {
-            if (serialNumber!=null || request.getModelId()!=null || request.getConditionId()!=null || request.getWarrantyExpiration()!=null || request.getActualCpu()!=null || request.getActualRam()!=null || request.getActualStorage()!=null || request.getActualGraphicsCard()!=null)
-                throw new AppException(HttpStatus.BAD_REQUEST,"LICENSE_HARDWARE_FIELDS","LICENSE_HARDWARE_FIELDS");
-            if (receiving && request.getLicense()!=null) {
-                var l=request.getLicense();
-                request.setLicense(new com.company.itam.asset.dto.request.LicenseDetailsRequest(l.softwareCatalogId(),l.assignmentTypeId(),l.termTypeId(),l.seatCount(),asset.getLicenseDetails().getLicenseKey(),l.expiryDate()));
+            if (serialNumber != null
+                    || request.getModelId() != null
+                    || request.getConditionId() != null
+                    || request.getWarrantyExpiration() != null
+                    || request.getActualCpu() != null
+                    || request.getActualRam() != null
+                    || request.getActualStorage() != null
+                    || request.getActualGraphicsCard() != null) {
+                throw new AppException(HttpStatus.BAD_REQUEST, "LICENSE_HARDWARE_FIELDS", "LICENSE_HARDWARE_FIELDS");
             }
-            licenses.save(asset,request.getLicense());
-            audit.record(id,"UPDATE",currentUser,before,audit.snapshot(asset));
+            if (receiving && request.getLicense() != null) {
+                var l = request.getLicense();
+                request.setLicense(new LicenseDetailsRequest(
+                        l.softwareCatalogId(),
+                        l.assignmentTypeId(),
+                        l.termTypeId(),
+                        l.seatCount(),
+                        asset.getLicenseDetails().getLicenseKey(),
+                        l.expiryDate()));
+            }
+            licenses.save(asset, request.getLicense());
+            audit.record(id, "UPDATE", currentUser, before, audit.snapshot(asset));
             assetRepository.flush();
-            var response=assetMapper.toDetailResponse(asset); response.setLicense(licenses.response(asset,true)); return response;
+            var response = assetMapper.toDetailResponse(asset);
+            response.setLicense(licenses.response(asset, true));
+            return response;
         }
+
         // Update hardware details
         AssetHardwareDetailsEntity hwDetails = asset.getHardwareDetails();
         if (hwDetails == null) {
             hwDetails = new AssetHardwareDetailsEntity();
-
             hwDetails.setAsset(asset);
         }
 
@@ -489,18 +682,23 @@ public class AssetService {
         hwDetails.setActualGraphicsCard(normalizeString(request.getActualGraphicsCard()));
 
         if (request.getModelId() != null) {
-            ModelEntity model = modelRepository.findById(request.getModelId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy model với ID: " + request.getModelId()));
-            if (model.getType()!=null && !Objects.equals(model.getType().getTypeId(),type.getTypeId()))
-                throw new AppException(HttpStatus.BAD_REQUEST,"MODEL_TYPE_MISMATCH","MODEL_TYPE_MISMATCH");
+            ModelEntity model = modelRepository
+                    .findById(request.getModelId())
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException("Không tìm thấy model với ID: " + request.getModelId()));
+            if (model.getType() != null && !Objects.equals(model.getType().getTypeId(), type.getTypeId())) {
+                throw new AppException(HttpStatus.BAD_REQUEST, "MODEL_TYPE_MISMATCH", "MODEL_TYPE_MISMATCH");
+            }
             hwDetails.setModel(model);
         } else {
             hwDetails.setModel(null);
         }
 
         if (request.getConditionId() != null) {
-            AssetConditionEntity condition = assetConditionRepository.findById(request.getConditionId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tình trạng với ID: " + request.getConditionId()));
+            AssetConditionEntity condition = assetConditionRepository
+                    .findById(request.getConditionId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy tình trạng với ID: " + request.getConditionId()));
             hwDetails.setCondition(condition);
         } else {
             hwDetails.setCondition(null);
@@ -511,7 +709,7 @@ public class AssetService {
 
         assetRepository.flush();
         AssetEntity savedAsset = asset;
-        audit.record(id,"UPDATE",currentUser,before,audit.snapshot(savedAsset));
+        audit.record(id, "UPDATE", currentUser, before, audit.snapshot(savedAsset));
         return assetMapper.toDetailResponse(savedAsset);
     }
 
@@ -519,7 +717,8 @@ public class AssetService {
         boolean tagAvailable = true;
         String tagMsg = "Mã tài sản hợp lệ";
         if (request.getAssetTag() != null && !request.getAssetTag().trim().isEmpty()) {
-            Optional<AssetEntity> existing = assetRepository.findByAssetTag(request.getAssetTag().trim());
+            Optional<AssetEntity> existing =
+                    assetRepository.findByAssetTag(request.getAssetTag().trim());
             if (existing.isPresent() && !existing.get().getAssetId().equals(request.getExcludeAssetId())) {
                 tagAvailable = false;
                 tagMsg = "Mã tài sản đã tồn tại trong hệ thống";
@@ -528,8 +727,10 @@ public class AssetService {
 
         boolean serialAvailable = true;
         String serialMsg = "Số serial number hợp lệ";
-        if (request.getSerialNumber() != null && !request.getSerialNumber().trim().isEmpty()) {
-            Optional<AssetHardwareDetailsEntity> existing = assetHardwareDetailsRepository.findBySerialNumber(request.getSerialNumber().trim());
+        if (request.getSerialNumber() != null
+                && !request.getSerialNumber().trim().isEmpty()) {
+            Optional<AssetHardwareDetailsEntity> existing = assetHardwareDetailsRepository.findBySerialNumber(
+                    request.getSerialNumber().trim());
             if (existing.isPresent() && !existing.get().getAssetId().equals(request.getExcludeAssetId())) {
                 serialAvailable = false;
                 serialMsg = "Số serial number đã tồn tại trong hệ thống";
@@ -540,12 +741,17 @@ public class AssetService {
     }
 
     private void validateStatusAndAssignment(AssetStatus status, Long assignedToUserId) {
-        if ((status == AssetStatus.IN_STOCK || status == AssetStatus.RETIRED || status == AssetStatus.PENDING_IMPORT) && assignedToUserId != null) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_ASSIGNMENT",
+        if ((status == AssetStatus.IN_STOCK || status == AssetStatus.RETIRED || status == AssetStatus.PENDING_IMPORT)
+                && assignedToUserId != null) {
+            throw new AppException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_ASSIGNMENT",
                     "Tài sản ở trạng thái " + status.name() + " không được gán người sử dụng");
         }
         if (status == AssetStatus.IN_USE && assignedToUserId == null) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "ASSIGNMENT_REQUIRED",
+            throw new AppException(
+                    HttpStatus.BAD_REQUEST,
+                    "ASSIGNMENT_REQUIRED",
                     "Tài sản ở trạng thái IN_USE bắt buộc phải có người sử dụng");
         }
     }
@@ -555,14 +761,18 @@ public class AssetService {
     }
 
     private UserEntity resolveCurrentUser(Authentication authentication) {
-        return userRepository.findByPrincipal(authentication.getName())
-                .orElseThrow(() -> new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required"));
+        return userRepository
+                .findByPrincipal(authentication.getName())
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required"));
     }
 
     private Authentication requireAuthentication() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication.getName() == null || "anonymousUser".equals(authentication.getName())) {
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || "anonymousUser".equals(authentication.getName())) {
             throw new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
         }
         return authentication;

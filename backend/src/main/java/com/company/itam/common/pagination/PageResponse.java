@@ -1,7 +1,8 @@
 package com.company.itam.common.pagination;
 
-import org.springframework.data.domain.Page;
 import java.util.List;
+
+import org.springframework.data.domain.Page;
 
 public class PageResponse<T> {
     private List<T> content;
@@ -13,7 +14,8 @@ public class PageResponse<T> {
 
     public PageResponse() {}
 
-    public PageResponse(List<T> content, int pageNumber, int pageSize, long totalElements, int totalPages, boolean last) {
+    public PageResponse(
+            List<T> content, int pageNumber, int pageSize, long totalElements, int totalPages, boolean last) {
         this.content = content;
         this.pageNumber = pageNumber;
         this.pageSize = pageSize;
@@ -24,13 +26,12 @@ public class PageResponse<T> {
 
     public static <T> PageResponse<T> of(Page<T> page) {
         return new PageResponse<>(
-            page.getContent(),
-            page.getNumber(),
-            page.getSize(),
-            page.getTotalElements(),
-            page.getTotalPages(),
-            page.isLast()
-        );
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast());
     }
 
     public List<T> getContent() {

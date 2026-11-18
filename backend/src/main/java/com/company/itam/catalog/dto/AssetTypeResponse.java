@@ -10,7 +10,8 @@ public class AssetTypeResponse {
 
     public AssetTypeResponse() {}
 
-    public AssetTypeResponse(Long typeId, String code, Long categoryId, String categoryName, String name, Boolean isActive) {
+    public AssetTypeResponse(
+            Long typeId, String code, Long categoryId, String categoryName, String name, Boolean isActive) {
         this.typeId = typeId;
         this.code = code;
         this.categoryId = categoryId;

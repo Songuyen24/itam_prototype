@@ -1,21 +1,23 @@
 package com.company.itam.document.service;
 
-import com.company.itam.common.exception.AppException;
-import com.company.itam.document.entity.DocumentEntity;
-import com.company.itam.workflow.core.entity.TransactionEntity;
-import com.company.itam.workflow.core.enums.TransactionType;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import com.company.itam.common.exception.AppException;
+import com.company.itam.document.entity.DocumentEntity;
+import com.company.itam.workflow.core.entity.TransactionEntity;
+import com.company.itam.workflow.core.enums.TransactionType;
+import com.company.itam.workflow.core.service.WorkflowAccessService;
 
 @Service
 public class DocumentAccessService {
 
-    private final com.company.itam.workflow.core.service.WorkflowAccessService workflowAccess;
-    public DocumentAccessService(com.company.itam.workflow.core.service.WorkflowAccessService workflowAccess) {
+    private final WorkflowAccessService workflowAccess;
+
+    public DocumentAccessService(WorkflowAccessService workflowAccess) {
         this.workflowAccess = workflowAccess;
     }
 
@@ -34,7 +36,9 @@ public class DocumentAccessService {
     public void requireRead(TransactionEntity transaction) {
         Authentication authentication = requireAuthentication();
         if (isManager(authentication)
-                || (hasAuthority(authentication, "PUR_STAFF") && (transaction.getType() == TransactionType.IMPORT || transaction.getType() == TransactionType.DISPOSAL))) {
+                || (hasAuthority(authentication, "PUR_STAFF")
+                        && (transaction.getType() == TransactionType.IMPORT
+                                || transaction.getType() == TransactionType.DISPOSAL))) {
             return;
         }
         throw denied();
@@ -44,7 +48,9 @@ public class DocumentAccessService {
         Authentication authentication = requireAuthentication();
         TransactionEntity transaction = document.getTransaction();
         if (isManager(authentication)
-                || (hasAuthority(authentication, "PUR_STAFF") && (transaction.getType() == TransactionType.IMPORT || transaction.getType() == TransactionType.DISPOSAL))) {
+                || (hasAuthority(authentication, "PUR_STAFF")
+                        && (transaction.getType() == TransactionType.IMPORT
+                                || transaction.getType() == TransactionType.DISPOSAL))) {
             return;
         }
         throw denied();
@@ -73,8 +79,10 @@ public class DocumentAccessService {
 
     private Authentication requireAuthentication() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication.getName() == null || "anonymousUser".equals(authentication.getName())) {
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || "anonymousUser".equals(authentication.getName())) {
             throw new AppException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
         }
         return authentication;

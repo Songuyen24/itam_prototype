@@ -1,27 +1,24 @@
 package com.company.itam.auth.security;
 
-import com.company.itam.common.response.ErrorResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.util.ArrayList;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
-import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.LocaleResolver;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import com.company.itam.common.response.ErrorResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-/**
- * Trả về phản hồi 401 JSON chuẩn của hệ thống khi người dùng chưa xác thực.
- *
- * <p>Sử dụng cùng cấu trúc {@link ErrorResponse} với {@code GlobalExceptionHandler}
- * để frontend xử lý thống nhất.</p>
- */
+/** Uses the shared error shape so the frontend handles authentication errors consistently. */
 @Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
@@ -32,7 +29,8 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     private final LocaleResolver localeResolver;
 
     @Autowired
-    public JwtAuthenticationEntryPoint(ObjectMapper objectMapper, MessageSource messageSource, LocaleResolver localeResolver) {
+    public JwtAuthenticationEntryPoint(
+            ObjectMapper objectMapper, MessageSource messageSource, LocaleResolver localeResolver) {
         this.objectMapper = objectMapper;
         this.messageSource = messageSource;
         this.localeResolver = localeResolver;
@@ -40,16 +38,10 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     @Override
     public void commence(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            AuthenticationException authException
-    ) throws IOException {
-        String message = messageSource.getMessage(
-                ERROR_CODE,
-                null,
-                "Unauthorized",
-                localeResolver.resolveLocale(request)
-        );
+            HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
+            throws IOException {
+        String message =
+                messageSource.getMessage(ERROR_CODE, null, "Unauthorized", localeResolver.resolveLocale(request));
 
         ErrorResponse body = new ErrorResponse(message, ERROR_CODE, new ArrayList<>());
 

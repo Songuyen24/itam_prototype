@@ -4,9 +4,27 @@
   "description": "Create and process requests for assets eligible for disposal.",
   "createTitle": "Create disposal request",
   "pendingTitle": "Disposal requests",
-  "groups": { "PENDING": "Pending", "DRAFT": "Draft", "FINAL": "Processed" },
-  "statuses": { "PENDING": "Pending", "PARTIAL": "Partially processed", "APPROVED": "Approved", "DRAFT": "Draft", "COMPLETED": "Completed", "REJECTED": "Rejected", "CANCELLED": "Cancelled" },
-  "groupStatus": { "PENDING": "Pending", "APPROVED": "Approved", "COMPLETED": "Executed", "REJECTED": "Rejected", "CANCELLED": "Cancelled" },
+  "groups": {
+    "PENDING": "Pending",
+    "DRAFT": "Draft",
+    "FINAL": "Processed"
+  },
+  "statuses": {
+    "PENDING": "Pending",
+    "PARTIAL": "Partially processed",
+    "APPROVED": "Approved",
+    "DRAFT": "Draft",
+    "COMPLETED": "Completed",
+    "REJECTED": "Rejected",
+    "CANCELLED": "Cancelled"
+  },
+  "groupStatus": {
+    "PENDING": "Pending",
+    "APPROVED": "Approved",
+    "COMPLETED": "Executed",
+    "REJECTED": "Rejected",
+    "CANCELLED": "Cancelled"
+  },
   "groupReason": "Reason",
   "execute": "Execute disposal",
   "confirmExecute": "Confirm execution",

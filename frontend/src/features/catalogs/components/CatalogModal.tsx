@@ -1,6 +1,6 @@
-import { useTranslation } from 'react-i18next';
-import React, { useState, useEffect, useRef } from 'react';
-import { AssetCategoryItem } from '../types/catalog.types';
+import { useTranslation } from "react-i18next";
+import React, { useState, useEffect, useRef } from "react";
+import { AssetCategoryItem } from "../types/catalog.types";
 
 const EMPTY_CATEGORIES: AssetCategoryItem[] = [];
 
@@ -46,15 +46,15 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
   onSave,
   onClose,
 }) => {
-  const { t } = useTranslation('catalogs');
+  const { t } = useTranslation("catalogs");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [formData, setFormData] = useState<CatalogFormData>({
-    code: '',
-    name: '',
-    address: '',
+    code: "",
+    name: "",
+    address: "",
     categoryId: categories.length > 0 ? categories[0].categoryId : undefined,
-    manufacturer: '',
-    version: '',
+    manufacturer: "",
+    version: "",
     isActive: true,
   });
 
@@ -65,12 +65,13 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
       setFormData(initialData);
     } else {
       setFormData({
-        code: '',
-        name: '',
-        address: '',
-        categoryId: categories.length > 0 ? categories[0].categoryId : undefined,
-        manufacturer: '',
-        version: '',
+        code: "",
+        name: "",
+        address: "",
+        categoryId:
+          categories.length > 0 ? categories[0].categoryId : undefined,
+        manufacturer: "",
+        version: "",
         isActive: true,
       });
     }
@@ -83,7 +84,11 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
     const opener = document.activeElement as HTMLElement | null;
     if (!dialog) return;
     dialog.showModal();
-    dialog.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)')?.focus();
+    dialog
+      .querySelector<HTMLElement>(
+        "input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)",
+      )
+      ?.focus();
     return () => {
       if (dialog.open) dialog.close();
       opener?.focus();
@@ -95,19 +100,19 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (showCodeField && !formData.code?.trim()) {
-      setValidationError(t('forms.codeRequired'));
+      setValidationError(t("forms.codeRequired"));
       return;
     }
     if (!formData.name?.trim()) {
-      setValidationError(t('forms.nameRequired'));
+      setValidationError(t("forms.nameRequired"));
       return;
     }
     if (showCategorySelect && !formData.categoryId) {
-      setValidationError(t('forms.categoryRequired'));
+      setValidationError(t("forms.categoryRequired"));
       return;
     }
     if (showSoftwareFields && !formData.manufacturer?.trim()) {
-      setValidationError(t('forms.manufacturerRequired'));
+      setValidationError(t("forms.manufacturerRequired"));
       return;
     }
 
@@ -116,131 +121,167 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
   };
 
   return (
-    <dialog ref={dialogRef} className="modal-content catalog-dialog" aria-labelledby="catalog-modal-title"
-      onCancel={event => { event.preventDefault(); if (!isSaving) onClose(); }}
-      onClick={event => { if (event.target === event.currentTarget && !isSaving) onClose(); }}>
-        <form onSubmit={handleSubmit}>
-          <div className="modal-header">
-            <h3 id="catalog-modal-title" className="modal-title">{title ?? t('forms.deleteTitle')}</h3>
-            <button type="button" className="alert-close-btn" onClick={onClose} disabled={isSaving}>
-              &times;
-            </button>
-          </div>
+    <dialog
+      ref={dialogRef}
+      className="modal-content catalog-dialog"
+      aria-labelledby="catalog-modal-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!isSaving) onClose();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget && !isSaving) onClose();
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <div className="modal-header">
+          <h3 id="catalog-modal-title" className="modal-title">
+            {title ?? t("forms.deleteTitle")}
+          </h3>
+          <button
+            type="button"
+            className="alert-close-btn"
+            onClick={onClose}
+            disabled={isSaving}
+          >
+            &times;
+          </button>
+        </div>
 
-          <div className="modal-body">
-            {(errorMessage || validationError) && (
-              <div className="alert-banner alert-danger">
-                <div>{validationError || errorMessage}</div>
-              </div>
-            )}
+        <div className="modal-body">
+          {(errorMessage || validationError) && (
+            <div className="alert-banner alert-danger">
+              <div>{validationError || errorMessage}</div>
+            </div>
+          )}
 
-            {showCodeField && (
-              <div className="form-group">
-                <label className="form-label required">{t('forms.code')}</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={formData.code || ''}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  placeholder="VD: IT_DEPT, LAPTOP..."
-                  disabled={codeDisabled}
-                />
-              </div>
-            )}
-
-            {showCategorySelect && (
-              <div className="form-group">
-                <label className="form-label required">{t('forms.category')}</label>
-                <select
-                  className="form-select"
-                  value={formData.categoryId || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, categoryId: Number(e.target.value) })
-                  }
-                >
-                  <option value="">{t('forms.chooseCategory')}</option>
-                  {categories.map((c) => (
-                    <option key={c.categoryId} value={c.categoryId}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
+          {showCodeField && (
             <div className="form-group">
-              <label className="form-label required">{t('forms.name')}</label>
+              <label className="form-label required">{t("forms.code")}</label>
               <input
                 type="text"
                 className="form-input"
-                value={formData.name || ''}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder={t('forms.namePlaceholder')}
+                value={formData.code || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, code: e.target.value })
+                }
+                placeholder="VD: IT_DEPT, LAPTOP..."
+                disabled={codeDisabled}
               />
             </div>
+          )}
 
-            {showSoftwareFields && (
-              <>
-                <div className="form-group">
-                  <label className="form-label required">{t('forms.manufacturer')}</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.manufacturer || ''}
-                    onChange={(e) =>
-                      setFormData({ ...formData, manufacturer: e.target.value })
-                    }
-                    placeholder="VD: Microsoft, JetBrains, Adobe..."
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">{t('forms.version')}</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.version || ''}
-                    onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-                    placeholder="VD: 2024, 11 Pro, 3.2..."
-                  />
-                </div>
-              </>
-            )}
+          {showCategorySelect && (
+            <div className="form-group">
+              <label className="form-label required">
+                {t("forms.category")}
+              </label>
+              <select
+                className="form-select"
+                value={formData.categoryId || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    categoryId: Number(e.target.value),
+                  })
+                }
+              >
+                <option value="">{t("forms.chooseCategory")}</option>
+                {categories.map((c) => (
+                  <option key={c.categoryId} value={c.categoryId}>
+                    {c.name} ({c.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-            {showAddressField && (
+          <div className="form-group">
+            <label className="form-label required">{t("forms.name")}</label>
+            <input
+              type="text"
+              className="form-input"
+              value={formData.name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              placeholder={t("forms.namePlaceholder")}
+            />
+          </div>
+
+          {showSoftwareFields && (
+            <>
               <div className="form-group">
-                <label className="form-label">{t('forms.address')}</label>
-                <textarea
-                  className="form-textarea"
-                  value={formData.address || ''}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder={t('forms.locationAddress')}
+                <label className="form-label required">
+                  {t("forms.manufacturer")}
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.manufacturer || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, manufacturer: e.target.value })
+                  }
+                  placeholder="VD: Microsoft, JetBrains, Adobe..."
                 />
               </div>
-            )}
-
-            <div className="form-group">
-              <label className="form-checkbox-label">
+              <div className="form-group">
+                <label className="form-label">{t("forms.version")}</label>
                 <input
-                  type="checkbox"
-                  checked={formData.isActive}
+                  type="text"
+                  className="form-input"
+                  value={formData.version || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, isActive: e.target.checked })
+                    setFormData({ ...formData, version: e.target.value })
                   }
+                  placeholder="VD: 2024, 11 Pro, 3.2..."
                 />
-                <span>{t('forms.active')}</span>
-              </label>
-            </div>
-          </div>
+              </div>
+            </>
+          )}
 
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              {t('forms.cancel')}
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={isSaving}>
-              {isSaving ? t('forms.saving') : t('forms.save')}
-            </button>
+          {showAddressField && (
+            <div className="form-group">
+              <label className="form-label">{t("forms.address")}</label>
+              <textarea
+                className="form-textarea"
+                value={formData.address || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+                placeholder={t("forms.locationAddress")}
+              />
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-checkbox-label">
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) =>
+                  setFormData({ ...formData, isActive: e.target.checked })
+                }
+              />
+              <span>{t("forms.active")}</span>
+            </label>
           </div>
-        </form>
+        </div>
+
+        <div className="modal-footer">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={isSaving}
+          >
+            {t("forms.cancel")}
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={isSaving}>
+            {isSaving ? t("forms.saving") : t("forms.save")}
+          </button>
+        </div>
+      </form>
     </dialog>
   );
 };

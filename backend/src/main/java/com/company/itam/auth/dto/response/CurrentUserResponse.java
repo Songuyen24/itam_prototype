@@ -10,8 +10,15 @@ public class CurrentUserResponse {
     private String email;
     private String employeeCode;
     private Long departmentId;
-    public String getEmployeeCode() { return employeeCode; }
-    public Long getDepartmentId() { return departmentId; }
+
+    public String getEmployeeCode() {
+        return employeeCode;
+    }
+
+    public Long getDepartmentId() {
+        return departmentId;
+    }
+
     private String fullName;
     private String roleCode;
     private String roleName;
@@ -25,7 +32,8 @@ public class CurrentUserResponse {
         dto.id = user.getUserId();
         dto.email = user.getEmail();
         dto.employeeCode = user.getEmployeeCode();
-        dto.departmentId = user.getDepartment() == null ? null : user.getDepartment().getDepartmentId();
+        dto.departmentId =
+                user.getDepartment() == null ? null : user.getDepartment().getDepartmentId();
         dto.fullName = user.getFullName();
         RoleEntity role = user.getRole();
         if (role != null) {
@@ -36,30 +44,64 @@ public class CurrentUserResponse {
         if (dept != null) {
             dto.departmentName = dept.getName();
         }
-        dto.accountStatus = user.getAccountStatus() != null
-                ? user.getAccountStatus().name()
-                : null;
+        dto.accountStatus =
+                user.getAccountStatus() != null ? user.getAccountStatus().name() : null;
         return dto;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+    public String getEmail() {
+        return email;
+    }
 
-    public String getRoleCode() { return roleCode; }
-    public void setRoleCode(String roleCode) { this.roleCode = roleCode; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-    public String getRoleName() { return roleName; }
-    public void setRoleName(String roleName) { this.roleName = roleName; }
+    public String getFullName() {
+        return fullName;
+    }
 
-    public String getDepartmentName() { return departmentName; }
-    public void setDepartmentName(String departmentName) { this.departmentName = departmentName; }
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
 
-    public String getAccountStatus() { return accountStatus; }
-    public void setAccountStatus(String accountStatus) { this.accountStatus = accountStatus; }
+    public String getRoleCode() {
+        return roleCode;
+    }
+
+    public void setRoleCode(String roleCode) {
+        this.roleCode = roleCode;
+    }
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+
+    public String getDepartmentName() {
+        return departmentName;
+    }
+
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
+    }
+
+    public String getAccountStatus() {
+        return accountStatus;
+    }
+
+    public void setAccountStatus(String accountStatus) {
+        this.accountStatus = accountStatus;
+    }
 }

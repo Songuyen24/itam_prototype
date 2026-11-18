@@ -1,6 +1,6 @@
-import { useTranslation } from 'react-i18next';
-import React, { useState, useEffect } from 'react';
-import { AssetTypeItem, ModelItem } from '../types/catalog.types';
+import { useTranslation } from "react-i18next";
+import React, { useState, useEffect } from "react";
+import { AssetTypeItem, ModelItem } from "../types/catalog.types";
 
 interface ModelModalProps {
   isOpen: boolean;
@@ -33,15 +33,15 @@ export const ModelModal: React.FC<ModelModalProps> = ({
   onSave,
   onClose,
 }) => {
-  const { t } = useTranslation('catalogs');
+  const { t } = useTranslation("catalogs");
   const [formData, setFormData] = useState({
-    name: '',
-    brand: '',
+    name: "",
+    brand: "",
     typeId: assetTypes.length > 0 ? assetTypes[0].typeId : 0,
-    defaultCpu: '',
-    defaultRam: '',
-    defaultStorage: '',
-    defaultGraphicsCard: '',
+    defaultCpu: "",
+    defaultRam: "",
+    defaultStorage: "",
+    defaultGraphicsCard: "",
     isActive: true,
   });
 
@@ -53,21 +53,21 @@ export const ModelModal: React.FC<ModelModalProps> = ({
         name: initialData.name,
         brand: initialData.brand,
         typeId: initialData.typeId,
-        defaultCpu: initialData.defaultCpu || '',
-        defaultRam: initialData.defaultRam || '',
-        defaultStorage: initialData.defaultStorage || '',
-        defaultGraphicsCard: initialData.defaultGraphicsCard || '',
+        defaultCpu: initialData.defaultCpu || "",
+        defaultRam: initialData.defaultRam || "",
+        defaultStorage: initialData.defaultStorage || "",
+        defaultGraphicsCard: initialData.defaultGraphicsCard || "",
         isActive: initialData.isActive,
       });
     } else {
       setFormData({
-        name: '',
-        brand: '',
+        name: "",
+        brand: "",
         typeId: assetTypes.length > 0 ? assetTypes[0].typeId : 0,
-        defaultCpu: '',
-        defaultRam: '',
-        defaultStorage: '',
-        defaultGraphicsCard: '',
+        defaultCpu: "",
+        defaultRam: "",
+        defaultStorage: "",
+        defaultGraphicsCard: "",
         isActive: true,
       });
     }
@@ -79,15 +79,15 @@ export const ModelModal: React.FC<ModelModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.brand.trim()) {
-      setValidationError(t('forms.brandRequired'));
+      setValidationError(t("forms.brandRequired"));
       return;
     }
     if (!formData.name.trim()) {
-      setValidationError(t('forms.modelRequired'));
+      setValidationError(t("forms.modelRequired"));
       return;
     }
     if (!formData.typeId) {
-      setValidationError(t('forms.typeRequired'));
+      setValidationError(t("forms.typeRequired"));
       return;
     }
 
@@ -100,10 +100,13 @@ export const ModelModal: React.FC<ModelModalProps> = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content modal-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
-            <h3 className="modal-title">{title ?? t('forms.deleteTitle')}</h3>
+            <h3 className="modal-title">{title ?? t("forms.deleteTitle")}</h3>
             <button type="button" className="alert-close-btn" onClick={onClose}>
               &times;
             </button>
@@ -117,13 +120,15 @@ export const ModelModal: React.FC<ModelModalProps> = ({
             )}
 
             <div className="form-group">
-              <label className="form-label required">{t('forms.type')}</label>
+              <label className="form-label required">{t("forms.type")}</label>
               <select
                 className="form-select"
                 value={formData.typeId}
-                onChange={(e) => setFormData({ ...formData, typeId: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({ ...formData, typeId: Number(e.target.value) })
+                }
               >
-                <option value="">{t('forms.chooseType')}</option>
+                <option value="">{t("forms.chooseType")}</option>
                 {assetTypes.map((t) => (
                   <option key={t.typeId} value={t.typeId}>
                     {t.name} ({t.code})
@@ -134,51 +139,71 @@ export const ModelModal: React.FC<ModelModalProps> = ({
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label required">{t('forms.brand')}</label>
+                <label className="form-label required">
+                  {t("forms.brand")}
+                </label>
                 <input
                   type="text"
                   className="form-input"
                   value={formData.brand}
-                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, brand: e.target.value })
+                  }
                   placeholder="VD: Dell, Lenovo, Apple, HP..."
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label required">{t('forms.modelName')}</label>
+                <label className="form-label required">
+                  {t("forms.modelName")}
+                </label>
                 <input
                   type="text"
                   className="form-input"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="VD: Latitude 5420, ThinkPad T14..."
                 />
               </div>
             </div>
 
-            <div style={{ marginTop: '12px', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
-              {t('forms.defaultConfig')}
+            <div
+              style={{
+                marginTop: "12px",
+                marginBottom: "8px",
+                fontSize: "13px",
+                fontWeight: 600,
+                color: "var(--text-muted)",
+              }}
+            >
+              {t("forms.defaultConfig")}
             </div>
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">{t('forms.defaultCpu')}</label>
+                <label className="form-label">{t("forms.defaultCpu")}</label>
                 <input
                   type="text"
                   className="form-input"
                   value={formData.defaultCpu}
-                  onChange={(e) => setFormData({ ...formData, defaultCpu: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, defaultCpu: e.target.value })
+                  }
                   placeholder="VD: Intel Core i5-1135G7"
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">{t('forms.defaultRam')}</label>
+                <label className="form-label">{t("forms.defaultRam")}</label>
                 <input
                   type="text"
                   className="form-input"
                   value={formData.defaultRam}
-                  onChange={(e) => setFormData({ ...formData, defaultRam: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, defaultRam: e.target.value })
+                  }
                   placeholder="VD: 16GB DDR4"
                 />
               </div>
@@ -186,46 +211,66 @@ export const ModelModal: React.FC<ModelModalProps> = ({
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">{t('forms.defaultStorage')}</label>
+                <label className="form-label">
+                  {t("forms.defaultStorage")}
+                </label>
                 <input
                   type="text"
                   className="form-input"
                   value={formData.defaultStorage}
-                  onChange={(e) => setFormData({ ...formData, defaultStorage: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, defaultStorage: e.target.value })
+                  }
                   placeholder="VD: 512GB NVMe SSD"
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">{t('forms.gpu')}</label>
+                <label className="form-label">{t("forms.gpu")}</label>
                 <input
                   type="text"
                   className="form-input"
                   value={formData.defaultGraphicsCard}
-                  onChange={(e) => setFormData({ ...formData, defaultGraphicsCard: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      defaultGraphicsCard: e.target.value,
+                    })
+                  }
                   placeholder="VD: Intel Iris Xe / RTX 3050"
                 />
               </div>
             </div>
 
-            <div className="form-group" style={{ marginTop: '12px' }}>
+            <div className="form-group" style={{ marginTop: "12px" }}>
               <label className="form-checkbox-label">
                 <input
                   type="checkbox"
                   checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isActive: e.target.checked })
+                  }
                 />
-                <span>{t('forms.modelActive')}</span>
+                <span>{t("forms.modelActive")}</span>
               </label>
             </div>
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              {t('forms.cancel')}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+              disabled={isSaving}
+            >
+              {t("forms.cancel")}
             </button>
-            <button type="submit" className="btn btn-primary" disabled={isSaving}>
-              {isSaving ? t('forms.saving') : t('forms.save')}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={isSaving}
+            >
+              {isSaving ? t("forms.saving") : t("forms.save")}
             </button>
           </div>
         </form>

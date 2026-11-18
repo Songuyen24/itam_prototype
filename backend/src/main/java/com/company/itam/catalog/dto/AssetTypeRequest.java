@@ -9,8 +9,7 @@ public class AssetTypeRequest {
     @Size(max = 50, message = "{validation.size}")
     private String code;
 
-    @NotNull(message = "{validation.required}")
-    private Long categoryId;
+    @NotNull(message = "{validation.required}") private Long categoryId;
 
     @NotBlank(message = "{validation.required}")
     @Size(max = 255, message = "{validation.size}")

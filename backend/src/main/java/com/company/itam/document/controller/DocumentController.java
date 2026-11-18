@@ -1,18 +1,14 @@
 package com.company.itam.document.controller;
 
-import com.company.itam.common.enums.DocumentType;
-import com.company.itam.common.pagination.PageResponse;
-import com.company.itam.common.response.ApiResponse;
-import com.company.itam.common.util.MessageHelper;
-import com.company.itam.document.dto.DocumentDownload;
-import com.company.itam.document.dto.DocumentResponse;
-import com.company.itam.document.dto.DocumentLibraryRow;
-import com.company.itam.workflow.core.enums.TransactionType;
-import com.company.itam.document.service.DocumentService;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Set;
+
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,8 +21,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Set;
+import com.company.itam.audit.service.DownloadAuditService;
+import com.company.itam.common.enums.DocumentType;
+import com.company.itam.common.exception.AppException;
+import com.company.itam.common.pagination.PageResponse;
+import com.company.itam.common.response.ApiResponse;
+import com.company.itam.common.util.MessageHelper;
+import com.company.itam.document.dto.DocumentDownload;
+import com.company.itam.document.dto.DocumentLibraryRow;
+import com.company.itam.document.dto.DocumentResponse;
+import com.company.itam.document.service.DocumentService;
+import com.company.itam.workflow.core.enums.TransactionType;
 
 @RestController
 @RequestMapping("/v1/documents")
@@ -36,10 +41,10 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final MessageHelper messageHelper;
-    private final com.company.itam.audit.service.DownloadAuditService downloads;
+    private final DownloadAuditService downloads;
 
-    public DocumentController(DocumentService documentService, MessageHelper messageHelper,
-            com.company.itam.audit.service.DownloadAuditService downloads) {
+    public DocumentController(
+            DocumentService documentService, MessageHelper messageHelper, DownloadAuditService downloads) {
         this.documentService = documentService;
         this.messageHelper = messageHelper;
         this.downloads = downloads;
@@ -51,7 +56,8 @@ public class DocumentController {
             @RequestParam Long transactionId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.success(messageHelper.getMessage("DOCUMENT_LIST_SUCCESS"),
+        return ResponseEntity.ok(ApiResponse.success(
+                messageHelper.getMessage("DOCUMENT_LIST_SUCCESS"),
                 documentService.getDocuments(transactionId, page, size)));
     }
 
@@ -64,15 +70,16 @@ public class DocumentController {
             @RequestParam(required = false) Long transactionId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.success(messageHelper.getMessage("DOCUMENT_LIST_SUCCESS"),
-            documentService.library(keyword, documentType, transactionType, transactionId, page, size)));
+        return ResponseEntity.ok(ApiResponse.success(
+                messageHelper.getMessage("DOCUMENT_LIST_SUCCESS"),
+                documentService.library(keyword, documentType, transactionType, transactionId, page, size)));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'PUR_STAFF')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<DocumentResponse>> getDocument(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(messageHelper.getMessage("DOCUMENT_GET_SUCCESS"),
-                documentService.getDocument(id)));
+        return ResponseEntity.ok(
+                ApiResponse.success(messageHelper.getMessage("DOCUMENT_GET_SUCCESS"), documentService.getDocument(id)));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'PUR_STAFF', 'USER')")
@@ -84,13 +91,18 @@ public class DocumentController {
         String filename = document.originalFileName().replaceAll("[\\p{Cntrl}/\\\\]", "_");
         String mimeType = document.mimeType();
         MediaType contentType = mimeType != null && DOWNLOAD_TYPES.contains(mimeType)
-                ? MediaType.parseMediaType(mimeType) : MediaType.APPLICATION_OCTET_STREAM;
+                ? MediaType.parseMediaType(mimeType)
+                : MediaType.APPLICATION_OCTET_STREAM;
         return ResponseEntity.ok()
                 .contentType(contentType)
                 .contentLength(download.content().length)
                 .cacheControl(CacheControl.noStore())
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(filename, StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
                 .header("X-Content-Type-Options", "nosniff")
                 .body(new ByteArrayResource(download.content()));
     }
@@ -101,16 +113,20 @@ public class DocumentController {
         DocumentDownload preview = documentService.download(id);
         String mimeType = preview.document().mimeType();
         if (mimeType == null || !DOWNLOAD_TYPES.contains(mimeType)) {
-            throw new com.company.itam.common.exception.AppException(org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-                "DOCUMENT_PREVIEW_UNSUPPORTED", "Preview unavailable for this file type");
+            throw new AppException(
+                    HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                    "DOCUMENT_PREVIEW_UNSUPPORTED",
+                    "Preview unavailable for this file type");
         }
         downloads.record("DOCUMENT", id, "DOCUMENT_PREVIEWED");
         return ResponseEntity.ok()
-            .cacheControl(CacheControl.noStore())
-            .header("X-Content-Type-Options", "nosniff")
-            .body(ApiResponse.success(messageHelper.getMessage("DOCUMENT_GET_SUCCESS"),
-                new PreviewData(mimeType, java.util.Base64.getEncoder().encodeToString(preview.content()))));
+                .cacheControl(CacheControl.noStore())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(ApiResponse.success(
+                        messageHelper.getMessage("DOCUMENT_GET_SUCCESS"),
+                        new PreviewData(mimeType, Base64.getEncoder().encodeToString(preview.content()))));
     }
+
     public record PreviewData(String mimeType, String contentBase64) {}
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF', 'PUR_STAFF')")
@@ -121,14 +137,17 @@ public class DocumentController {
             @RequestParam DocumentType documentType,
             @RequestParam(required = false) Long assetId,
             @RequestParam(required = false) Long expectedVersion) {
-        return ResponseEntity.ok(ApiResponse.success(messageHelper.getMessage("DOCUMENT_GET_SUCCESS"),
+        return ResponseEntity.ok(ApiResponse.success(
+                messageHelper.getMessage("DOCUMENT_GET_SUCCESS"),
                 documentService.upload(file, transactionId, documentType, assetId, expectedVersion)));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'PUR_STAFF')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id, @RequestParam(required=false) Long transactionId,
-            @RequestParam(required=false) Long expectedVersion) {
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long transactionId,
+            @RequestParam(required = false) Long expectedVersion) {
         documentService.delete(id, transactionId, expectedVersion);
         return ResponseEntity.noContent().build();
     }

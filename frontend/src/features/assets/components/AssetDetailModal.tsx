@@ -1,9 +1,9 @@
-import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
-import React, { useEffect, useRef, useState } from 'react';
-import './asset-workflow.css';
-import { AssetRelationships } from './AssetRelationships';
-import { useTranslation } from 'react-i18next';
-import { AssetDetail } from '../types/asset.types';
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import React, { useEffect, useRef, useState } from "react";
+import "./asset-workflow.css";
+import { AssetRelationships } from "./AssetRelationships";
+import { useTranslation } from "react-i18next";
+import { AssetDetail } from "../types/asset.types";
 
 interface AssetDetailModalProps {
   isOpen: boolean;
@@ -18,29 +18,38 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   asset,
   onEdit,
 }) => {
-  const { t, i18n } = useTranslation('assets');
+  const { t, i18n } = useTranslation("assets");
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [refreshedAsset, setRefreshedAsset] = useState<AssetDetail | null>(null);
+  const [refreshedAsset, setRefreshedAsset] = useState<AssetDetail | null>(
+    null,
+  );
   useEffect(() => {
     if (!isOpen || !asset) return;
     const dialog = dialogRef.current;
     if (!dialog) return;
     const previous = document.activeElement as HTMLElement | null;
     dialog?.showModal();
-    return () => { dialog?.close(); previous?.focus(); };
+    return () => {
+      dialog?.close();
+      previous?.focus();
+    };
   }, [isOpen, asset]);
   if (!isOpen || !asset) return null;
 
-  const detail = refreshedAsset?.assetId === asset.assetId ? refreshedAsset : asset;
+  const detail =
+    refreshedAsset?.assetId === asset.assetId ? refreshedAsset : asset;
   const license = detail.license;
   const cfg = asset.hardwareConfig || {};
 
   const formatCurrency = (val?: number) => {
-    return new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'VND' }).format(val ?? 0);
+    return new Intl.NumberFormat(i18n.language, {
+      style: "currency",
+      currency: "VND",
+    }).format(val ?? 0);
   };
 
   const formatDate = (val?: string) => {
-    if (!val) return '—';
+    if (!val) return "—";
     try {
       return new Date(val).toLocaleDateString(i18n.language);
     } catch {
@@ -50,236 +59,631 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
 
   const getStatusBadgeClass = (code?: string) => {
     switch (code) {
-      case 'IN_STOCK':
-        return 'badge-active';
-      case 'IN_USE':
-        return 'badge-info';
-      case 'IN_REPAIR':
-        return 'badge-warning';
-      case 'DAMAGED':
-      case 'RETIRED':
-        return 'badge-inactive';
+      case "IN_STOCK":
+        return "badge-active";
+      case "IN_USE":
+        return "badge-info";
+      case "IN_REPAIR":
+        return "badge-warning";
+      case "DAMAGED":
+      case "RETIRED":
+        return "badge-inactive";
       default:
-        return 'badge-active';
+        return "badge-active";
     }
   };
 
   return (
-    <dialog ref={dialogRef} className="asset-detail-dialog" aria-label={asset.assetTag} onCancel={onClose}>
+    <dialog
+      ref={dialogRef}
+      className="asset-detail-dialog"
+      aria-label={asset.assetTag}
+      onCancel={onClose}
+    >
       <div
         className="modal-content asset-detail-content"
-        style={{ maxWidth: '1000px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+        style={{
+          maxWidth: "1000px",
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
       >
         {/* Modal Header */}
         <div className="modal-header">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-main)' }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  color: "var(--text-main)",
+                }}
+              >
                 {asset.assetTag}
               </span>
-              <span className={`badge ${getStatusBadgeClass(asset.statusCode)}`}>
-                {asset.statusCode ? t(`common:status.${asset.statusCode}`, { defaultValue: asset.statusName || asset.statusCode }) : '—'}
+              <span
+                className={`badge ${getStatusBadgeClass(asset.statusCode)}`}
+              >
+                {asset.statusCode
+                  ? t(`common:status.${asset.statusCode}`, {
+                      defaultValue: asset.statusName || asset.statusCode,
+                    })
+                  : "—"}
               </span>
-              {asset.pendingHandover && <span className="badge badge-warning">{t('pendingHandover')}</span>}
-              {asset.pendingRecovery && <span className="badge badge-warning">{t('pendingRecovery')}</span>} {asset.pendingDisposal && <span className="badge badge-warning">{t('pendingDisposal')}</span>}
+              {asset.pendingHandover && (
+                <span className="badge badge-warning">
+                  {t("pendingHandover")}
+                </span>
+              )}
+              {asset.pendingRecovery && (
+                <span className="badge badge-warning">
+                  {t("pendingRecovery")}
+                </span>
+              )}{" "}
+              {asset.pendingDisposal && (
+                <span className="badge badge-warning">
+                  {t("pendingDisposal")}
+                </span>
+              )}
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            <div
+              style={{
+                fontSize: "13px",
+                color: "var(--text-muted)",
+                marginTop: "2px",
+              }}
+            >
               {asset.name}
             </div>
           </div>
-          <button type="button" className="btn-close" aria-label={t('detail.close')} onClick={onClose}>
+          <button
+            type="button"
+            className="btn-close"
+            aria-label={t("detail.close")}
+            onClick={onClose}
+          >
             <CloseOutlinedIcon fontSize="small" aria-hidden="true" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="asset-detail-body" style={{ overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {!onEdit && license && <p>{license.softwareName} · {t(`license.${license.assignmentTypeCode}`)} · {t(`license.${license.termTypeCode}`)}</p>}
+        <div
+          className="asset-detail-body"
+          style={{
+            overflowY: "auto",
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "24px",
+          }}
+        >
+          {!onEdit && license && (
+            <p>
+              {license.softwareName} ·{" "}
+              {t(`license.${license.assignmentTypeCode}`)} ·{" "}
+              {t(`license.${license.termTypeCode}`)}
+            </p>
+          )}
           {/* Section 1: Overview Grid */}
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              backgroundColor: '#f8fafc',
-              padding: '16px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color)',
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "16px",
+              backgroundColor: "#f8fafc",
+              padding: "16px",
+              borderRadius: "8px",
+              border: "1px solid var(--border-color)",
             }}
           >
-            {license && onEdit && <>
-              <div><div className="asset-overview-label">{t('license.software')}</div><div className="asset-overview-value">{license.softwareName}</div></div>
-              <div><div className="asset-overview-label">{t('license.assignment')}</div><div className="asset-overview-value">{t(`license.${license.assignmentTypeCode}`)}</div></div>
-              <div><div className="asset-overview-label">{t('license.term')}</div><div className="asset-overview-value">{t(`license.${license.termTypeCode}`)}</div></div>
-              <div><div className="asset-overview-label">{t('license.seats')}</div><div className="asset-overview-value">{license.seatCount}</div></div>
-              <div><div className="asset-overview-label">{t('license.allocatedSeats')}</div><div className="asset-overview-value">{license.allocatedSeats}</div></div>
-              <div><div className="asset-overview-label">{t('license.availableSeats')}</div><div className="asset-overview-value">{license.availableSeats}</div></div>
-              <div><div className="asset-overview-label">{t('license.expiry')}</div><div className="asset-overview-value">{formatDate(license.expiryDate)}</div></div>
-            </>}
+            {license && onEdit && (
+              <>
+                <div>
+                  <div className="asset-overview-label">
+                    {t("license.software")}
+                  </div>
+                  <div className="asset-overview-value">
+                    {license.softwareName}
+                  </div>
+                </div>
+                <div>
+                  <div className="asset-overview-label">
+                    {t("license.assignment")}
+                  </div>
+                  <div className="asset-overview-value">
+                    {t(`license.${license.assignmentTypeCode}`)}
+                  </div>
+                </div>
+                <div>
+                  <div className="asset-overview-label">
+                    {t("license.term")}
+                  </div>
+                  <div className="asset-overview-value">
+                    {t(`license.${license.termTypeCode}`)}
+                  </div>
+                </div>
+                <div>
+                  <div className="asset-overview-label">
+                    {t("license.seats")}
+                  </div>
+                  <div className="asset-overview-value">
+                    {license.seatCount}
+                  </div>
+                </div>
+                <div>
+                  <div className="asset-overview-label">
+                    {t("license.allocatedSeats")}
+                  </div>
+                  <div className="asset-overview-value">
+                    {license.allocatedSeats}
+                  </div>
+                </div>
+                <div>
+                  <div className="asset-overview-label">
+                    {t("license.availableSeats")}
+                  </div>
+                  <div className="asset-overview-value">
+                    {license.availableSeats}
+                  </div>
+                </div>
+                <div>
+                  <div className="asset-overview-label">
+                    {t("license.expiry")}
+                  </div>
+                  <div className="asset-overview-value">
+                    {formatDate(license.expiryDate)}
+                  </div>
+                </div>
+              </>
+            )}
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.type')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>
-                {asset.typeName || '—'} ({asset.categoryName || 'Device'})
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-muted)",
+                  fontWeight: 600,
+                }}
+              >
+                {t("detail.type")}
+              </div>
+              <div
+                style={{ fontSize: "14px", fontWeight: 600, marginTop: "2px" }}
+              >
+                {asset.typeName || "—"} ({asset.categoryName || "Device"})
               </div>
             </div>
 
-            {!license && <><div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.model')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>
-                {asset.modelBrand ? `${asset.modelBrand} ` : ''}{asset.modelName || '—'}
+            {!license && (
+              <>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-muted)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t("detail.model")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      marginTop: "2px",
+                    }}
+                  >
+                    {asset.modelBrand ? `${asset.modelBrand} ` : ""}
+                    {asset.modelName || "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-muted)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t("detail.serial")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      marginTop: "2px",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    {asset.serialNumber || "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-muted)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t("detail.condition")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      marginTop: "2px",
+                    }}
+                  >
+                    {asset.conditionName || "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-muted)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t("detail.warranty")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      marginTop: "2px",
+                    }}
+                  >
+                    {formatDate(asset.warrantyExpiration)}
+                  </div>
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-muted)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t("detail.assigned")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: asset.assignedToFullName
+                        ? "var(--primary)"
+                        : "var(--text-muted)",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {asset.assignedToFullName
+                      ? `👤 ${asset.assignedToFullName}`
+                      : t("detail.unassigned")}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-muted)",
+                  fontWeight: 600,
+                }}
+              >
+                {t("detail.department")}
+              </div>
+              <div
+                style={{ fontSize: "14px", fontWeight: 500, marginTop: "2px" }}
+              >
+                {asset.departmentName || "—"}
+              </div>
+            </div>
+
+            {!license && (
+              <>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-muted)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t("detail.location")}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      marginTop: "2px",
+                    }}
+                  >
+                    {asset.locationName || "—"}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-muted)",
+                  fontWeight: 600,
+                }}
+              >
+                {t("detail.supplier")}
+              </div>
+              <div
+                style={{ fontSize: "14px", fontWeight: 500, marginTop: "2px" }}
+              >
+                {asset.supplierName || "—"}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.serial')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px', fontFamily: 'monospace' }}>
-                {asset.serialNumber || '—'}
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-muted)",
+                  fontWeight: 600,
+                }}
+              >
+                {t("detail.po")}
+              </div>
+              <div
+                style={{ fontSize: "14px", fontWeight: 500, marginTop: "2px" }}
+              >
+                {asset.poNumber || "—"}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.condition')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
-                {asset.conditionName || '—'}
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-muted)",
+                  fontWeight: 600,
+                }}
+              >
+                {t("detail.date")}
               </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.warranty')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
-                {formatDate(asset.warrantyExpiration)}
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.assigned')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: asset.assignedToFullName ? 'var(--primary)' : 'var(--text-muted)', marginTop: '2px' }}>
-                {asset.assignedToFullName ? `👤 ${asset.assignedToFullName}` : t('detail.unassigned')}
-              </div>
-            </div></>}
-
-            <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.department')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
-                {asset.departmentName || '—'}
-              </div>
-            </div>
-
-            {!license && <><div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.location')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
-                {asset.locationName || '—'}
-              </div>
-            </div></>}
-
-            <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.supplier')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
-                {asset.supplierName || '—'}
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.po')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
-                {asset.poNumber || '—'}
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.date')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>
+              <div
+                style={{ fontSize: "14px", fontWeight: 500, marginTop: "2px" }}
+              >
                 {formatDate(asset.purchaseDate)}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('detail.cost')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a', marginTop: '2px' }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-muted)",
+                  fontWeight: 600,
+                }}
+              >
+                {t("detail.cost")}
+              </div>
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#16a34a",
+                  marginTop: "2px",
+                }}
+              >
                 {formatCurrency(asset.purchaseCost)}
               </div>
             </div>
           </div>
 
           {/* Section 2: Hardware Specs Breakdown (3 Columns Table) */}
-          {!asset.license && <>
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
-              {t('detail.config')}
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-              {t('detail.hint')}
-            </div>
+          {!asset.license && (
+            <>
+              <div>
+                <div
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: 700,
+                    color: "var(--text-main)",
+                    marginBottom: "8px",
+                  }}
+                >
+                  {t("detail.config")}
+                </div>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--text-muted)",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {t("detail.hint")}
+                </div>
 
-            <div className="table-container" style={{ border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '20%' }}>{t('detail.component')}</th>
-                    <th style={{ width: '26%' }}>{t('detail.default')}</th>
-                    <th style={{ width: '26%' }}>{t('detail.actual')}</th>
-                    <th style={{ width: '28%', backgroundColor: '#eff6ff', color: '#1e3a8a' }}>
-                      {t('detail.effective')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><strong>{t('detail.cpu')}</strong></td>
-                    <td style={{ color: 'var(--text-muted)' }}>{cfg.defaultCpu || '—'}</td>
-                    <td>{cfg.actualCpu ? <span>{cfg.actualCpu}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('detail.inherit')}</span>}</td>
-                    <td style={{ backgroundColor: '#eff6ff', fontWeight: 600, color: '#1d4ed8' }}>
-                      {cfg.effectiveCpu || '—'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><strong>{t('detail.ram')}</strong></td>
-                    <td style={{ color: 'var(--text-muted)' }}>{cfg.defaultRam || '—'}</td>
-                    <td>{cfg.actualRam ? <span>{cfg.actualRam}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('detail.inherit')}</span>}</td>
-                    <td style={{ backgroundColor: '#eff6ff', fontWeight: 600, color: '#1d4ed8' }}>
-                      {cfg.effectiveRam || '—'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><strong>{t('detail.storage')}</strong></td>
-                    <td style={{ color: 'var(--text-muted)' }}>{cfg.defaultStorage || '—'}</td>
-                    <td>{cfg.actualStorage ? <span>{cfg.actualStorage}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('detail.inherit')}</span>}</td>
-                    <td style={{ backgroundColor: '#eff6ff', fontWeight: 600, color: '#1d4ed8' }}>
-                      {cfg.effectiveStorage || '—'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><strong>{t('detail.gpu')}</strong></td>
-                    <td style={{ color: 'var(--text-muted)' }}>{cfg.defaultGraphicsCard || '—'}</td>
-                    <td>{cfg.actualGraphicsCard ? <span>{cfg.actualGraphicsCard}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('detail.inherit')}</span>}</td>
-                    <td style={{ backgroundColor: '#eff6ff', fontWeight: 600, color: '#1d4ed8' }}>
-                      {cfg.effectiveGraphicsCard || '—'}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+                <div
+                  className="table-container"
+                  style={{
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: "20%" }}>
+                          {t("detail.component")}
+                        </th>
+                        <th style={{ width: "26%" }}>{t("detail.default")}</th>
+                        <th style={{ width: "26%" }}>{t("detail.actual")}</th>
+                        <th
+                          style={{
+                            width: "28%",
+                            backgroundColor: "#eff6ff",
+                            color: "#1e3a8a",
+                          }}
+                        >
+                          {t("detail.effective")}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <strong>{t("detail.cpu")}</strong>
+                        </td>
+                        <td style={{ color: "var(--text-muted)" }}>
+                          {cfg.defaultCpu || "—"}
+                        </td>
+                        <td>
+                          {cfg.actualCpu ? (
+                            <span>{cfg.actualCpu}</span>
+                          ) : (
+                            <span
+                              style={{ color: "#94a3b8", fontStyle: "italic" }}
+                            >
+                              {t("detail.inherit")}
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          style={{
+                            backgroundColor: "#eff6ff",
+                            fontWeight: 600,
+                            color: "#1d4ed8",
+                          }}
+                        >
+                          {cfg.effectiveCpu || "—"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <strong>{t("detail.ram")}</strong>
+                        </td>
+                        <td style={{ color: "var(--text-muted)" }}>
+                          {cfg.defaultRam || "—"}
+                        </td>
+                        <td>
+                          {cfg.actualRam ? (
+                            <span>{cfg.actualRam}</span>
+                          ) : (
+                            <span
+                              style={{ color: "#94a3b8", fontStyle: "italic" }}
+                            >
+                              {t("detail.inherit")}
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          style={{
+                            backgroundColor: "#eff6ff",
+                            fontWeight: 600,
+                            color: "#1d4ed8",
+                          }}
+                        >
+                          {cfg.effectiveRam || "—"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <strong>{t("detail.storage")}</strong>
+                        </td>
+                        <td style={{ color: "var(--text-muted)" }}>
+                          {cfg.defaultStorage || "—"}
+                        </td>
+                        <td>
+                          {cfg.actualStorage ? (
+                            <span>{cfg.actualStorage}</span>
+                          ) : (
+                            <span
+                              style={{ color: "#94a3b8", fontStyle: "italic" }}
+                            >
+                              {t("detail.inherit")}
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          style={{
+                            backgroundColor: "#eff6ff",
+                            fontWeight: 600,
+                            color: "#1d4ed8",
+                          }}
+                        >
+                          {cfg.effectiveStorage || "—"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <strong>{t("detail.gpu")}</strong>
+                        </td>
+                        <td style={{ color: "var(--text-muted)" }}>
+                          {cfg.defaultGraphicsCard || "—"}
+                        </td>
+                        <td>
+                          {cfg.actualGraphicsCard ? (
+                            <span>{cfg.actualGraphicsCard}</span>
+                          ) : (
+                            <span
+                              style={{ color: "#94a3b8", fontStyle: "italic" }}
+                            >
+                              {t("detail.inherit")}
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          style={{
+                            backgroundColor: "#eff6ff",
+                            fontWeight: 600,
+                            color: "#1d4ed8",
+                          }}
+                        >
+                          {cfg.effectiveGraphicsCard || "—"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-          {/* Section 3: Audit Information */}
-          </>}
-          {onEdit && <AssetRelationships key={asset.assetId} asset={asset} onDetailRefresh={setRefreshedAsset} />}
+              {/* Section 3: Audit Information */}
+            </>
+          )}
+          {onEdit && (
+            <AssetRelationships
+              key={asset.assetId}
+              asset={asset}
+              onDetailRefresh={setRefreshedAsset}
+            />
+          )}
           <div
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              fontSize: '12px',
-              color: 'var(--text-muted)',
-              borderTop: '1px solid var(--border-color)',
-              paddingTop: '12px',
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "12px",
+              color: "var(--text-muted)",
+              borderTop: "1px solid var(--border-color)",
+              paddingTop: "12px",
             }}
           >
             <div>
-              {t('detail.created')} <strong>{asset.createdByFullName || t('detail.system')}</strong> ({formatDate(asset.createdAt)})
+              {t("detail.created")}{" "}
+              <strong>{asset.createdByFullName || t("detail.system")}</strong> (
+              {formatDate(asset.createdAt)})
             </div>
             {asset.updatedAt && (
               <div>
-                {t('detail.updated')} <strong>{asset.updatedByFullName || t('detail.system')}</strong> ({formatDate(asset.updatedAt)})
+                {t("detail.updated")}{" "}
+                <strong>{asset.updatedByFullName || t("detail.system")}</strong>{" "}
+                ({formatDate(asset.updatedAt)})
               </div>
             )}
           </div>
@@ -288,18 +692,20 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
         {/* Modal Footer */}
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onClose}>
-            {t('detail.close')}
+            {t("detail.close")}
           </button>
-          {onEdit && <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => {
-              onClose();
-              onEdit(asset);
-            }}
-          >
-            {t('detail.edit')}
-          </button>}
+          {onEdit && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                onClose();
+                onEdit(asset);
+              }}
+            >
+              {t("detail.edit")}
+            </button>
+          )}
         </div>
       </div>
     </dialog>

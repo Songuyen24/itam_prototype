@@ -1,13 +1,16 @@
 package com.company.itam.publication.service;
 
+import java.nio.charset.StandardCharsets;
+
+import jakarta.mail.MessagingException;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.mail.MailPreparationException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
-
-import java.nio.charset.StandardCharsets;
 
 @Component
 @ConditionalOnProperty(prefix = "itam.email", name = "mode", havingValue = "mailpit")
@@ -36,10 +39,11 @@ public class MailpitEmailGateway implements EmailGateway {
             helper.setSubject(subject);
             helper.setText(content, false);
             if (attachment != null) {
-                helper.addAttachment(attachment.fileName(), new ByteArrayResource(attachment.content()), attachment.mimeType());
+                helper.addAttachment(
+                        attachment.fileName(), new ByteArrayResource(attachment.content()), attachment.mimeType());
             }
-        } catch (jakarta.mail.MessagingException ex) {
-            throw new org.springframework.mail.MailPreparationException(ex);
+        } catch (MessagingException ex) {
+            throw new MailPreparationException(ex);
         }
         sender.send(message);
     }

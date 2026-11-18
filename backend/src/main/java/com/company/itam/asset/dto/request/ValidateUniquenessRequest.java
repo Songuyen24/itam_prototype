@@ -1,6 +1,7 @@
 package com.company.itam.asset.dto.request;
 
 public class ValidateUniquenessRequest {
+
     private String assetTag;
     private String serialNumber;
     private Long excludeAssetId;

@@ -1,11 +1,7 @@
 package com.company.itam.catalog.controller;
 
-import com.company.itam.catalog.dto.ModelRequest;
-import com.company.itam.catalog.dto.ModelResponse;
-import com.company.itam.catalog.service.CatalogService;
-import com.company.itam.common.pagination.PageResponse;
-import com.company.itam.common.response.ApiResponse;
 import jakarta.validation.Valid;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -13,6 +9,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import com.company.itam.catalog.dto.ModelRequest;
+import com.company.itam.catalog.dto.ModelResponse;
+import com.company.itam.catalog.service.CatalogService;
+import com.company.itam.common.pagination.PageResponse;
+import com.company.itam.common.response.ApiResponse;
 
 @RestController
 @RequestMapping("/v1/models")
@@ -51,8 +53,7 @@ public class ModelController {
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ModelResponse>> updateModel(
-            @PathVariable Long id,
-            @Valid @RequestBody ModelRequest request) {
+            @PathVariable Long id, @Valid @RequestBody ModelRequest request) {
         ModelResponse result = catalogService.updateModel(id, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật model thành công", result));
     }
@@ -67,8 +68,7 @@ public class ModelController {
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PatchMapping("/{id}/active")
     public ResponseEntity<ApiResponse<ModelResponse>> toggleActive(
-            @PathVariable Long id,
-            @RequestParam(required = false) Boolean active) {
+            @PathVariable Long id, @RequestParam(required = false) Boolean active) {
         ModelResponse result = catalogService.toggleActiveModel(id, active);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành công", result));
     }

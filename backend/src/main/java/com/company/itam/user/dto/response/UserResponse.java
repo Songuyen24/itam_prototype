@@ -10,15 +10,37 @@ public class UserResponse {
     private Long deviceCount;
     private Long componentCount;
     private Long licenseSeats;
-    public Long getDeviceCount() { return deviceCount; }
-    public Long getComponentCount() { return componentCount; }
-    public Long getLicenseSeats() { return licenseSeats; }
-    public void setHoldingCounts(long devices,long components,long seats) { deviceCount=devices; componentCount=components; licenseSeats=seats; }
+
+    public Long getDeviceCount() {
+        return deviceCount;
+    }
+
+    public Long getComponentCount() {
+        return componentCount;
+    }
+
+    public Long getLicenseSeats() {
+        return licenseSeats;
+    }
+
+    public void setHoldingCounts(long devices, long components, long seats) {
+        deviceCount = devices;
+        componentCount = components;
+        licenseSeats = seats;
+    }
+
     private String email;
     private String employeeCode;
     private Long departmentId;
-    public String getEmployeeCode() { return employeeCode; }
-    public Long getDepartmentId() { return departmentId; }
+
+    public String getEmployeeCode() {
+        return employeeCode;
+    }
+
+    public Long getDepartmentId() {
+        return departmentId;
+    }
+
     private String fullName;
     private String roleCode;
     private String roleName;
@@ -27,9 +49,18 @@ public class UserResponse {
     private boolean accessGranted;
     private boolean hasAccount;
     private boolean loginLocked;
-    public boolean isLoginLocked() { return loginLocked; }
-    public boolean isAccessGranted() { return accessGranted; }
-    public boolean isHasAccount() { return hasAccount; }
+
+    public boolean isLoginLocked() {
+        return loginLocked;
+    }
+
+    public boolean isAccessGranted() {
+        return accessGranted;
+    }
+
+    public boolean isHasAccount() {
+        return hasAccount;
+    }
 
     public UserResponse() {}
 
@@ -41,7 +72,8 @@ public class UserResponse {
         dto.loginLocked = user.isLoginLocked();
         dto.email = user.getEmail();
         dto.employeeCode = user.getEmployeeCode();
-        dto.departmentId = user.getDepartment() == null ? null : user.getDepartment().getDepartmentId();
+        dto.departmentId =
+                user.getDepartment() == null ? null : user.getDepartment().getDepartmentId();
         dto.fullName = user.getFullName();
         RoleEntity role = user.getRole();
         if (role != null) {
@@ -52,30 +84,64 @@ public class UserResponse {
         if (dept != null) {
             dto.departmentName = dept.getName();
         }
-        dto.accountStatus = user.getAccountStatus() != null
-                ? user.getAccountStatus().name()
-                : null;
+        dto.accountStatus =
+                user.getAccountStatus() != null ? user.getAccountStatus().name() : null;
         return dto;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+    public String getEmail() {
+        return email;
+    }
 
-    public String getRoleCode() { return roleCode; }
-    public void setRoleCode(String roleCode) { this.roleCode = roleCode; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-    public String getRoleName() { return roleName; }
-    public void setRoleName(String roleName) { this.roleName = roleName; }
+    public String getFullName() {
+        return fullName;
+    }
 
-    public String getDepartmentName() { return departmentName; }
-    public void setDepartmentName(String departmentName) { this.departmentName = departmentName; }
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
 
-    public String getAccountStatus() { return accountStatus; }
-    public void setAccountStatus(String accountStatus) { this.accountStatus = accountStatus; }
+    public String getRoleCode() {
+        return roleCode;
+    }
+
+    public void setRoleCode(String roleCode) {
+        this.roleCode = roleCode;
+    }
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+
+    public String getDepartmentName() {
+        return departmentName;
+    }
+
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
+    }
+
+    public String getAccountStatus() {
+        return accountStatus;
+    }
+
+    public void setAccountStatus(String accountStatus) {
+        this.accountStatus = accountStatus;
+    }
 }

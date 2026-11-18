@@ -1,12 +1,13 @@
 package com.company.itam.asset.dto.request;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
 
 public class CreateHardwareAssetRequest {
 
@@ -23,17 +24,22 @@ public class CreateHardwareAssetRequest {
     @Size(max = 100, message = "{validation.size}")
     private String assetTag;
 
-    @jakarta.validation.Valid
+    @Valid
     private LicenseDetailsRequest license;
-    public LicenseDetailsRequest getLicense() { return license; }
-    public void setLicense(LicenseDetailsRequest license) { this.license = license; }
+
+    public LicenseDetailsRequest getLicense() {
+        return license;
+    }
+
+    public void setLicense(LicenseDetailsRequest license) {
+        this.license = license;
+    }
 
     @NotBlank(message = "{validation.required}")
     @Size(max = 255, message = "{validation.size}")
     private String name;
 
-    @NotNull(message = "{validation.required}")
-    private Long typeId;
+    @NotNull(message = "{validation.required}") private Long typeId;
 
     private Long statusId;
 

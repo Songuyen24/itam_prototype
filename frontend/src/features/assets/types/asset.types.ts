@@ -76,10 +76,19 @@ export interface Asset {
 }
 
 export interface LicenseInput {
-  softwareCatalogId: number; assignmentTypeId: number; termTypeId: number; seatCount: number; licenseKey?: string; expiryDate?: string;
+  softwareCatalogId: number;
+  assignmentTypeId: number;
+  termTypeId: number;
+  seatCount: number;
+  licenseKey?: string;
+  expiryDate?: string;
 }
 export interface LicenseDetail extends LicenseInput {
-  softwareName: string; assignmentTypeCode: string; termTypeCode: string; allocatedSeats: number; availableSeats: number;
+  softwareName: string;
+  assignmentTypeCode: string;
+  termTypeCode: string;
+  allocatedSeats: number;
+  availableSeats: number;
 }
 
 export interface AssetDetail extends Asset {
@@ -93,7 +102,7 @@ export interface AssetDetail extends Asset {
 }
 
 export interface CreateHardwareAssetPayload {
-  creationPurpose: 'BASELINE';
+  creationPurpose: "BASELINE";
   assetTag: string;
   name: string;
   typeId: number;

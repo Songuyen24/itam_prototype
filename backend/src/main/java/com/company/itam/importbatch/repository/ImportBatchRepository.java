@@ -1,7 +1,8 @@
 package com.company.itam.importbatch.repository;
 
-import com.company.itam.importbatch.entity.ImportBatchEntity;
-import com.company.itam.common.enums.ImportBatchStatus;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,18 +10,20 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import com.company.itam.common.enums.ImportBatchStatus;
+import com.company.itam.importbatch.entity.ImportBatchEntity;
 
 @Repository
 public interface ImportBatchRepository extends JpaRepository<ImportBatchEntity, Long> {
-    Optional<ImportBatchEntity> findByRequestId(java.util.UUID requestId);
+    Optional<ImportBatchEntity> findByRequestId(UUID requestId);
 
     /**
      * List all batches with uploadedBy eagerly loaded.
      * Prevents LazyInitializationException + N+1 in AssetImportService.fillBatchResponse().
      */
-    @Query(value = "SELECT b FROM ImportBatchEntity b LEFT JOIN FETCH b.uploadedBy",
-           countQuery = "SELECT COUNT(b) FROM ImportBatchEntity b")
+    @Query(
+            value = "SELECT b FROM ImportBatchEntity b LEFT JOIN FETCH b.uploadedBy",
+            countQuery = "SELECT COUNT(b) FROM ImportBatchEntity b")
     Page<ImportBatchEntity> findAllWithUploadedBy(Pageable pageable);
 
     /**
@@ -42,5 +45,6 @@ public interface ImportBatchRepository extends JpaRepository<ImportBatchEntity, 
     Optional<ImportBatchEntity> findByIdWithUploadedBy(@Param("id") Long id);
 
     Page<ImportBatchEntity> findByStatus(ImportBatchStatus status, Pageable pageable);
+
     Page<ImportBatchEntity> findByUploadedByUserId(Long userId, Pageable pageable);
 }

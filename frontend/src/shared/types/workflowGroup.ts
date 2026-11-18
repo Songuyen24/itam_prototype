@@ -1,6 +1,6 @@
 export interface WorkflowGroup {
   groupId: string;
-  status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
+  status: "PENDING" | "APPROVED" | "COMPLETED" | "REJECTED" | "CANCELLED";
   assetIds: number[];
   allocationIds: number[];
   reason?: string | null;

@@ -1,13 +1,13 @@
 package com.company.itam.catalog.dto;
 
-import com.company.itam.common.enums.AssetCondition;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import com.company.itam.common.enums.AssetCondition;
+
 public class AssetConditionRequest {
-    @NotNull(message = "{validation.required}")
-    private AssetCondition code;
+    @NotNull(message = "{validation.required}") private AssetCondition code;
 
     @NotBlank(message = "{validation.required}")
     @Size(max = 255, message = "{validation.size}")

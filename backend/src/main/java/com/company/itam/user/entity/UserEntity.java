@@ -1,10 +1,13 @@
 package com.company.itam.user.entity;
 
+import java.time.Instant;
+
+import jakarta.persistence.*;
+
 import com.company.itam.common.enums.AccountStatus;
+import com.company.itam.common.enums.Role;
 import com.company.itam.department.entity.DepartmentEntity;
 import com.company.itam.role.entity.RoleEntity;
-import jakarta.persistence.*;
-import java.time.Instant;
 
 @Entity
 @Table(name = "users")
@@ -23,8 +26,14 @@ public class UserEntity {
 
     @Column(name = "employee_code", length = 100)
     private String employeeCode;
-    public String getEmployeeCode() { return employeeCode; }
-    public void setEmployeeCode(String value) { employeeCode = value; }
+
+    public String getEmployeeCode() {
+        return employeeCode;
+    }
+
+    public void setEmployeeCode(String value) {
+        employeeCode = value;
+    }
 
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
@@ -37,20 +46,41 @@ public class UserEntity {
 
     @Column(name = "login_locked", nullable = false)
     private boolean loginLocked;
-    public boolean isLoginLocked() { return loginLocked; }
-    public void setLoginLocked(boolean value) { loginLocked = value; }
+
+    public boolean isLoginLocked() {
+        return loginLocked;
+    }
+
+    public void setLoginLocked(boolean value) {
+        loginLocked = value;
+    }
+
     public boolean isLoginBlocked() {
         return loginLocked;
     }
 
-    public boolean isAccessGranted() { return accessGranted; }
-    public void setAccessGranted(boolean value) { accessGranted = value; }
-    public long getAccessVersion() { return accessVersion; }
-    public void setAccessVersion(long value) { accessVersion = value; }
+    public boolean isAccessGranted() {
+        return accessGranted;
+    }
+
+    public void setAccessGranted(boolean value) {
+        accessGranted = value;
+    }
+
+    public long getAccessVersion() {
+        return accessVersion;
+    }
+
+    public void setAccessVersion(long value) {
+        accessVersion = value;
+    }
+
     public boolean canLogin() {
-        return !isLoginBlocked() && passwordHash != null
-                && role != null && role.getCode() != null
-                && (role.getCode() != com.company.itam.common.enums.Role.USER || accessGranted);
+        return !isLoginBlocked()
+                && passwordHash != null
+                && role != null
+                && role.getCode() != null
+                && (role.getCode() != Role.USER || accessGranted);
     }
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -108,8 +138,13 @@ public class UserEntity {
         this.fullName = fullName;
     }
 
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 
     public RoleEntity getRole() {
         return role;

@@ -1,16 +1,23 @@
-export const DOCUMENT_ROLES = ['ADMIN', 'IT_STAFF', 'PUR_STAFF'];
+export const DOCUMENT_ROLES = ["ADMIN", "IT_STAFF", "PUR_STAFF"];
 
-export type TransactionType = 'IMPORT' | 'HANDOVER' | 'RECOVERY' | 'DISPOSAL';
-export type TransactionStatus = 'DRAFT' | 'PENDING' | 'PARTIAL' | 'APPROVED' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
+export type TransactionType = "IMPORT" | "HANDOVER" | "RECOVERY" | "DISPOSAL";
+export type TransactionStatus =
+  | "DRAFT"
+  | "PENDING"
+  | "PARTIAL"
+  | "APPROVED"
+  | "COMPLETED"
+  | "REJECTED"
+  | "CANCELLED";
 export type DocumentType =
-  | 'INVOICE'
-  | 'PURCHASE_ORDER'
-  | 'IMPORT_RECEIPT'
-  | 'HANDOVER_REPORT'
-  | 'RECOVERY_REPORT'
-  | 'DISPOSAL_REPORT'
-  | 'CONTRACT'
-  | 'OTHER';
+  | "INVOICE"
+  | "PURCHASE_ORDER"
+  | "IMPORT_RECEIPT"
+  | "HANDOVER_REPORT"
+  | "RECOVERY_REPORT"
+  | "DISPOSAL_REPORT"
+  | "CONTRACT"
+  | "OTHER";
 
 export interface DocumentTransaction {
   transactionId: number;

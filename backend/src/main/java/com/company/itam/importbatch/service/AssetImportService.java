@@ -1,19 +1,40 @@
 package com.company.itam.importbatch.service;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.company.itam.asset.entity.AssetEntity;
 import com.company.itam.asset.entity.AssetHardwareDetailsEntity;
 import com.company.itam.asset.repository.AssetHardwareDetailsRepository;
 import com.company.itam.asset.repository.AssetRepository;
+import com.company.itam.asset.service.LicenseDetailsService;
 import com.company.itam.audit.entity.AuditLogEntity;
 import com.company.itam.audit.repository.AuditLogRepository;
 import com.company.itam.catalog.entity.*;
 import com.company.itam.catalog.repository.*;
+import com.company.itam.common.enums.AssetCategory;
 import com.company.itam.common.enums.AssetStatus;
 import com.company.itam.common.enums.ImportBatchStatus;
 import com.company.itam.common.enums.ValidationStatus;
 import com.company.itam.common.exception.AppException;
 import com.company.itam.common.exception.ResourceNotFoundException;
 import com.company.itam.common.pagination.PageResponse;
+import com.company.itam.common.util.MessageHelper;
 import com.company.itam.department.entity.DepartmentEntity;
 import com.company.itam.department.repository.DepartmentRepository;
 import com.company.itam.importbatch.dto.request.ImportConfirmRequest;
@@ -28,35 +49,28 @@ import com.company.itam.supplier.entity.SupplierEntity;
 import com.company.itam.supplier.repository.SupplierRepository;
 import com.company.itam.user.entity.UserEntity;
 import com.company.itam.user.repository.UserRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.company.itam.workflow.core.dto.TransactionSummaryResponse;
+import com.company.itam.workflow.receiving.service.ImportDraftService;
 
 @Service
 @Transactional(readOnly = true)
 public class AssetImportService {
 
-    @org.springframework.beans.factory.annotation.Autowired
-    private org.springframework.jdbc.core.JdbcTemplate jdbc;
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.company.itam.common.util.MessageHelper messages;
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.company.itam.workflow.receiving.service.ImportDraftService drafts;
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.company.itam.asset.service.LicenseDetailsService licenses;
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    @Autowired
+    private MessageHelper messages;
+
+    @Autowired
+    private ImportDraftService drafts;
+
+    @Autowired
+    private LicenseDetailsService licenses;
+
+    @Autowired
     private PdfAssetReader pdfReader;
+
     private final ExcelHelperService excelHelperService;
     private final AssetImportValidator assetImportValidator;
     private final ImportBatchRepository importBatchRepository;
@@ -119,22 +133,19 @@ public class AssetImportService {
         return previewRows(file.getOriginalFilename(), pdfReader.read(file));
     }
 
-    public ImportPreviewResponse previewRows(String fileName, List<Map<String,Object>> rawRows) {
+    public ImportPreviewResponse previewRows(String fileName, List<Map<String, Object>> rawRows) {
         List<ImportRowDetailResponse> validatedRows = assetImportValidator.validateRows(rawRows);
 
         int total = validatedRows.size();
-        int valid = (int) validatedRows.stream().filter(r -> r.getValidationStatus() == ValidationStatus.VALID).count();
-        int duplicate = (int) validatedRows.stream().filter(r -> r.getValidationStatus() == ValidationStatus.DUPLICATE).count();
+        int valid = (int) validatedRows.stream()
+                .filter(r -> r.getValidationStatus() == ValidationStatus.VALID)
+                .count();
+        int duplicate = (int) validatedRows.stream()
+                .filter(r -> r.getValidationStatus() == ValidationStatus.DUPLICATE)
+                .count();
         int invalid = total - valid - duplicate;
 
-        return new ImportPreviewResponse(
-                fileName,
-                total,
-                valid,
-                invalid,
-                duplicate,
-                validatedRows
-        );
+        return new ImportPreviewResponse(fileName, total, valid, invalid, duplicate, validatedRows);
     }
 
     @Transactional
@@ -149,24 +160,30 @@ public class AssetImportService {
         // Serialize retries on the same draft before checking request identity/version.
         jdbc.queryForList("SELECT transaction_id FROM transactions WHERE transaction_id=? FOR UPDATE", Long.class, id);
         var replay = findReplay(request, id, resolveCurrentUser());
-        var draft = drafts.lockDraft(id, replay == null ? version : jdbc.queryForObject(
-                "SELECT content_version FROM transactions WHERE transaction_id=?", Long.class, id));
-        if (replay != null) return Map.of("transaction", com.company.itam.workflow.core.dto.TransactionSummaryResponse.fromEntity(draft), "batch", replay);
+        var draft = drafts.lockDraft(
+                id,
+                replay == null
+                        ? version
+                        : jdbc.queryForObject(
+                                "SELECT content_version FROM transactions WHERE transaction_id=?", Long.class, id));
+        if (replay != null) return Map.of("transaction", TransactionSummaryResponse.fromEntity(draft), "batch", replay);
         var batch = importRows(request, id);
-        return Map.of("transaction", com.company.itam.workflow.core.dto.TransactionSummaryResponse.fromEntity(draft), "batch", batch);
+        return Map.of("transaction", TransactionSummaryResponse.fromEntity(draft), "batch", batch);
     }
 
     private void requireRole(String... roles) {
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getAuthorities().stream().noneMatch(a -> Set.of(roles).contains(a.getAuthority())))
-            throw new org.springframework.security.access.AccessDeniedException("Access denied");
+        if (auth == null
+                || auth.getAuthorities().stream().noneMatch(a -> Set.of(roles).contains(a.getAuthority())))
+            throw new AccessDeniedException("Access denied");
     }
 
     private ImportBatchDetailResponse importRows(ImportConfirmRequest request, Long receivingId) {
         // Same database lock as generated/manual tags, acquired before revalidation.
         jdbc.queryForList("SELECT pg_advisory_xact_lock(74101301)");
         if (request.getValidRows() == null || request.getValidRows().isEmpty()) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "NO_DATA_TO_IMPORT", "Danh sách dữ liệu cần import không được để trống");
+            throw new AppException(
+                    HttpStatus.BAD_REQUEST, "NO_DATA_TO_IMPORT", "Danh sách dữ liệu cần import không được để trống");
         }
 
         UserEntity currentUser = resolveCurrentUser();
@@ -176,7 +193,8 @@ public class AssetImportService {
 
         var replay = findReplay(request, receivingId, currentUser);
         if (replay != null) return replay;
-        // Re-validate all submitted rows against current DB state to prevent concurrency race conditions
+        // Re-validate all submitted rows against current DB state to prevent concurrency race
+        // conditions
         List<ImportRowDetailResponse> validationResults = assetImportValidator.validateRows(request.getValidRows());
 
         applyRetry(request, receivingId, currentUser, validationResults);
@@ -190,7 +208,9 @@ public class AssetImportService {
 
         int totalCount = validationResults.size();
         int validCount = validRows.size();
-        int duplicateCount = (int) validationResults.stream().filter(r -> r.getValidationStatus() == ValidationStatus.DUPLICATE).count();
+        int duplicateCount = (int) validationResults.stream()
+                .filter(r -> r.getValidationStatus() == ValidationStatus.DUPLICATE)
+                .count();
         int invalidCount = totalCount - validCount - duplicateCount;
 
         // Create Import Batch
@@ -219,10 +239,10 @@ public class AssetImportService {
                 modelRepository.findAll(),
                 departmentRepository.findAll(),
                 locationRepository.findAll(),
-                supplierRepository.findAll()
-        );
+                supplierRepository.findAll());
 
-        AssetStatusEntity defaultStatus = assetStatusRepository.findByCode(AssetStatus.IN_STOCK)
+        AssetStatusEntity defaultStatus = assetStatusRepository
+                .findByCode(AssetStatus.IN_STOCK)
                 .orElseGet(() -> assetStatusRepository.findAll().stream()
                         .filter(s -> s.getCode() == AssetStatus.IN_STOCK)
                         .findFirst()
@@ -231,16 +251,19 @@ public class AssetImportService {
         List<ImportRowEntity> importRowEntities = new ArrayList<>();
 
         Set<String> submittedTags = request.getValidRows().stream()
-                .map(row -> AssetImportValidator.normalize(row.get("assetTag"))).filter(Objects::nonNull)
-                .map(tag -> tag.toLowerCase(Locale.ROOT)).collect(Collectors.toSet());
+                .map(row -> AssetImportValidator.normalize(row.get("assetTag")))
+                .filter(Objects::nonNull)
+                .map(tag -> tag.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toSet());
         // Process valid rows
         for (ImportRowDetailResponse rowDetail : validRows) {
             Map<String, Object> data = rowDetail.getRawData();
 
             String assetTag = AssetImportValidator.normalize(data.get("assetTag"));
             if (assetTag == null) {
-                do { assetTag = assetRepository.nextGeneratedAssetTag(); }
-                while (submittedTags.contains(assetTag.toLowerCase(Locale.ROOT)));
+                do {
+                    assetTag = assetRepository.nextGeneratedAssetTag();
+                } while (submittedTags.contains(assetTag.toLowerCase(Locale.ROOT)));
             }
             String name = AssetImportValidator.normalize(data.get("name"));
             String typeStr = AssetImportValidator.normalize(data.get("type"));
@@ -270,13 +293,18 @@ public class AssetImportService {
             if (receivingId != null) {
                 var input = assetImportValidator.toRequest(data, cache);
                 input.setAssetTag(assetTag);
-                Long version = jdbc.queryForObject("SELECT content_version FROM transactions WHERE transaction_id=?", Long.class, receivingId);
+                Long version = jdbc.queryForObject(
+                        "SELECT content_version FROM transactions WHERE transaction_id=?", Long.class, receivingId);
                 drafts.addHardware(receivingId, version, input);
                 AssetEntity received = assetRepository.findByAssetTag(assetTag).orElseThrow();
                 ImportRowEntity imported = new ImportRowEntity();
-                imported.setImportBatch(savedBatch); imported.setRowNumber(rowDetail.getRowNumber());
-                imported.setRawData(data); imported.setValidationStatus(ValidationStatus.IMPORTED);
-                imported.setAsset(received); imported.setCreatedAt(Instant.now()); importRowEntities.add(imported);
+                imported.setImportBatch(savedBatch);
+                imported.setRowNumber(rowDetail.getRowNumber());
+                imported.setRawData(data);
+                imported.setValidationStatus(ValidationStatus.IMPORTED);
+                imported.setAsset(received);
+                imported.setCreatedAt(Instant.now());
+                importRowEntities.add(imported);
                 continue;
             }
             // 1. Create Asset
@@ -309,8 +337,9 @@ public class AssetImportService {
             hw.setActualStorage(AssetImportValidator.normalize(data.get("actualStorage")));
             hw.setActualGraphicsCard(AssetImportValidator.normalize(data.get("actualGraphicsCard")));
 
-            if (typeEntity.getCategory() != null && typeEntity.getCategory().getCode() == com.company.itam.common.enums.AssetCategory.LICENSE)
-                licenses.save(savedAsset, assetImportValidator.toRequest(data, cache).getLicense());
+            if (typeEntity.getCategory() != null && typeEntity.getCategory().getCode() == AssetCategory.LICENSE)
+                licenses.save(
+                        savedAsset, assetImportValidator.toRequest(data, cache).getLicense());
             else assetHardwareDetailsRepository.save(hw);
 
             // 3. Create ImportRow record
@@ -330,7 +359,8 @@ public class AssetImportService {
             assetAudit.setEntityId(savedAsset.getAssetId());
             assetAudit.setActor(currentUser);
             assetAudit.setAction("CREATED_VIA_IMPORT");
-            assetAudit.setDetails("Tạo tài sản từ file nhập liệu: " + request.getFileName() + " (Lô: #" + savedBatch.getImportBatchId() + ")");
+            assetAudit.setDetails("Tạo tài sản từ file nhập liệu: " + request.getFileName() + " (Lô: #"
+                    + savedBatch.getImportBatchId() + ")");
             auditLogRepository.save(assetAudit);
         }
 
@@ -342,9 +372,13 @@ public class AssetImportService {
                 rowEntity.setRowNumber(nonValidRow.getRowNumber());
                 rowEntity.setRawData(nonValidRow.getRawData());
                 rowEntity.setValidationStatus(nonValidRow.getValidationStatus());
-                rowEntity.setErrorMessage(nonValidRow.getErrorMessage() != null ? nonValidRow.getErrorMessage() : "Dòng dữ liệu không hợp lệ");
+                rowEntity.setErrorMessage(
+                        nonValidRow.getErrorMessage() != null
+                                ? nonValidRow.getErrorMessage()
+                                : "Dòng dữ liệu không hợp lệ");
                 rowEntity.setValidationErrors(nonValidRow.getErrors());
-                if (nonValidRow.getAssetId() != null) rowEntity.setAsset(assetRepository.getReferenceById(nonValidRow.getAssetId()));
+                if (nonValidRow.getAssetId() != null)
+                    rowEntity.setAsset(assetRepository.getReferenceById(nonValidRow.getAssetId()));
                 rowEntity.setCreatedAt(Instant.now());
                 importRowEntities.add(rowEntity);
             }
@@ -357,14 +391,17 @@ public class AssetImportService {
         batchAudit.setEntityType("IMPORT_BATCH");
         batchAudit.setEntityId(savedBatch.getImportBatchId());
         batchAudit.setActor(currentUser);
-        batchAudit.setAction(request.getFileName().toLowerCase(Locale.ROOT).endsWith(".pdf") ? "IMPORT_PDF" : "IMPORT_EXCEL");
+        batchAudit.setAction(
+                request.getFileName().toLowerCase(Locale.ROOT).endsWith(".pdf") ? "IMPORT_PDF" : "IMPORT_EXCEL");
         batchAudit.setDetails("Nhập thành công " + validCount + " tài sản từ file " + request.getFileName());
         auditLogRepository.save(batchAudit);
 
         ImportBatchDetailResponse response = new ImportBatchDetailResponse();
         fillBatchResponse(response, savedBatch);
-        response.setRows(importRowEntities.stream().map(this::mapToRowDetailResponse)
-                .sorted(Comparator.comparing(ImportRowDetailResponse::getRowNumber)).toList());
+        response.setRows(importRowEntities.stream()
+                .map(this::mapToRowDetailResponse)
+                .sorted(Comparator.comparing(ImportRowDetailResponse::getRowNumber))
+                .toList());
         return response;
     }
 
@@ -373,40 +410,50 @@ public class AssetImportService {
         var existing = importBatchRepository.findByRequestId(request.getRequestId());
         if (existing.isEmpty()) return null;
         var batch = existing.get();
-        if (user == null || !Objects.equals(batch.getUploadedBy().getUserId(), user.getUserId())
+        if (user == null
+                || !Objects.equals(batch.getUploadedBy().getUserId(), user.getUserId())
                 || !Objects.equals(batch.getReceivingId(), receivingId))
-            throw new org.springframework.security.access.AccessDeniedException("Access denied");
+            throw new AccessDeniedException("Access denied");
         var previousRows = importRowRepository.findByImportBatchImportBatchIdWithAsset(batch.getImportBatchId());
         if (!Objects.equals(batch.getFileName(), request.getFileName())
                 || !Objects.equals(batch.getRetryBatchId(), request.getRetryBatchId())
-                || request.getValidRows() == null || previousRows.size() != request.getValidRows().size()
-                || previousRows.stream().anyMatch(old -> request.getValidRows().stream().noneMatch(row ->
-                    row != null && Objects.equals(old.getRowNumber(), row.get("rowNumber")) && sameInput(old.getRawData(), row))))
+                || request.getValidRows() == null
+                || previousRows.size() != request.getValidRows().size()
+                || previousRows.stream().anyMatch(old -> request.getValidRows().stream()
+                        .noneMatch(row -> row != null
+                                && Objects.equals(old.getRowNumber(), row.get("rowNumber"))
+                                && sameInput(old.getRawData(), row))))
             throw new AppException(HttpStatus.CONFLICT, "IMPORT_REQUEST_CHANGED", "IMPORT_REQUEST_CHANGED");
         return getImportBatchById(batch.getImportBatchId());
     }
 
-    private void applyRetry(ImportConfirmRequest request, Long receivingId, UserEntity user,
-            List<ImportRowDetailResponse> rows) {
+    private void applyRetry(
+            ImportConfirmRequest request, Long receivingId, UserEntity user, List<ImportRowDetailResponse> rows) {
         Long previous = request.getRetryBatchId();
         Set<Long> visited = new HashSet<>();
         Set<Integer> matchedRows = new HashSet<>();
         while (previous != null && visited.add(previous)) {
-            var batch = importBatchRepository.findByIdWithUploadedBy(previous)
+            var batch = importBatchRepository
+                    .findByIdWithUploadedBy(previous)
                     .orElseThrow(() -> new ResourceNotFoundException("IMPORT_RETRY_NOT_FOUND"));
             if (!Objects.equals(batch.getUploadedBy().getUserId(), user.getUserId())
                     || !Objects.equals(batch.getReceivingId(), receivingId))
-                throw new org.springframework.security.access.AccessDeniedException("Access denied");
+                throw new AccessDeniedException("Access denied");
             for (var prior : importRowRepository.findByImportBatchImportBatchIdWithAsset(previous)) {
                 if (prior.getValidationStatus() != ValidationStatus.IMPORTED) continue;
                 for (var row : rows) {
-                    // Match a multiset: repaired files may reorder rows; identical purchases retain their count.
+                    // Match a multiset: repaired files may reorder rows; identical purchases retain
+                    // their count.
                     if (!matchedRows.contains(row.getRowNumber()) && sameInput(prior.getRawData(), row.getRawData())) {
                         matchedRows.add(row.getRowNumber());
                         row.setValidationStatus(ValidationStatus.DUPLICATE);
                         row.setAssetId(prior.getAsset().getAssetId());
                         row.setErrorMessage(messages.getMessage("ALREADY_IMPORTED"));
-                        row.setErrors(List.of(new ImportRowErrorResponse(row.getRowNumber(), "rowNumber", "ALREADY_IMPORTED", messages.getMessage("ALREADY_IMPORTED"))));
+                        row.setErrors(List.of(new ImportRowErrorResponse(
+                                row.getRowNumber(),
+                                "rowNumber",
+                                "ALREADY_IMPORTED",
+                                messages.getMessage("ALREADY_IMPORTED"))));
                         break;
                     }
                 }
@@ -416,19 +463,22 @@ public class AssetImportService {
     }
 
     private boolean sameInput(Map<String, Object> first, Map<String, Object> second) {
-        return Arrays.stream(ExcelHelperService.FIELD_KEYS).allMatch(key -> Objects.equals(
-                AssetImportValidator.normalize(first.get(key)), AssetImportValidator.normalize(second.get(key))));
+        return Arrays.stream(ExcelHelperService.FIELD_KEYS)
+                .allMatch(key -> Objects.equals(
+                        AssetImportValidator.normalize(first.get(key)),
+                        AssetImportValidator.normalize(second.get(key))));
     }
 
     public PageResponse<ImportBatchResponse> getImportBatches(Pageable pageable) {
-        // Dùng query có JOIN FETCH uploadedBy để tránh LazyInit + N+1 trong fillBatchResponse().
+        // Fetch uploadedBy before fillBatchResponse() to avoid lazy loading and N+1 queries.
         Page<ImportBatchEntity> page = importBatchRepository.findAllWithUploadedBy(pageable);
         return PageResponse.of(page.map(this::mapToBatchResponse));
     }
 
     public ImportBatchDetailResponse getImportBatchById(Long id) {
-        // Dùng query có JOIN FETCH uploadedBy để tránh LazyInit trong fillBatchResponse().
-        ImportBatchEntity batch = importBatchRepository.findByIdWithUploadedBy(id)
+        // Fetch uploadedBy before fillBatchResponse() runs outside the repository transaction.
+        ImportBatchEntity batch = importBatchRepository
+                .findByIdWithUploadedBy(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đợt import với ID: " + id));
 
         ImportBatchDetailResponse response = new ImportBatchDetailResponse();
@@ -451,7 +501,8 @@ public class AssetImportService {
 
         List<ImportRowEntity> rows = importRowRepository.findByImportBatchImportBatchIdWithAsset(id);
         return rows.stream()
-                .filter(r -> r.getValidationStatus() == ValidationStatus.INVALID || r.getValidationStatus() == ValidationStatus.DUPLICATE)
+                .filter(r -> r.getValidationStatus() == ValidationStatus.INVALID
+                        || r.getValidationStatus() == ValidationStatus.DUPLICATE)
                 .map(this::mapToRowDetailResponse)
                 .sorted(Comparator.comparing(ImportRowDetailResponse::getRowNumber))
                 .collect(Collectors.toList());
@@ -497,7 +548,10 @@ public class AssetImportService {
 
     private UserEntity resolveCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && auth.getName() != null && !"anonymousUser".equals(auth.getName())) {
+        if (auth != null
+                && auth.isAuthenticated()
+                && auth.getName() != null
+                && !"anonymousUser".equals(auth.getName())) {
             Optional<UserEntity> user = userRepository.findByPrincipal(auth.getName());
             if (user.isPresent()) {
                 return user.get();

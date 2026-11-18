@@ -1,12 +1,8 @@
 package com.company.itam.workflow.core.controller;
 
-import com.company.itam.common.pagination.PageResponse;
-import com.company.itam.common.response.ApiResponse;
-import com.company.itam.common.util.MessageHelper;
-import com.company.itam.workflow.core.dto.TransactionSummaryResponse;
-import com.company.itam.workflow.core.enums.TransactionStatus;
-import com.company.itam.workflow.core.enums.TransactionType;
-import com.company.itam.workflow.core.service.TransactionReadService;
+import java.time.LocalDate;
+import java.util.Set;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +10,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import java.time.LocalDate;
+
+import com.company.itam.common.pagination.PageResponse;
+import com.company.itam.common.response.ApiResponse;
+import com.company.itam.common.util.MessageHelper;
+import com.company.itam.workflow.core.dto.TransactionSummaryResponse;
+import com.company.itam.workflow.core.enums.TransactionStatus;
+import com.company.itam.workflow.core.enums.TransactionType;
+import com.company.itam.workflow.core.service.TransactionReadService;
 
 @RestController
 @RequestMapping("/v1/transactions")
@@ -33,19 +36,20 @@ public class TransactionReadController {
     public ResponseEntity<ApiResponse<PageResponse<TransactionSummaryResponse>>> getTransactions(
             @RequestParam(required = false) TransactionType type,
             @RequestParam(required = false) TransactionStatus status,
-            @RequestParam(required = false) java.util.Set<TransactionStatus> statuses,
+            @RequestParam(required = false) Set<TransactionStatus> statuses,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.success(messageHelper.getMessage("TRANSACTION_LIST_SUCCESS"),
+        return ResponseEntity.ok(ApiResponse.success(
+                messageHelper.getMessage("TRANSACTION_LIST_SUCCESS"),
                 transactionService.getTransactions(type, status, statuses, keyword, from, to, page, size)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TransactionSummaryResponse>> getTransaction(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(messageHelper.getMessage("TRANSACTION_GET_SUCCESS"),
-                transactionService.getTransaction(id)));
+        return ResponseEntity.ok(ApiResponse.success(
+                messageHelper.getMessage("TRANSACTION_GET_SUCCESS"), transactionService.getTransaction(id)));
     }
 }

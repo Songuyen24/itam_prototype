@@ -1,13 +1,9 @@
 package com.company.itam.supplier.controller;
 
-import com.company.itam.common.pagination.PageResponse;
-import com.company.itam.common.response.ApiResponse;
-import com.company.itam.supplier.dto.SupplierContactRequest;
-import com.company.itam.supplier.dto.SupplierContactResponse;
-import com.company.itam.supplier.dto.SupplierRequest;
-import com.company.itam.supplier.dto.SupplierResponse;
-import com.company.itam.supplier.service.SupplierService;
+import java.util.List;
+
 import jakarta.validation.Valid;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -16,7 +12,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import com.company.itam.common.pagination.PageResponse;
+import com.company.itam.common.response.ApiResponse;
+import com.company.itam.supplier.dto.SupplierContactRequest;
+import com.company.itam.supplier.dto.SupplierContactResponse;
+import com.company.itam.supplier.dto.SupplierRequest;
+import com.company.itam.supplier.dto.SupplierResponse;
+import com.company.itam.supplier.service.SupplierService;
 
 @RestController
 @RequestMapping("/v1/suppliers")
@@ -49,14 +51,14 @@ public class SupplierController {
     @PostMapping
     public ResponseEntity<ApiResponse<SupplierResponse>> createSupplier(@Valid @RequestBody SupplierRequest request) {
         SupplierResponse result = supplierService.createSupplier(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Tạo nhà cung cấp thành công", result));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo nhà cung cấp thành công", result));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<SupplierResponse>> updateSupplier(
-            @PathVariable Long id,
-            @Valid @RequestBody SupplierRequest request) {
+            @PathVariable Long id, @Valid @RequestBody SupplierRequest request) {
         SupplierResponse result = supplierService.updateSupplier(id, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật nhà cung cấp thành công", result));
     }
@@ -71,8 +73,7 @@ public class SupplierController {
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PatchMapping("/{id}/active")
     public ResponseEntity<ApiResponse<SupplierResponse>> toggleActive(
-            @PathVariable Long id,
-            @RequestParam(required = false) Boolean active) {
+            @PathVariable Long id, @RequestParam(required = false) Boolean active) {
         SupplierResponse result = supplierService.toggleActive(id, active);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành công", result));
     }
@@ -88,27 +89,23 @@ public class SupplierController {
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PostMapping("/{id}/contacts")
     public ResponseEntity<ApiResponse<SupplierContactResponse>> addContact(
-            @PathVariable Long id,
-            @Valid @RequestBody SupplierContactRequest request) {
+            @PathVariable Long id, @Valid @RequestBody SupplierContactRequest request) {
         SupplierContactResponse result = supplierService.addContact(id, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Thêm người liên hệ thành công", result));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Thêm người liên hệ thành công", result));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @PutMapping("/{id}/contacts/{contactId}")
     public ResponseEntity<ApiResponse<SupplierContactResponse>> updateContact(
-            @PathVariable Long id,
-            @PathVariable Long contactId,
-            @Valid @RequestBody SupplierContactRequest request) {
+            @PathVariable Long id, @PathVariable Long contactId, @Valid @RequestBody SupplierContactRequest request) {
         SupplierContactResponse result = supplierService.updateContact(contactId, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật người liên hệ thành công", result));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'IT_STAFF')")
     @DeleteMapping("/{id}/contacts/{contactId}")
-    public ResponseEntity<ApiResponse<Void>> deleteContact(
-            @PathVariable Long id,
-            @PathVariable Long contactId) {
+    public ResponseEntity<ApiResponse<Void>> deleteContact(@PathVariable Long id, @PathVariable Long contactId) {
         supplierService.deleteContact(contactId);
         return ResponseEntity.ok(ApiResponse.success("Xóa người liên hệ thành công", null));
     }

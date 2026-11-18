@@ -4,9 +4,27 @@
   "description": "Lập phiếu và xử lý tài sản đủ điều kiện thanh lý.",
   "createTitle": "Tạo phiếu thanh lý",
   "pendingTitle": "Phiếu thanh lý",
-  "groups": { "PENDING": "Chờ xử lý", "DRAFT": "Nháp", "FINAL": "Đã xử lý" },
-  "statuses": { "PENDING": "Chờ xử lý", "PARTIAL": "Đã xử lý một phần", "APPROVED": "Đã duyệt", "DRAFT": "Nháp", "COMPLETED": "Hoàn tất", "REJECTED": "Từ chối", "CANCELLED": "Đã hủy" },
-  "groupStatus": { "PENDING": "Chờ xử lý", "APPROVED": "Đã duyệt", "COMPLETED": "Đã thực hiện", "REJECTED": "Đã từ chối", "CANCELLED": "Đã hủy" },
+  "groups": {
+    "PENDING": "Chờ xử lý",
+    "DRAFT": "Nháp",
+    "FINAL": "Đã xử lý"
+  },
+  "statuses": {
+    "PENDING": "Chờ xử lý",
+    "PARTIAL": "Đã xử lý một phần",
+    "APPROVED": "Đã duyệt",
+    "DRAFT": "Nháp",
+    "COMPLETED": "Hoàn tất",
+    "REJECTED": "Từ chối",
+    "CANCELLED": "Đã hủy"
+  },
+  "groupStatus": {
+    "PENDING": "Chờ xử lý",
+    "APPROVED": "Đã duyệt",
+    "COMPLETED": "Đã thực hiện",
+    "REJECTED": "Đã từ chối",
+    "CANCELLED": "Đã hủy"
+  },
   "groupReason": "Lý do",
   "execute": "Thực hiện thanh lý",
   "confirmExecute": "Xác nhận thực hiện",

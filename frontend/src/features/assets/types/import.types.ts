@@ -1,6 +1,7 @@
-export type ValidationStatus = 'VALID' | 'INVALID' | 'DUPLICATE' | 'IMPORTED';
+export type ValidationStatus = "VALID" | "INVALID" | "DUPLICATE" | "IMPORTED";
 
-export type ImportBatchStatus = 'UPLOADED' | 'VALIDATED' | 'IMPORTING' | 'COMPLETED' | 'FAILED';
+export type ImportBatchStatus =
+  "UPLOADED" | "VALIDATED" | "IMPORTING" | "COMPLETED" | "FAILED";
 
 export interface ImportRowError {
   rowNumber: number;

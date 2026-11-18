@@ -1,14 +1,19 @@
 package com.company.itam.importbatch.entity;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import jakarta.persistence.*;
+
+import org.hibernate.annotations.Type;
+
 import com.company.itam.asset.entity.AssetEntity;
 import com.company.itam.common.enums.ValidationStatus;
-import io.hypersistence.utils.hibernate.type.json.JsonType;
-import jakarta.persistence.*;
-import org.hibernate.annotations.Type;
-import java.time.Instant;
-import java.util.Map;
-import java.util.List;
 import com.company.itam.importbatch.dto.response.ImportRowErrorResponse;
+
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 
 @Entity
 @Table(name = "import_rows")
@@ -39,7 +44,7 @@ public class ImportRowEntity {
 
     @Type(JsonType.class)
     @Column(name = "validation_errors", columnDefinition = "jsonb")
-    private List<ImportRowErrorResponse> validationErrors = new java.util.ArrayList<>();
+    private List<ImportRowErrorResponse> validationErrors = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "asset_id")
@@ -105,8 +110,13 @@ public class ImportRowEntity {
         this.errorMessage = errorMessage;
     }
 
-    public List<ImportRowErrorResponse> getValidationErrors() { return validationErrors; }
-    public void setValidationErrors(List<ImportRowErrorResponse> validationErrors) { this.validationErrors = validationErrors; }
+    public List<ImportRowErrorResponse> getValidationErrors() {
+        return validationErrors;
+    }
+
+    public void setValidationErrors(List<ImportRowErrorResponse> validationErrors) {
+        this.validationErrors = validationErrors;
+    }
 
     public AssetEntity getAsset() {
         return asset;

@@ -1,6 +1,7 @@
 package com.company.itam.asset.dto.response;
 
 public class HardwareConfigDto {
+
     private String defaultCpu;
     private String defaultRam;
     private String defaultStorage;
