@@ -61,3 +61,7 @@ project_sources/
 task_sum.md
 docs/demo-2026-10-02/
 /docs/handover/word/
+
+# Local demo scripts
+/start-demo.ps1
+/stop-demo.ps1
