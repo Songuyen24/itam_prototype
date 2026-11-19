@@ -11,6 +11,7 @@ backend/*.class
 backend/*.jar
 
 # Frontend
+.vite/
 frontend/node_modules/
 frontend/dist/
 frontend/.DS_Store
